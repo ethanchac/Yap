@@ -1,7 +1,6 @@
 import bcrypt
 from users.models import create_user_document
 
-#encrypts the password
 def hash_password(plain_password: str) -> str:
     hashed = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt())
     return hashed.decode('utf-8')
@@ -18,4 +17,3 @@ def register_user(users_collection, username: str, password: str) -> dict:
     users_collection.insert_one(user_doc)
 
     return {"success": True, "message": "User registered"}
-

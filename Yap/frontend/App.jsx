@@ -1,14 +1,10 @@
-import RegisterForm from "./components/authentication/RegisterForm";
-import LoginForm from "./components/authentication/LoginForm";
+import AuthRoutes from './AuthRoutes'; // Import AuthRoutes
 
 function App() {
   return (
-    <>
-      <h1>Register</h1>
-      <RegisterForm />
-      <h1>Login</h1>
-      <LoginForm />
-    </>
+      <div>
+        <AuthRoutes />
+      </div>
   );
 }
 
