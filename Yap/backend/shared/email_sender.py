@@ -21,16 +21,16 @@ def send_verification_email(to_email: str, code: str) -> bool:
     message = Mail(
         from_email=FROM_EMAIL,
         to_emails=to_email,
-        subject="Your TMU UniThread Verification Code",
+        subject="Your TMU Yapp Verification Code",
         html_content=f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #003c71; color: white; padding: 20px; text-align: center;">
-                <h1>TMU UniThread</h1>
+                <h1>TMU Yapp</h1>
                 <p>Email Verification</p>
             </div>
             <div style="padding: 30px; background: #f9f9f9;">
                 <h2>Verify Your TMU Email</h2>
-                <p>Welcome to TMU UniThread! Please enter this verification code to complete your registration:</p>
+                <p>Welcome to TMU Yapp! Please enter this verification code to complete your registration:</p>
                 
                 <div style="background: white; padding: 20px; border: 2px solid #003c71; text-align: center; margin: 20px 0; border-radius: 8px;">
                     <h1 style="color: #003c71; font-size: 32px; margin: 0; letter-spacing: 4px;">{code}</h1>
@@ -41,7 +41,7 @@ def send_verification_email(to_email: str, code: str) -> bool:
                 
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
                 <p style="color: #666; font-size: 12px; text-align: center;">
-                    TMU UniThread - Toronto Metropolitan University Student Platform
+                    TMU Yapp - Toronto Metropolitan University Student Platform
                 </p>
             </div>
         </div>
