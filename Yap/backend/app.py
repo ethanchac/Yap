@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from auth.routes import auth_bp
+from registration.routes import registration_bp
 from users.routes import users_bp
-from authentication.routes import auth_bp
+from verification.routes import verification_bp
 import os
 
 # Load environment variables
@@ -18,8 +20,12 @@ mongo_uri = os.getenv("MONGO_URI")
 client = MongoClient(mongo_uri)
 db = client["unithread"]  # This must match the DB name in your URI
 app.config["DB"] = db
-app.register_blueprint(users_bp, url_prefix="/users")
+
+# Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/auth")
+app.register_blueprint(registration_bp, url_prefix="/users")
+app.register_blueprint(users_bp, url_prefix="/profile")
+app.register_blueprint(verification_bp, url_prefix="/verification")
 
 posts_collection = db["posts"]
 

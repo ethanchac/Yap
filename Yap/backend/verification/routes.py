@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify, current_app, g
 from shared.auth_utils import require_auth
-from users.verification_service import generate_6_digit_code, is_valid_tmu_email
+from verification.services import generate_6_digit_code, is_valid_tmu_email
 
-verify_bp = Blueprint("verify", __name__)
+verification_bp = Blueprint("verification", __name__)
 
-@verify_bp.route("/verify-email", methods=["POST"])
+@verification_bp.route("/verify-email", methods=["POST"])
 @require_auth
 def send_verification_email():
     data = request.get_json()
@@ -27,7 +27,7 @@ def send_verification_email():
     return jsonify({"message": "Verification code sent to your email"}), 200
 
 
-@verify_bp.route("/confirm-code", methods=["POST"])
+@verification_bp.route("/confirm-code", methods=["POST"])
 @require_auth
 def confirm_code():
     data = request.get_json()
