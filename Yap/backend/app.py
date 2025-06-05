@@ -6,53 +6,43 @@ from auth.routes import auth_bp
 from registration.routes import registration_bp
 from users.routes import users_bp
 from verification.routes import verification_bp
+from posts.routes import posts_bp
 import os
+import sys
 
 # Load environment variables
 load_dotenv()
+
+# Check if we're in test mode (you can pass --test argument)
+TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 
 # Flask setup
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 
+# Database selection based on test mode
+if TEST_MODE:
+    mongo_uri = os.getenv("MONGO_TEST_URI")
+    db_name = "unithread_test"
+    print("🧪 Running in TEST mode - using test database")
+else:
+    mongo_uri = os.getenv("MONGO_URI")
+    db_name = "unithread"
+    print("🚀 Running in DEV mode - using main database")
+
 # MongoDB setup
-mongo_uri = os.getenv("MONGO_URI")
 client = MongoClient(mongo_uri)
-db = client["unithread"]  # This must match the DB name in your URI
+db = client[db_name]
 app.config["DB"] = db
+
+print(f"📊 Connected to database: {db_name}")
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(registration_bp, url_prefix="/users")
 app.register_blueprint(users_bp, url_prefix="/profile")
 app.register_blueprint(verification_bp, url_prefix="/verification")
-
-posts_collection = db["posts"]
-
-# Routes
-@app.route("/ping", methods=["GET"])
-def ping():
-    return jsonify({"message": "pong"})
-
-@app.route("/submit-post", methods=["POST"])
-def submit_post():
-    data = request.get_json()
-
-    # Validate
-    username = data.get("username")
-    content = data.get("content")
-
-    if not username or not content:
-        return jsonify({"error": "username and content required"}), 400
-
-    # Save to DB
-    post = {"username": username, "content": content}
-    result = posts_collection.insert_one(post)
-
-    return jsonify({
-        "message": "Post submitted",
-        "post_id": str(result.inserted_id)
-    }), 201
+app.register_blueprint(posts_bp, url_prefix="/posts")
 
 if __name__ == "__main__":
     app.run(debug=True)
