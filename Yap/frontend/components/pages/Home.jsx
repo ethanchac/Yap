@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../sidebar/Sidebar';
+import PostItem from '../posts/PostItem';
 
 function Home() {
     const [posts, setPosts] = useState([]);
@@ -76,11 +77,6 @@ function Home() {
         fetchPosts(1, true);
     };
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    };
-
     if (loading && posts.length === 0) {
         return (
             <>
@@ -115,19 +111,7 @@ function Home() {
                 ) : (
                     <div>
                         {posts.map((post) => (
-                            <div key={post._id}>
-                                <div>
-                                    <h3>@{post.username}</h3>
-                                    <span>{formatDate(post.created_at)}</span>
-                                </div>
-                                
-                                <p>{post.content}</p>
-                                
-                                <div>
-                                    <span>Likes: {post.likes_count}</span>
-                                    <span>Comments: {post.comments_count}</span>
-                                </div>
-                            </div>
+                            <PostItem key={post._id} post={post} />
                         ))}
                     </div>
                 )}

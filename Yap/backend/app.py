@@ -7,6 +7,7 @@ from registration.routes import registration_bp
 from users.routes import users_bp
 from verification.routes import verification_bp
 from posts.routes import posts_bp
+from comments.routes import comments_bp
 import os
 import sys
 
@@ -43,6 +44,7 @@ app.register_blueprint(registration_bp, url_prefix="/users")
 app.register_blueprint(users_bp, url_prefix="/profile")
 app.register_blueprint(verification_bp, url_prefix="/verification")
 app.register_blueprint(posts_bp, url_prefix="/posts")
+app.register_blueprint(comments_bp, url_prefix="/comments")
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -100,3 +100,50 @@ def get_user_posts(user_id):
         
     except Exception as e:
         return jsonify({"error": "Failed to fetch user posts"}), 500
+
+# NEW ROUTES FOR LIKES AND SINGLE POST
+@posts_bp.route('/<post_id>/like', methods=['POST'])
+@token_required
+def like_post(current_user, post_id):
+    """Like or unlike a post"""
+    try:
+        # Check if post exists
+        post = Post.get_post_by_id(post_id)
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        result = Post.like_post(post_id, current_user['_id'])
+        
+        if "error" in result:
+            return jsonify({"error": result["error"]}), 500
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"Error liking post: {e}")
+        return jsonify({"error": "Failed to like post"}), 500
+
+@posts_bp.route('/<post_id>/like-status', methods=['GET'])
+@token_required
+def get_like_status(current_user, post_id):
+    """Check if current user has liked a post"""
+    try:
+        liked = Post.check_user_liked_post(post_id, current_user['_id'])
+        return jsonify({"liked": liked}), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Failed to check like status"}), 500
+
+@posts_bp.route('/<post_id>', methods=['GET'])
+def get_single_post(post_id):
+    """Get a single post by ID (for the comments page)"""
+    try:
+        post = Post.get_post_by_id(post_id)
+        
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+            
+        return jsonify({"post": post}), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Failed to fetch post"}), 500

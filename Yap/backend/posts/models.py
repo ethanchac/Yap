@@ -92,3 +92,56 @@ class Post:
             return None
         except Exception:
             return None
+
+    # NEW METHODS FOR LIKES
+    @staticmethod
+    def like_post(post_id, user_id):
+        """Like or unlike a post"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Check if user already liked this post
+            existing_like = db.likes.find_one({
+                "post_id": post_id,
+                "user_id": user_id,
+                "type": "post"
+            })
+            
+            if existing_like:
+                # Unlike - remove like and decrement count
+                db.likes.delete_one({"_id": existing_like["_id"]})
+                db.posts.update_one(
+                    {"_id": ObjectId(post_id)},
+                    {"$inc": {"likes_count": -1}}
+                )
+                return {"liked": False, "message": "Post unliked"}
+            else:
+                # Like - add like and increment count
+                like_doc = {
+                    "post_id": post_id,
+                    "user_id": user_id,
+                    "type": "post",
+                    "created_at": datetime.utcnow()
+                }
+                db.likes.insert_one(like_doc)
+                db.posts.update_one(
+                    {"_id": ObjectId(post_id)},
+                    {"$inc": {"likes_count": 1}}
+                )
+                return {"liked": True, "message": "Post liked"}
+                
+        except Exception as e:
+            return {"error": str(e)}
+
+    @staticmethod
+    def check_user_liked_post(post_id, user_id):
+        """Check if user has liked a specific post"""
+        db = current_app.config["DB"]
+        
+        like = db.likes.find_one({
+            "post_id": post_id,
+            "user_id": user_id,
+            "type": "post"
+        })
+        
+        return like is not None

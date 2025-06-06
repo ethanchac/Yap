@@ -8,6 +8,7 @@ import Messages from './components/pages/Messages.jsx';
 import Likes from './components/pages/Likes.jsx';
 import Profile from './components/pages/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
+import CommentsPage from './components/pages/CommentsPage.jsx';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -79,6 +80,14 @@ function AuthRoutes() {
                 element={
                     <PrivateRoute>
                         <Settings />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/post/:postId/comments"
+                element={
+                    <PrivateRoute>
+                        <CommentsPage />
                     </PrivateRoute>
                 }
             />
