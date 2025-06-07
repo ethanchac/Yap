@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../sidebar/Sidebar';
+import Header from '../header/Header'
 
 function Users() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -61,6 +62,7 @@ function Users() {
 
     return (
         <>
+            <Header />
             <Sidebar />
             <div>
                 <h1>Search Users</h1>

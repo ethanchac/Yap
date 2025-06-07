@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
+import Header from '../header/Header'
 
 function Home() {
     const [posts, setPosts] = useState([]);
@@ -90,6 +91,7 @@ function Home() {
 
     return (
         <>
+            <Header />
             <Sidebar />
             <div>
                 <h1>Home Feed</h1>

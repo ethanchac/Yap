@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Header from '../header/Header'
 import Sidebar from '../sidebar/Sidebar';
 
 function CommentsPage() {
@@ -127,6 +128,7 @@ function CommentsPage() {
     if (loading) {
         return (
             <>
+                <Header />
                 <Sidebar />
                 <div>
                     <p>Loading...</p>
@@ -137,7 +139,8 @@ function CommentsPage() {
 
     if (!post) {
         return (
-            <>
+            <>  
+                <Header />
                 <Sidebar />
                 <div>
                     <p>Post not found</p>

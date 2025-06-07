@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Sidebar from '../sidebar/Sidebar';
+import Header from '../header/Header'
 
 function Create() {
     const [content, setContent] = useState('');
@@ -56,6 +57,7 @@ function Create() {
 
     return (
         <>
+            <Header />
             <Sidebar />
             <div>
                 <h1>Create New Post</h1>
