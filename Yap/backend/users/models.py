@@ -10,7 +10,13 @@ def create_user_document(username, hashed_password):
         "is_verified": False,
         "email": None,
         "email_verification_data": None,
-        "created_at": datetime.now()
+        "full_name": "",
+        "bio": "",
+        "profile_picture": "",
+        "website": "",
+        "location": "",
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
     }
 
 class User:
@@ -89,6 +95,115 @@ class User:
             user["_id"] = str(user["_id"])
             return user
         return None
+
+    @staticmethod
+    def get_enhanced_user_profile(user_id, current_user_id=None):
+        """Enhanced version of get_user_profile with additional profile fields and follow status"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Get user basic info with new profile fields
+            user = db.users.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return None
+            
+            # Count posts by this user
+            posts_count = db.posts.count_documents({"user_id": user_id})
+            
+            # Count followers and following
+            followers_count = db.follows.count_documents({"following_id": user_id})
+            following_count = db.follows.count_documents({"follower_id": user_id})
+            
+            # Check if current user is following this user
+            is_following = False
+            if current_user_id and current_user_id != user_id:
+                is_following = Follow.check_following_status(current_user_id, user_id)
+            
+            # Enhanced profile data with new fields
+            profile = {
+                "_id": str(user["_id"]),
+                "username": user["username"],
+                "email": user.get("email"),
+                "full_name": user.get("full_name", ""),
+                "bio": user.get("bio", ""),
+                "profile_picture": user.get("profile_picture", ""),
+                "website": user.get("website", ""),
+                "location": user.get("location", ""),
+                "is_verified": user.get("is_verified", False),
+                "created_at": user["created_at"],
+                "updated_at": user.get("updated_at"),
+                "posts_count": posts_count,
+                "followers_count": followers_count,
+                "following_count": following_count,
+                "is_following": is_following,
+                "is_own_profile": str(current_user_id) == str(user_id) if current_user_id else False
+            }
+            
+            return profile
+            
+        except Exception as e:
+            print(f"Error getting enhanced user profile: {e}")
+            return None
+
+    @staticmethod
+    def get_profile_with_recent_posts(user_id, current_user_id=None, posts_limit=6):
+        """Get user profile with their recent posts"""
+        try:
+            # Get enhanced profile
+            profile = User.get_enhanced_user_profile(user_id, current_user_id)
+            if not profile:
+                return None
+            
+            # Get recent posts (using your existing method)
+            from posts.models import Post
+            recent_posts = Post.get_user_posts(user_id, limit=posts_limit)
+            
+            # Add recent posts to profile
+            profile['recent_posts'] = recent_posts
+            
+            return profile
+            
+        except Exception as e:
+            print(f"Error getting profile with posts: {e}")
+            return None
+
+    @staticmethod
+    def update_user_profile(user_id, profile_data):
+        """Update user profile information"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Define allowed fields for profile update
+            allowed_fields = ['full_name', 'bio', 'profile_picture', 'website', 'location']
+            
+            # Build update document with only allowed fields
+            update_doc = {}
+            for field in allowed_fields:
+                if field in profile_data:
+                    update_doc[field] = profile_data[field]
+            
+            if not update_doc:
+                return {"error": "No valid fields to update"}
+            
+            # Add updated timestamp
+            update_doc['updated_at'] = datetime.now()
+            
+            # Update user document
+            result = db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": update_doc}
+            )
+            
+            if result.modified_count > 0:
+                # Return updated user profile
+                updated_user = User.get_enhanced_user_profile(user_id, user_id)
+                return {"success": True, "profile": updated_user}
+            else:
+                return {"error": "Failed to update profile"}
+                
+        except Exception as e:
+            print(f"Error updating profile: {e}")
+            return {"error": str(e)}
 
 class Follow:
     @staticmethod

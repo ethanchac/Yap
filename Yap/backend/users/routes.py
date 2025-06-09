@@ -153,3 +153,183 @@ def get_user_posts_public(user_id):
         
     except Exception as e:
         return jsonify({"error": "Failed to fetch user posts"}), 500
+
+@users_bp.route('/me', methods=['GET'])
+@token_required
+def get_my_profile(current_user):
+    """Get current user's own enhanced profile"""
+    try:
+        include_posts = request.args.get('include_posts', 'false').lower() == 'true'
+        posts_limit = int(request.args.get('posts_limit', 6))
+        
+        if include_posts:
+            profile = User.get_profile_with_recent_posts(
+                current_user['_id'], 
+                current_user['_id'],
+                posts_limit
+            )
+        else:
+            profile = User.get_enhanced_user_profile(
+                current_user['_id'], 
+                current_user['_id']
+            )
+        
+        if not profile:
+            return jsonify({"error": "Profile not found"}), 404
+        
+        return jsonify({
+            "success": True,
+            "profile": profile
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching own profile: {e}")
+        return jsonify({"error": "Failed to fetch profile"}), 500
+
+@users_bp.route('/me', methods=['PUT'])
+@token_required
+def update_my_profile(current_user):
+    """Update current user's profile"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate data
+        validation_error = _validate_profile_data(data)
+        if validation_error:
+            return jsonify({"error": validation_error}), 400
+        
+        result = User.update_user_profile(current_user['_id'], data)
+        
+        if "error" in result:
+            return jsonify({"error": result["error"]}), 400
+        
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully",
+            "profile": result["profile"]
+        }), 200
+        
+    except Exception as e:
+        print(f"Error updating profile: {e}")
+        return jsonify({"error": "Failed to update profile"}), 500
+
+@users_bp.route('/me/picture', methods=['PUT'])
+@token_required
+def update_my_profile_picture(current_user):
+    """Update current user's profile picture"""
+    try:
+        data = request.get_json()
+        picture_url = data.get('profile_picture') if data else None
+        
+        if not picture_url:
+            return jsonify({"error": "Profile picture URL required"}), 400
+        
+        # Basic URL validation
+        if not picture_url.startswith(('http://', 'https://')):
+            return jsonify({"error": "Invalid URL format"}), 400
+        
+        result = User.update_user_profile(
+            current_user['_id'], 
+            {"profile_picture": picture_url}
+        )
+        
+        if "error" in result:
+            return jsonify({"error": result["error"]}), 400
+        
+        return jsonify({
+            "success": True,
+            "message": "Profile picture updated successfully",
+            "profile": result["profile"]
+        }), 200
+        
+    except Exception as e:
+        print(f"Error updating profile picture: {e}")
+        return jsonify({"error": "Failed to update profile picture"}), 500
+
+@users_bp.route('/profile/<user_id>/enhanced', methods=['GET'])
+@token_required
+def get_enhanced_user_profile_route(current_user, user_id):
+    """Get enhanced user profile (authenticated - shows follow status)"""
+    try:
+        include_posts = request.args.get('include_posts', 'false').lower() == 'true'
+        posts_limit = int(request.args.get('posts_limit', 6))
+        
+        if include_posts:
+            profile = User.get_profile_with_recent_posts(
+                user_id, 
+                current_user['_id'],
+                posts_limit
+            )
+        else:
+            profile = User.get_enhanced_user_profile(user_id, current_user['_id'])
+        
+        if not profile:
+            return jsonify({"error": "User not found"}), 404
+        
+        return jsonify({
+            "success": True,
+            "profile": profile
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching enhanced profile: {e}")
+        return jsonify({"error": "Failed to fetch user profile"}), 500
+
+@users_bp.route('/profile/username/<username>/enhanced', methods=['GET'])
+@token_required
+def get_enhanced_profile_by_username(current_user, username):
+    """Get enhanced user profile by username (authenticated)"""
+    try:
+        user = User.get_user_by_username(username)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        include_posts = request.args.get('include_posts', 'false').lower() == 'true'
+        posts_limit = int(request.args.get('posts_limit', 6))
+        
+        if include_posts:
+            profile = User.get_profile_with_recent_posts(
+                user["_id"], 
+                current_user['_id'],
+                posts_limit
+            )
+        else:
+            profile = User.get_enhanced_user_profile(user["_id"], current_user['_id'])
+        
+        return jsonify({
+            "success": True,
+            "profile": profile
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Failed to fetch user profile"}), 500
+
+# Helper function for validation
+def _validate_profile_data(profile_data):
+    """Validate profile update data"""
+    validation_rules = {
+        'full_name': {'max_length': 100},
+        'bio': {'max_length': 500},
+        'website': {'max_length': 200},
+        'location': {'max_length': 100},
+        'profile_picture': {'max_length': 500}
+    }
+    
+    for field, value in profile_data.items():
+        if field in validation_rules:
+            rules = validation_rules[field]
+            
+            # Check max length
+            if value and len(str(value)) > rules.get('max_length', float('inf')):
+                return f"{field} exceeds maximum length of {rules['max_length']} characters"
+            
+            # URL validation for website and profile_picture
+            if field in ['website', 'profile_picture'] and value:
+                if not value.startswith(('http://', 'https://')):
+                    return f"{field} must be a valid URL starting with http:// or https://"
+    
+    return None

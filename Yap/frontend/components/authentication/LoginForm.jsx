@@ -38,8 +38,8 @@ export default function LoginForm() {
         localStorage.setItem("token", data.token);
         
         setMsg("Login success");
-        // Navigate to protected page
-        navigate('/Home'); // Match your route exactly
+        // navigate to homepage
+        navigate('/Home');
       } else {
         setMsg(data.error || "Login failed");
       }
