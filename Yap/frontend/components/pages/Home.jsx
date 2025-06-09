@@ -29,7 +29,7 @@ function Home() {
                     setPosts(prevPosts => [...prevPosts, ...data.posts]);
                 }
                 
-                // Check if there are more posts to load
+                // chheck if there are more posts to load
                 setHasMore(data.posts.length === 20);
             } else {
                 setError(data.error || 'Failed to fetch posts');
@@ -42,7 +42,7 @@ function Home() {
         }
     };
 
-    // Infinite scroll handler
+    // infinite scroll handler (completely AI ts no clue how it works)
     const handleScroll = useCallback(() => {
         if (loadingMore || !hasMore) return;
 

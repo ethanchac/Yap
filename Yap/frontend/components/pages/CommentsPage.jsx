@@ -21,7 +21,7 @@ function CommentsPage() {
         try {
             setLoading(true);
             
-            // Fetch post and comments
+            // fetch the posts and comments
             const response = await fetch(`http://localhost:5000/comments/post/${postId}`);
             const data = await response.json();
 
@@ -71,11 +71,11 @@ function CommentsPage() {
             const data = await response.json();
 
             if (response.ok) {
-                // Add new comment to the list
+                // add the new comment to list
                 setComments(prev => [...prev, data.comment]);
                 setNewComment('');
                 
-                // Update post comment count
+                // update post comment count
                 setPost(prev => ({
                     ...prev,
                     comments_count: prev.comments_count + 1
@@ -103,10 +103,10 @@ function CommentsPage() {
             });
 
             if (response.ok) {
-                // Remove comment from list
+                // remove comment from list
                 setComments(prev => prev.filter(comment => comment._id !== commentId));
                 
-                // Update post comment count
+                // update post comment count
                 setPost(prev => ({
                     ...prev,
                     comments_count: prev.comments_count - 1
@@ -160,7 +160,7 @@ function CommentsPage() {
 
                 <h1>Post</h1>
 
-                {/* Original Post */}
+                {/* original post */}
                 <div>
                     <div>
                         <strong>@{post.username}</strong>
@@ -172,13 +172,13 @@ function CommentsPage() {
                     <p>{post.content}</p>
                     
                     <div>
-                        {/* Change these icons to however you want */}
+                        {/* Change these icons to however you want used emojis as placeholders */}
                         <span>❤️ {post.likes_count}</span>
                         <span>💬 {post.comments_count}</span>
                     </div>
                 </div>
 
-                {/* Comment Form */}
+                {/* comment form */}
                 <div>
                     <h3>Add a Comment</h3>
                     <form onSubmit={handleSubmitComment}>
@@ -225,7 +225,7 @@ function CommentsPage() {
                                             {formatDate(comment.created_at)}
                                         </span>
                                         
-                                        {/* Show delete button if user owns the comment */}
+                                        {/* show delete button if user owns the comment */}
                                         {localStorage.getItem('token') && (
                                             <button 
                                                 onClick={() => deleteComment(comment._id)}

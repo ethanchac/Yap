@@ -44,7 +44,7 @@ function Create() {
 
             if (response.ok) {
                 setMessage('Post created successfully!');
-                setContent(''); // Clear the form
+                setContent(''); // clear the form
             } else {
                 setError(data.error || 'Failed to create post');
             }

@@ -26,7 +26,7 @@ export default function RegisterForm() {
     setMsg("");
     setLoading(true);
 
-    // Basic validation
+    // validation
     if (formData.password !== formData.confirmPassword) {
       setMsg("Passwords don't match");
       setLoading(false);
@@ -53,7 +53,7 @@ export default function RegisterForm() {
       const data = await res.json();
       if (res.ok) {
         setMsg("Registration successful! Please check your email for verification code.");
-        setStep(2); // Move to verification step
+        setStep(2); // go to verification step
       } else {
         setMsg(data.error || "Registration failed");
       }
@@ -79,8 +79,8 @@ export default function RegisterForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: formData.username, // Changed from email to username
-          code: verificationCode.trim() // Changed from verificationCode to code
+          username: formData.username,
+          code: verificationCode.trim() 
         })
       });
 
@@ -113,7 +113,7 @@ export default function RegisterForm() {
       const res = await fetch("http://localhost:5000/users/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: formData.username }) // Changed from email to username
+        body: JSON.stringify({ username: formData.username }) 
       });
 
       const data = await res.json();

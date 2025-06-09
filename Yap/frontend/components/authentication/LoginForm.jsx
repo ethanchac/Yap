@@ -34,7 +34,7 @@ export default function LoginForm() {
 
       const data = await res.json();
       if (res.ok) {
-        // Store the token in localStorage
+        // store the token in localStorage
         localStorage.setItem("token", data.token);
         
         setMsg("Login success");

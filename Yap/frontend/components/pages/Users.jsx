@@ -10,7 +10,7 @@ function Users() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // Debounced search function
+    // search function using debouncing
     const debouncedSearch = useCallback(
         debounce(async (query) => {
             if (query.length < 2) {
@@ -41,7 +41,7 @@ function Users() {
         []
     );
 
-    // Effect to trigger search when query changes
+    // anytime the search changes the debounce gets called
     useEffect(() => {
         debouncedSearch(searchQuery);
     }, [searchQuery, debouncedSearch]);
@@ -51,7 +51,7 @@ function Users() {
     };
 
     const handleUserClick = (userId) => {
-        // Navigate to user profile page
+        // goes to the profile page
         navigate(`/profile/${userId}`);
     };
 
@@ -136,7 +136,7 @@ function Users() {
     );
 }
 
-// Debounce utility function
+// stuff for debounce (used ai for all ts wtf even is this)
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
