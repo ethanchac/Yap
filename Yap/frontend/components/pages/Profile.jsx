@@ -1,6 +1,6 @@
 import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -14,6 +14,8 @@ const Profile = () => {
     location: '',
     profile_picture: ''
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
 
   const API_BASE_URL = 'http://localhost:5000';
 
@@ -22,6 +24,14 @@ const Profile = () => {
     const token = localStorage.getItem('token');
     return {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  };
+
+  // Get auth headers for file upload (without Content-Type)
+  const getFileUploadHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
       ...(token && { 'Authorization': `Bearer ${token}` })
     };
   };
@@ -76,8 +86,37 @@ const Profile = () => {
     }
   };
 
-  // Update profile picture
-  const updateProfilePicture = async (pictureUrl) => {
+  // Upload profile picture file
+  const uploadProfilePicture = async (file) => {
+    try {
+      setUploadingImage(true);
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('profile_picture', file);
+      
+      const response = await fetch(`${API_BASE_URL}/profile/me/picture/upload`, {
+        method: 'POST',
+        headers: getFileUploadHeaders(),
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload profile picture');
+      }
+      
+      const data = await response.json();
+      setProfile(data.profile);
+      setEditForm(prev => ({ ...prev, profile_picture: data.profile.profile_picture }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Update profile picture URL
+  const updateProfilePictureUrl = async (pictureUrl) => {
     try {
       const response = await fetch(`${API_BASE_URL}/profile/me/picture`, {
         method: 'PUT',
@@ -95,6 +134,37 @@ const Profile = () => {
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  // Handle file selection
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+        return;
+      }
+      
+      // Validate file size (e.g., 5MB limit)
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSizeInBytes) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      
+      // Clear any previous errors
+      setError(null);
+      
+      // Upload the file
+      uploadProfilePicture(file);
+    }
+  };
+
+  // Open file picker
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
   useEffect(() => {
@@ -133,22 +203,67 @@ const Profile = () => {
         
         {/* Profile Picture */}
         <div>
-        <img 
-            src={profile.profile_picture || '/default-avatar.png'} 
-            alt={profile.username}
-            width="100"
-            height="100"
-        />
-        {isEditing && (
-            <div>
-            <input
-                type="url"
-                placeholder="Profile picture URL"
-                value={editForm.profile_picture}
-                onChange={(e) => handleInputChange('profile_picture', e.target.value)}
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <img 
+                src={profile.profile_picture || '/default-avatar.png'} 
+                alt={profile.username}
+                width="100"
+                height="100"
+                style={{ borderRadius: '50%', objectFit: 'cover' }}
             />
-            </div>
-        )}
+            {uploadingImage && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white'
+              }}>
+                Uploading...
+              </div>
+            )}
+          </div>
+          
+          {/* File input (hidden) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+          />
+          
+          {/* Upload/Edit buttons */}
+          <div style={{ marginTop: '10px' }}>
+            <button 
+              onClick={openFilePicker}
+              disabled={uploadingImage}
+            >
+              {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
+            </button>
+            
+            {isEditing && (
+              <div style={{ marginTop: '10px' }}>
+                <label>Or enter image URL:</label>
+                <input
+                  type="url"
+                  placeholder="Profile picture URL"
+                  value={editForm.profile_picture}
+                  onChange={(e) => handleInputChange('profile_picture', e.target.value)}
+                />
+                <button 
+                  onClick={() => updateProfilePictureUrl(editForm.profile_picture)}
+                >
+                  Update from URL
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Basic Info */}

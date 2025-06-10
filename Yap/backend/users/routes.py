@@ -2,6 +2,16 @@ from flask import Blueprint, request, jsonify, current_app
 from users.models import User, Follow
 from posts.models import Post
 from auth.service import token_required
+import os
+import uuid
+from werkzeug.utils import secure_filename
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    """Check if file has allowed extension"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 users_bp = Blueprint('users', __name__)
 
@@ -333,3 +343,102 @@ def _validate_profile_data(profile_data):
                     return f"{field} must be a valid URL starting with http:// or https://"
     
     return None
+
+@users_bp.route('/me/picture/upload', methods=['POST', 'OPTIONS'])
+def upload_profile_picture():
+    """Upload profile picture file"""
+    
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+    
+    try:
+        # Manual token verification
+        from auth.service import verify_token
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            try:
+                token = auth_header.split(' ')[1]
+            except IndexError:
+                return jsonify({'error': 'Invalid token format'}), 401
+        
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        
+        token_data = verify_token(token)
+        if not token_data:
+            return jsonify({'error': 'Token is invalid'}), 401
+        
+        # Get full user data by username since token only has username
+        username = token_data.get('username')
+        if not username:
+            return jsonify({'error': 'Invalid token data'}), 401
+        
+        # Look up user by username to get _id
+        current_user = User.get_user_by_username(username)
+        if not current_user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        print(f"Found user: {current_user.get('_id')} ({username})")
+        
+        # Check if file is in request
+        if 'profile_picture' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['profile_picture']
+        
+        # Check if file was selected
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        # Validate file type
+        if not allowed_file(file.filename):
+            return jsonify({"error": "Invalid file type. Allowed: PNG, JPG, JPEG, GIF, WebP"}), 400
+        
+        # Generate unique filename
+        file_extension = file.filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        
+        # Create user-specific directory
+        user_upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], current_user['_id'])
+        os.makedirs(user_upload_dir, exist_ok=True)
+        
+        # Save file
+        file_path = os.path.join(user_upload_dir, unique_filename)
+        file.save(file_path)
+        
+        # Create URL for the uploaded file
+        picture_url = f"http://localhost:5000/uploads/profile_pictures/{current_user['_id']}/{unique_filename}"
+        
+        # Update user profile with new picture URL
+        result = User.update_user_profile(
+            current_user['_id'], 
+            {"profile_picture": picture_url}
+        )
+        
+        if "error" in result:
+            # Clean up uploaded file if database update fails
+            try:
+                os.remove(file_path)
+            except:
+                pass
+            return jsonify({"error": result["error"]}), 400
+        
+        return jsonify({
+            "success": True,
+            "message": "Profile picture uploaded successfully",
+            "profile": result["profile"]
+        }), 200
+        
+    except Exception as e:
+        print(f"Error uploading profile picture: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Failed to upload profile picture"}), 500

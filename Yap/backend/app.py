@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -19,6 +19,15 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 
 # Flask setup
 app = Flask(__name__)
+
+# File upload configuration
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
+
+# Create upload directory if it doesn't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# CORS configuration
 CORS(app, 
      origins=["http://localhost:5173"], 
      supports_credentials=True,
@@ -50,5 +59,30 @@ app.register_blueprint(verification_bp, url_prefix="/verification")
 app.register_blueprint(posts_bp, url_prefix="/posts")
 app.register_blueprint(comments_bp, url_prefix="/comments")
 
+# Route to serve uploaded profile pictures
+@app.route('/uploads/profile_pictures/<user_id>/<filename>')
+def uploaded_file(user_id, filename):
+    """Serve uploaded profile pictures"""
+    try:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_id, filename)
+        if os.path.exists(file_path):
+            return send_from_directory(
+                os.path.join(app.config['UPLOAD_FOLDER'], user_id), 
+                filename
+            )
+        else:
+            return jsonify({"error": "File not found"}), 404
+    except Exception as e:
+        print(f"Error serving file: {e}")
+        return jsonify({"error": "Failed to serve file"}), 500
+
+
+# Error handler for file size exceeded
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({"error": "File too large. Maximum size is 5MB"}), 413
+
 if __name__ == "__main__":
+    print(f"🎯 Upload folder: {app.config['UPLOAD_FOLDER']}")
+    print(f"📁 Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024*1024)}MB")
     app.run(debug=True)
