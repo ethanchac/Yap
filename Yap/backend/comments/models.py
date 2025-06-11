@@ -8,7 +8,7 @@ class Comment:
         """Create a new comment on a post"""
         db = current_app.config["DB"]
         
-        # Create comment document
+        # created the comment format
         comment_doc = {
             "post_id": post_id,
             "user_id": user_id,
@@ -18,24 +18,24 @@ class Comment:
             "likes_count": 0
         }
         
-        # Insert comment
+        # insert the comment
         result = db.comments.insert_one(comment_doc)
         
-        # Increment comment count on the post
+        # increment the amount of comments
         db.posts.update_one(
             {"_id": ObjectId(post_id)},
             {"$inc": {"comments_count": 1}}
         )
         
-        # Return the created comment with its ID
+        # return the created comment with its ID
         comment_doc["_id"] = str(result.inserted_id)
         return comment_doc
     
     @staticmethod
     def get_post_comments(post_id, limit=50, skip=0):
-        """Get all comments for a specific post"""
+        """get all comments for a specific post"""
         db = current_app.config["DB"]
-        
+        # used pipeline... completely used AI for this lmao never heard of that before
         pipeline = [
             {"$match": {"post_id": post_id}},
             {"$sort": {"created_at": 1}},  # Oldest first for comments
@@ -59,23 +59,23 @@ class Comment:
     
     @staticmethod
     def delete_comment(comment_id, user_id):
-        """Delete a comment (only by the author)"""
+        """delete a comment (only from the actual owner of the comment)"""
         db = current_app.config["DB"]
         
         try:
             # Find the comment first
             comment = db.comments.find_one({
                 "_id": ObjectId(comment_id),
-                "user_id": user_id  # Only author can delete
+                "user_id": user_id  # only the owner can delete
             })
             
             if not comment:
                 return False
             
-            # Delete the comment
+            # delete the comment
             db.comments.delete_one({"_id": ObjectId(comment_id)})
             
-            # Decrement comment count on the post
+            # decrement comment count on the post
             db.posts.update_one(
                 {"_id": ObjectId(comment["post_id"])},
                 {"$inc": {"comments_count": -1}}

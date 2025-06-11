@@ -8,10 +8,10 @@ comments_bp = Blueprint('comments', __name__)
 @comments_bp.route('/create', methods=['POST'])
 @token_required
 def create_comment(current_user):
-    """Create a new comment on a post"""
+    """create a new comment on a post"""
     try:
         data = request.get_json()
-        
+        #print(data)
         # Validate input
         if not data or not data.get('content') or not data.get('post_id'):
             return jsonify({"error": "Content and post_id are required"}), 400
@@ -19,7 +19,6 @@ def create_comment(current_user):
         content = data.get('content').strip()
         post_id = data.get('post_id')
         
-        # Validate content length
         if len(content) == 0:
             return jsonify({"error": "Content cannot be empty"}), 400
         
@@ -27,12 +26,12 @@ def create_comment(current_user):
         if len(content) > max_length:
             return jsonify({"error": f"Comment too long (max {max_length} characters)"}), 400
         
-        # Check if post exists
+        # check if post exists
         post = Post.get_post_by_id(post_id)
         if not post:
             return jsonify({"error": "Post not found"}), 404
         
-        # Create the comment
+        # create the comment
         comment = Comment.create_comment(
             post_id=post_id,
             user_id=current_user['_id'],
