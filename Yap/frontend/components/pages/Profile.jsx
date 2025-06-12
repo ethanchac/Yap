@@ -1,8 +1,10 @@
 import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 
 const Profile = () => {
+  const { userId } = useParams(); // Get userId from URL
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,6 +20,7 @@ const Profile = () => {
   const fileInputRef = useRef(null);
 
   const API_BASE_URL = 'http://localhost:5000';
+  const isOwnProfile = !userId; // If no userId in URL, it's own profile
 
   // Get auth headers
   const getAuthHeaders = () => {
@@ -36,11 +39,21 @@ const Profile = () => {
     };
   };
 
-  // Fetch my profile
-  const fetchMyProfile = async () => {
+  // Fetch profile (own or other user's)
+  const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/profile/me?include_posts=true&posts_limit=6`, {
+      let url;
+      
+      if (isOwnProfile) {
+        // Fetch own profile - uses /profile/me (not /users/me)
+        url = `${API_BASE_URL}/profile/me?include_posts=true&posts_limit=6`;
+      } else {
+        // Fetch another user's profile - uses /profile/profile/{userId}/enhanced
+        url = `${API_BASE_URL}/profile/profile/${userId}/enhanced?include_posts=true&posts_limit=6`;
+      }
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -51,13 +64,17 @@ const Profile = () => {
       
       const data = await response.json();
       setProfile(data.profile);
-      setEditForm({
-        full_name: data.profile.full_name || '',
-        bio: data.profile.bio || '',
-        website: data.profile.website || '',
-        location: data.profile.location || '',
-        profile_picture: data.profile.profile_picture || ''
-      });
+      
+      // Only set edit form for own profile
+      if (isOwnProfile) {
+        setEditForm({
+          full_name: data.profile.full_name || '',
+          bio: data.profile.bio || '',
+          website: data.profile.website || '',
+          location: data.profile.location || '',
+          profile_picture: data.profile.profile_picture || ''
+        });
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -65,8 +82,10 @@ const Profile = () => {
     }
   };
 
-  // Update profile
+  // Update profile (only for own profile)
   const updateProfile = async () => {
+    if (!isOwnProfile) return;
+    
     try {
       const response = await fetch(`${API_BASE_URL}/profile/me`, {
         method: 'PUT',
@@ -86,8 +105,10 @@ const Profile = () => {
     }
   };
 
-  // Upload profile picture file
+  // Upload profile picture file (only for own profile)
   const uploadProfilePicture = async (file) => {
+    if (!isOwnProfile) return;
+    
     try {
       setUploadingImage(true);
       
@@ -115,8 +136,10 @@ const Profile = () => {
     }
   };
 
-  // Update profile picture URL
+  // Update profile picture URL (only for own profile)
   const updateProfilePictureUrl = async (pictureUrl) => {
+    if (!isOwnProfile) return;
+    
     try {
       const response = await fetch(`${API_BASE_URL}/profile/me/picture`, {
         method: 'PUT',
@@ -136,8 +159,10 @@ const Profile = () => {
     }
   };
 
-  // Handle file selection
+  // Handle file selection (only for own profile)
   const handleFileSelect = (event) => {
+    if (!isOwnProfile) return;
+    
     const file = event.target.files[0];
     if (file) {
       // Validate file type
@@ -162,14 +187,16 @@ const Profile = () => {
     }
   };
 
-  // Open file picker
+  // Open file picker (only for own profile)
   const openFilePicker = () => {
+    if (!isOwnProfile) return;
     fileInputRef.current?.click();
   };
 
+  // Re-fetch when userId changes
   useEffect(() => {
-    fetchMyProfile();
-  }, []);
+    fetchProfile();
+  }, [userId]);
 
   const handleInputChange = (field, value) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
@@ -199,7 +226,7 @@ const Profile = () => {
     <div>
         <Header />
         <Sidebar />
-        <h1>My Profile</h1>
+        <h1>{isOwnProfile ? 'My Profile' : `${profile.username}'s Profile`}</h1>
         
         {/* Profile Picture */}
         <div>
@@ -217,40 +244,46 @@ const Profile = () => {
             )}
           </div>
           
-          {/* File input (hidden) */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-          />
-          
-          {/* Upload/Edit buttons */}
-          <div style={{ marginTop: '10px' }}>
-            <button 
-              onClick={openFilePicker}
-              disabled={uploadingImage}
-            >
-              {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
-            </button>
-            
-            {isEditing && (
+          {/* Only show upload controls for own profile */}
+          {isOwnProfile && (
+            <>
+              {/* File input (hidden) */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              
+              {/* Upload/Edit buttons */}
               <div style={{ marginTop: '10px' }}>
-                <label>Or enter image URL:</label>
-                <input
-                  type="url"
-                  placeholder="Profile picture URL"
-                  value={editForm.profile_picture}
-                  onChange={(e) => handleInputChange('profile_picture', e.target.value)}
-                />
                 <button 
-                  onClick={() => updateProfilePictureUrl(editForm.profile_picture)}
+                  onClick={openFilePicker}
+                  disabled={uploadingImage}
                 >
-                  Update from URL
+                  {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
                 </button>
+                
+                {isEditing && (
+                  <div style={{ marginTop: '10px' }}>
+                    <label>Or enter image URL:</label>
+                    <input
+                      type="url"
+                      placeholder="Profile picture URL"
+                      value={editForm.profile_picture}
+                      onChange={(e) => handleInputChange('profile_picture', e.target.value)}
+                    />
+                    <button 
+                      onClick={() => updateProfilePictureUrl(editForm.profile_picture)}
+                    >
+                      Update from URL
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Basic Info */}
@@ -264,7 +297,19 @@ const Profile = () => {
         <span>{profile.posts_count} posts</span>
         <span>{profile.followers_count} followers</span>
         <span>{profile.following_count} following</span>
+        {profile.liked_posts_count !== undefined && (
+          <span>{profile.liked_posts_count} liked posts</span>
+        )}
         </div>
+
+        {/* Follow button for other users */}
+        {!isOwnProfile && (
+          <div>
+            <button>
+              {profile.is_following ? 'Unfollow' : 'Follow'}
+            </button>
+          </div>
+        )}
 
         {/* Profile Details */}
         {!isEditing ? (
@@ -280,7 +325,7 @@ const Profile = () => {
             </p>
             )}
             {profile.location && <p><strong>Location:</strong> {profile.location}</p>}
-            {profile.email && <p><strong>Email:</strong> {profile.email}</p>}
+            {profile.email && isOwnProfile && <p><strong>Email:</strong> {profile.email}</p>}
             
             <p><strong>Joined:</strong> {new Date(profile.created_at).toLocaleDateString()}</p>
             {profile.updated_at && (
@@ -331,19 +376,21 @@ const Profile = () => {
         </div>
         )}
 
-        {/* Action Buttons */}
-        <div>
-        {!isEditing ? (
-            <button onClick={() => setIsEditing(true)}>
-            Edit Profile
-            </button>
-        ) : (
-            <div>
-            <button onClick={handleSave}>Save</button>
-            <button onClick={handleCancel}>Cancel</button>
-            </div>
+        {/* Action Buttons - Only for own profile */}
+        {isOwnProfile && (
+          <div>
+          {!isEditing ? (
+              <button onClick={() => setIsEditing(true)}>
+              Edit Profile
+              </button>
+          ) : (
+              <div>
+              <button onClick={handleSave}>Save</button>
+              <button onClick={handleCancel}>Cancel</button>
+              </div>
+          )}
+          </div>
         )}
-        </div>
 
         {/* Recent Posts */}
         {profile.recent_posts && profile.recent_posts.length > 0 && (

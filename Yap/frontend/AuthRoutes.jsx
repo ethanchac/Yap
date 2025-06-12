@@ -76,6 +76,14 @@ function AuthRoutes() {
                 }
             />
             <Route
+                path="/profile/:userId"
+                element={
+                    <PrivateRoute>
+                        <Profile />
+                    </PrivateRoute>
+                }
+            />
+            <Route
                 path="/settings"
                 element={
                     <PrivateRoute>
