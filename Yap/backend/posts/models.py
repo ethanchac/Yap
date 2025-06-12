@@ -5,11 +5,11 @@ from flask import current_app
 class Post:
     @staticmethod
     def create_post(user_id, username, content):
-        """Create a new post in the database"""
-        # Get database from Flask app config (your existing pattern)
+        """adding the new post to database"""
+
         db = current_app.config["DB"]
         
-        # Create post document
+        # created the format of the post
         post_doc = {
             "user_id": user_id,
             "username": username,
@@ -19,10 +19,10 @@ class Post:
             "comments_count": 0
         }
         
-        # Insert into posts collection
+        # insert into posts collection
         result = db.posts.insert_one(post_doc)
         
-        # Return the created post with its ID
+        # return the created post with its ID
         post_doc["_id"] = str(result.inserted_id)
         return post_doc
     
@@ -31,7 +31,7 @@ class Post:
         """Get all posts with pagination"""
         db = current_app.config["DB"]
         
-        # MongoDB aggregation pipeline
+        # MongoDB aggregation pipeline (used AI for all this)
         pipeline = [
             {"$sort": {"created_at": -1}},  # Newest first
             {"$skip": skip},               # For pagination
@@ -145,3 +145,109 @@ class Post:
         })
         
         return like is not None
+    @staticmethod
+    def get_user_liked_posts(user_id, limit=50, skip=0):
+        """Get all posts that a user has liked"""
+        db = current_app.config["DB"]
+        
+        try:
+            # MongoDB aggregation pipeline to get liked posts with post details
+            pipeline = [
+                # Match likes by this user for posts
+                {
+                    "$match": {
+                        "user_id": user_id,
+                        "type": "post"
+                    }
+                },
+                # Sort by when they liked it (most recent first)
+                {"$sort": {"created_at": -1}},
+                # Pagination
+                {"$skip": skip},
+                {"$limit": limit},
+                # Convert post_id string to ObjectId for lookup
+                {
+                    "$addFields": {
+                        "post_object_id": {"$toObjectId": "$post_id"}
+                    }
+                },
+                # Join with posts collection to get full post details
+                {
+                    "$lookup": {
+                        "from": "posts",
+                        "localField": "post_object_id",
+                        "foreignField": "_id",
+                        "as": "post_details"
+                    }
+                },
+                # Unwind the post details (should be only one match)
+                {"$unwind": "$post_details"},
+                # Project the final structure
+                {
+                    "$project": {
+                        "_id": {"$toString": "$post_details._id"},
+                        "user_id": "$post_details.user_id",
+                        "username": "$post_details.username",
+                        "content": "$post_details.content",
+                        "created_at": "$post_details.created_at",
+                        "likes_count": "$post_details.likes_count",
+                        "comments_count": "$post_details.comments_count",
+                        "liked_at": "$created_at"  # When the user liked this post
+                    }
+                }
+            ]
+            
+            liked_posts = list(db.likes.aggregate(pipeline))
+            return liked_posts
+            
+        except Exception as e:
+            print(f"Error getting user liked posts: {e}")
+            return []
+
+    @staticmethod
+    def get_liked_posts_count(user_id):
+        """Get total count of posts a user has liked"""
+        db = current_app.config["DB"]
+        
+        try:
+            count = db.likes.count_documents({
+                "user_id": user_id,
+                "type": "post"
+            })
+            return count
+        except Exception as e:
+            print(f"Error getting liked posts count: {e}")
+            return 0
+
+    @staticmethod
+    def get_user_liked_posts_with_like_status(user_id, current_user_id=None, limit=50, skip=0):
+        """Get user's liked posts with like status for current user"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Get the basic liked posts
+            liked_posts = Post.get_user_liked_posts(user_id, limit, skip)
+            
+            # If there's a current user, add their like status for each post
+            if current_user_id and liked_posts:
+                post_ids = [post["_id"] for post in liked_posts]
+                
+                # Get current user's likes for these posts
+                user_likes = db.likes.find({
+                    "user_id": current_user_id,
+                    "post_id": {"$in": post_ids},
+                    "type": "post"
+                })
+                
+                # Create a set of post IDs the current user has liked
+                current_user_liked_posts = {like["post_id"] for like in user_likes}
+                
+                # Add like status to each post
+                for post in liked_posts:
+                    post["is_liked_by_current_user"] = post["_id"] in current_user_liked_posts
+            
+            return liked_posts
+            
+        except Exception as e:
+            print(f"Error getting liked posts with status: {e}")
+            return []

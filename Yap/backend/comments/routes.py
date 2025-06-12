@@ -77,7 +77,7 @@ def get_post_comments(post_id):
 @comments_bp.route('/<comment_id>', methods=['DELETE'])
 @token_required
 def delete_comment(current_user, comment_id):
-    """Delete a comment (only by the author)"""
+    """delete a comment (only by the owner)"""
     try:
         success = Comment.delete_comment(comment_id, current_user['_id'])
         

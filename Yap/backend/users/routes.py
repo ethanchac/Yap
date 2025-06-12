@@ -172,17 +172,17 @@ def get_my_profile(current_user):
         include_posts = request.args.get('include_posts', 'false').lower() == 'true'
         posts_limit = int(request.args.get('posts_limit', 6))
         
-        if include_posts:
-            profile = User.get_profile_with_recent_posts(
-                current_user['_id'], 
-                current_user['_id'],
-                posts_limit
-            )
-        else:
-            profile = User.get_enhanced_user_profile(
-                current_user['_id'], 
-                current_user['_id']
-            )
+        # Use the enhanced version that includes liked posts count
+        profile = User.get_enhanced_user_profile_with_likes(
+            current_user['_id'], 
+            current_user['_id']
+        )
+        
+        # Add recent posts if requested
+        if include_posts and profile:
+            from posts.models import Post
+            recent_posts = Post.get_user_posts(current_user['_id'], limit=posts_limit)
+            profile['recent_posts'] = recent_posts
         
         if not profile:
             return jsonify({"error": "Profile not found"}), 404
@@ -442,3 +442,79 @@ def upload_profile_picture():
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Failed to upload profile picture"}), 500
+@users_bp.route('/<user_id>/liked-posts', methods=['GET'])
+@token_required
+def get_user_liked_posts_from_users(current_user, user_id):
+    """Get posts that a user has liked (from users endpoint)"""
+    try:
+        from posts.models import Post
+        
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        # Check if user exists
+        target_user = User.get_user_profile(user_id)
+        if not target_user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get liked posts with current user's like status
+        liked_posts = Post.get_user_liked_posts_with_like_status(
+            user_id=user_id,
+            current_user_id=current_user['_id'],
+            limit=limit,
+            skip=skip
+        )
+        
+        # Get total count for pagination
+        total_liked = Post.get_liked_posts_count(user_id)
+        
+        return jsonify({
+            "posts": liked_posts,
+            "user": {
+                "_id": target_user["_id"],
+                "username": target_user["username"]
+            },
+            "page": page,
+            "limit": limit,
+            "total_liked": total_liked,
+            "has_more": (skip + len(liked_posts)) < total_liked
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching user liked posts: {e}")
+        return jsonify({"error": "Failed to fetch user liked posts"}), 500
+
+@users_bp.route('/me/liked-posts', methods=['GET'])
+@token_required
+def get_my_liked_posts_from_users(current_user):
+    """Get current user's liked posts (from users endpoint)"""
+    try:
+        from posts.models import Post
+        
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        # Get liked posts with current user's like status
+        liked_posts = Post.get_user_liked_posts_with_like_status(
+            user_id=current_user['_id'],
+            current_user_id=current_user['_id'],
+            limit=limit,
+            skip=skip
+        )
+        
+        # Get total count for pagination
+        total_liked = Post.get_liked_posts_count(current_user['_id'])
+        
+        return jsonify({
+            "posts": liked_posts,
+            "page": page,
+            "limit": limit,
+            "total_liked": total_liked,
+            "has_more": (skip + len(liked_posts)) < total_liked
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching my liked posts: {e}")
+        return jsonify({"error": "Failed to fetch liked posts"}), 500

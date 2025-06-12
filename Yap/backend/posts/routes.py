@@ -147,3 +147,112 @@ def get_single_post(post_id):
         
     except Exception as e:
         return jsonify({"error": "Failed to fetch post"}), 500
+@posts_bp.route('/liked', methods=['GET'])
+@token_required
+def get_my_liked_posts(current_user):
+    """Get posts that the current user has liked"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        # Get liked posts with current user's like status
+        liked_posts = Post.get_user_liked_posts_with_like_status(
+            user_id=current_user['_id'],
+            current_user_id=current_user['_id'],
+            limit=limit,
+            skip=skip
+        )
+        
+        # Get total count for pagination
+        total_liked = Post.get_liked_posts_count(current_user['_id'])
+        
+        return jsonify({
+            "posts": liked_posts,
+            "page": page,
+            "limit": limit,
+            "total_liked": total_liked,
+            "has_more": (skip + len(liked_posts)) < total_liked
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching liked posts: {e}")
+        return jsonify({"error": "Failed to fetch liked posts"}), 500
+
+@posts_bp.route('/user/<user_id>/liked', methods=['GET'])
+@token_required
+def get_user_liked_posts_route(current_user, user_id):
+    """Get posts that a specific user has liked (authenticated route)"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        # Check if user exists
+        from users.models import User
+        target_user = User.get_user_profile(user_id)
+        if not target_user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get liked posts with current user's like status
+        liked_posts = Post.get_user_liked_posts_with_like_status(
+            user_id=user_id,
+            current_user_id=current_user['_id'],
+            limit=limit,
+            skip=skip
+        )
+        
+        # Get total count for pagination
+        total_liked = Post.get_liked_posts_count(user_id)
+        
+        return jsonify({
+            "posts": liked_posts,
+            "user": {
+                "_id": target_user["_id"],
+                "username": target_user["username"]
+            },
+            "page": page,
+            "limit": limit,
+            "total_liked": total_liked,
+            "has_more": (skip + len(liked_posts)) < total_liked
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching user liked posts: {e}")
+        return jsonify({"error": "Failed to fetch user liked posts"}), 500
+
+@posts_bp.route('/user/<user_id>/liked/public', methods=['GET'])
+def get_user_liked_posts_public(user_id):
+    """Get posts that a specific user has liked (public route - no like status)"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        # Check if user exists
+        from users.models import User
+        target_user = User.get_user_profile(user_id)
+        if not target_user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get liked posts without current user's like status
+        liked_posts = Post.get_user_liked_posts(user_id, limit=limit, skip=skip)
+        
+        # Get total count for pagination
+        total_liked = Post.get_liked_posts_count(user_id)
+        
+        return jsonify({
+            "posts": liked_posts,
+            "user": {
+                "_id": target_user["_id"],
+                "username": target_user["username"]
+            },
+            "page": page,
+            "limit": limit,
+            "total_liked": total_liked,
+            "has_more": (skip + len(liked_posts)) < total_liked
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching user liked posts: {e}")
+        return jsonify({"error": "Failed to fetch user liked posts"}), 500

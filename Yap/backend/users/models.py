@@ -204,6 +204,63 @@ class User:
         except Exception as e:
             print(f"Error updating profile: {e}")
             return {"error": str(e)}
+        
+    @staticmethod
+    def get_enhanced_user_profile_with_likes(user_id, current_user_id=None):
+        """Enhanced user profile that includes liked posts count"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Get user basic info with new profile fields
+            user = db.users.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return None
+            
+            # Count posts by this user
+            posts_count = db.posts.count_documents({"user_id": user_id})
+            
+            # Count followers and following
+            followers_count = db.follows.count_documents({"following_id": user_id})
+            following_count = db.follows.count_documents({"follower_id": user_id})
+            
+            # Count liked posts by this user
+            liked_posts_count = db.likes.count_documents({
+                "user_id": user_id,
+                "type": "post"
+            })
+            
+            # Check if current user is following this user
+            is_following = False
+            if current_user_id and current_user_id != user_id:
+                is_following = Follow.check_following_status(current_user_id, user_id)
+            
+            # Enhanced profile data with liked posts count
+            profile = {
+                "_id": str(user["_id"]),
+                "username": user["username"],
+                "email": user.get("email"),
+                "full_name": user.get("full_name", ""),
+                "bio": user.get("bio", ""),
+                "profile_picture": user.get("profile_picture", ""),
+                "website": user.get("website", ""),
+                "location": user.get("location", ""),
+                "is_verified": user.get("is_verified", False),
+                "created_at": user["created_at"],
+                "updated_at": user.get("updated_at"),
+                "posts_count": posts_count,
+                "followers_count": followers_count,
+                "following_count": following_count,
+                "liked_posts_count": liked_posts_count,  # NEW: Count of posts user has liked
+                "is_following": is_following,
+                "is_own_profile": str(current_user_id) == str(user_id) if current_user_id else False
+            }
+            
+            return profile
+            
+        except Exception as e:
+            print(f"Error getting enhanced user profile with likes: {e}")
+            return None
+    
 
 class Follow:
     @staticmethod
