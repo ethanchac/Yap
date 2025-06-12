@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
+import PostItem from '../posts/PostItem';
 
 function Likes() {
-    const navigate = useNavigate();
     const [likedPosts, setLikedPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -59,66 +58,11 @@ function Likes() {
         }
     };
 
-    // Handle like/unlike
-    const handleLike = async (postId) => {
-        try {
-            const token = getToken();
-            const response = await fetch(`http://localhost:5000/posts/${postId}/like`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update like');
-            }
-
-            const result = await response.json();
-            
-            // If post was unliked, remove it from the list
-            if (!result.liked) {
-                setLikedPosts(prev => prev.filter(post => post._id !== postId));
-                setTotalLiked(prev => prev - 1);
-            } else {
-                // Update the like status in the list
-                setLikedPosts(prev => 
-                    prev.map(post => 
-                        post._id === postId 
-                            ? { ...post, is_liked_by_current_user: result.liked }
-                            : post
-                    )
-                );
-            }
-
-        } catch (err) {
-            console.error('Error updating like:', err);
-        }
-    };
-
-    // Navigate to comments page
-    const goToComments = (postId) => {
-        navigate(`/post/${postId}/comments`);
-    };
-
     // Load more posts
     const loadMore = () => {
         if (hasMore && !loadingMore) {
             fetchLikedPosts(page + 1, true);
         }
-    };
-
-    // Format date
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
     };
 
     // Initial load
@@ -161,34 +105,7 @@ function Likes() {
                 {!loading && !error && likedPosts.length > 0 && (
                     <div>
                         {likedPosts.map((post) => (
-                            <div key={post._id}>
-                                <div>
-                                    <div>
-                                        <strong>@{post.username}</strong>
-                                    </div>
-                                    <div>
-                                        <span>Posted: {formatDate(post.created_at)}</span>
-                                        <span>Liked: {formatDate(post.liked_at)}</span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p>{post.content}</p>
-                                </div>
-
-                                <div>
-                                    <button onClick={() => handleLike(post._id)}>
-                                        <span>
-                                            {post.is_liked_by_current_user ? '❤️' : '🤍'}
-                                        </span>
-                                        {post.likes_count}
-                                    </button>
-
-                                    <div onClick={() => goToComments(post._id)} style={{ cursor: 'pointer' }}>
-                                        <span>💬 {post.comments_count}</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <PostItem key={post._id} post={post} />
                         ))}
 
                         {hasMore && (
