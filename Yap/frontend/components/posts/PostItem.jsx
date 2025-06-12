@@ -70,6 +70,12 @@ function PostItem({ post }) {
         navigate(`/post/${post._id}/comments`);
     };
 
+    const handleUsernameClick = (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        // Navigate to user's profile
+        navigate(`/profile/${post.user_id}`);
+    };
+
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
@@ -78,7 +84,13 @@ function PostItem({ post }) {
     return (
         <div>
             <div>
-                <strong>@{post.username}</strong>
+                {/* i just added this style so its easier for me to test the functionality. can remove if you want */}
+                <strong 
+                    onClick={handleUsernameClick}
+                    style={{ cursor: 'pointer' }}
+                >
+                    @{post.username}
+                </strong>
                 <span>
                     {formatDate(post.created_at)}
                 </span>
