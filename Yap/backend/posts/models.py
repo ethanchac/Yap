@@ -28,51 +28,45 @@ class Post:
     
     @staticmethod
     def get_all_posts(limit=50, skip=0):
-        """Get all posts with pagination"""
+        """Get all posts with pagination and profile pictures"""
         db = current_app.config["DB"]
         
-        # MongoDB aggregation pipeline (used AI for all this)
         pipeline = [
-            {"$sort": {"created_at": -1}},  # Newest first
-            {"$skip": skip},               # For pagination
-            {"$limit": limit},             # Limit results
+            # Convert string user_id to ObjectId for lookup
             {
-                "$project": {              # Select which fields to return
-                    "_id": {"$toString": "$_id"},  # Convert ObjectId to string
-                    "user_id": 1,
-                    "username": 1,
-                    "content": 1,
-                    "created_at": 1,
-                    "likes_count": 1,
-                    "comments_count": 1
+                "$addFields": {
+                    "user_object_id": {"$toObjectId": "$user_id"}
                 }
-            }
-        ]
-        
-        posts = list(db.posts.aggregate(pipeline))
-        return posts
-    
-    @staticmethod
-    def get_user_posts(user_id, limit=50, skip=0):
-        """Get posts by a specific user"""
-        db = current_app.config["DB"]
-        
-        pipeline = [
-            {"$match": {"user_id": user_id}},  # Filter by user
-            {"$sort": {"created_at": -1}},
-            {"$skip": skip},
-            {"$limit": limit},
+            },
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "user_object_id",
+                    "foreignField": "_id",
+                    "as": "user_info"
+                }
+            },
+            {
+                "$unwind": {
+                    "path": "$user_info",
+                    "preserveNullAndEmptyArrays": True  # Keep posts even if user lookup fails
+                }
+            },
             {
                 "$project": {
                     "_id": {"$toString": "$_id"},
                     "user_id": 1,
-                    "username": 1,
+                    "username": {"$ifNull": ["$user_info.username", "$username"]},  # Fallback to original username
                     "content": 1,
                     "created_at": 1,
                     "likes_count": 1,
-                    "comments_count": 1
+                    "comments_count": 1,
+                    "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
                 }
-            }
+            },
+            {"$sort": {"created_at": -1}},
+            {"$skip": skip},
+            {"$limit": limit}
         ]
         
         posts = list(db.posts.aggregate(pipeline))
@@ -80,17 +74,42 @@ class Post:
     
     @staticmethod
     def get_post_by_id(post_id):
-        """Get a single post by ID"""
+        """Get a single post by ID with profile picture"""
         db = current_app.config["DB"]
         
         try:
-            # Convert string ID back to ObjectId for MongoDB query
-            post = db.posts.find_one({"_id": ObjectId(post_id)})
-            if post:
-                post["_id"] = str(post["_id"])
-                return post
-            return None
-        except Exception:
+            pipeline = [
+                {"$match": {"_id": ObjectId(post_id)}},
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "user_id",
+                        "foreignField": "_id",
+                        "as": "user_info"
+                    }
+                },
+                {
+                    "$unwind": "$user_info"
+                },
+                {
+                    "$project": {
+                        "_id": {"$toString": "$_id"},
+                        "user_id": 1,
+                        "username": "$user_info.username",  # Get from user_info
+                        "content": 1,
+                        "created_at": 1,
+                        "likes_count": 1,
+                        "comments_count": 1,
+                        "profile_picture": "$user_info.profile_picture"  # Add profile picture
+                    }
+                }
+            ]
+            
+            result = list(db.posts.aggregate(pipeline))
+            return result[0] if result else None
+            
+        except Exception as e:
+            print(f"Error getting post by ID: {e}")
             return None
 
     # NEW METHODS FOR LIKES
@@ -147,31 +166,25 @@ class Post:
         return like is not None
     @staticmethod
     def get_user_liked_posts(user_id, limit=50, skip=0):
-        """Get all posts that a user has liked"""
+        """Get all posts that a user has liked with profile pictures"""
         db = current_app.config["DB"]
         
         try:
-            # MongoDB aggregation pipeline to get liked posts with post details
             pipeline = [
-                # Match likes by this user for posts
                 {
                     "$match": {
                         "user_id": user_id,
                         "type": "post"
                     }
                 },
-                # Sort by when they liked it (most recent first)
                 {"$sort": {"created_at": -1}},
-                # Pagination
                 {"$skip": skip},
                 {"$limit": limit},
-                # Convert post_id string to ObjectId for lookup
                 {
                     "$addFields": {
                         "post_object_id": {"$toObjectId": "$post_id"}
                     }
                 },
-                # Join with posts collection to get full post details
                 {
                     "$lookup": {
                         "from": "posts",
@@ -180,19 +193,28 @@ class Post:
                         "as": "post_details"
                     }
                 },
-                # Unwind the post details (should be only one match)
                 {"$unwind": "$post_details"},
-                # Project the final structure
+                # Add lookup for user info to get profile picture
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "post_details.user_id",
+                        "foreignField": "_id",
+                        "as": "user_info"
+                    }
+                },
+                {"$unwind": "$user_info"},
                 {
                     "$project": {
                         "_id": {"$toString": "$post_details._id"},
                         "user_id": "$post_details.user_id",
-                        "username": "$post_details.username",
+                        "username": "$user_info.username",  # Get from user_info
                         "content": "$post_details.content",
                         "created_at": "$post_details.created_at",
                         "likes_count": "$post_details.likes_count",
                         "comments_count": "$post_details.comments_count",
-                        "liked_at": "$created_at"  # When the user liked this post
+                        "profile_picture": "$user_info.profile_picture",  # Add profile picture
+                        "liked_at": "$created_at"
                     }
                 }
             ]
@@ -202,8 +224,8 @@ class Post:
             
         except Exception as e:
             print(f"Error getting user liked posts: {e}")
-            return []
-
+        return []
+    
     @staticmethod
     def get_liked_posts_count(user_id):
         """Get total count of posts a user has liked"""

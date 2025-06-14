@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from users.models import User, Follow
 from posts.models import Post
 from auth.service import token_required
@@ -442,6 +442,7 @@ def upload_profile_picture():
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Failed to upload profile picture"}), 500
+    
 @users_bp.route('/<user_id>/liked-posts', methods=['GET'])
 @token_required
 def get_user_liked_posts_from_users(current_user, user_id):
@@ -518,3 +519,15 @@ def get_my_liked_posts_from_users(current_user):
     except Exception as e:
         print(f"Error fetching my liked posts: {e}")
         return jsonify({"error": "Failed to fetch liked posts"}), 500
+    
+@users_bp.route('/uploads/profile_pictures/<user_id>/<filename>')
+def serve_profile_picture(user_id, filename):
+    """Serve uploaded profile pictures"""
+    try:
+        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], user_id)
+        return send_from_directory(upload_dir, filename)
+    except Exception as e:
+        print(f"Error serving profile picture: {e}")
+        # Return default avatar if file not found
+        default_dir = os.path.join(current_app.root_path, 'static', 'default')
+        return send_from_directory(default_dir, 'default-avatar.png')

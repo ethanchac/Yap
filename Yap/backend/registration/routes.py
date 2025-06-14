@@ -38,7 +38,7 @@ def register():
     if users_collection.find_one({"username": username}):
         return jsonify({"error": "Username already exists"}), 409
 
-    # TODO: Re-enable email duplicate check after debugging
+    # UNCOMMENT THIS PART ONCE EVERYTHING IS FINISHED (REMOVES MAKING MULTI ACCOUNTS WITH SAME EMAIL)
     # if users_collection.find_one({"email": email}):
     #     return jsonify({"error": "Email already registered"}), 409
 

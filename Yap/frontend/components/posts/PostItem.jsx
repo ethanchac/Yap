@@ -76,24 +76,56 @@ function PostItem({ post }) {
         navigate(`/profile/${post.user_id}`);
     };
 
+    const handleProfilePhotoClick = (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        // Navigate to user's profile
+        navigate(`/profile/${post.user_id}`);
+    };
+
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     };
 
+    // Function to get profile picture URL or default
+    const getProfilePictureUrl = () => {
+        if (post.profile_picture) {
+            // If it's already a full URL (like from your upload system), use it directly
+            if (post.profile_picture.startsWith('http')) {
+                return post.profile_picture;
+            }
+            // If it's just a filename, this shouldn't happen with your current system
+            // but keeping it as fallback
+            return `http://localhost:5000/uploads/profile_pictures/${post.profile_picture}`;
+        }
+        // Default profile picture if none exists
+        return `http://localhost:5000/static/default/default-avatar.png`;
+    };
+
     return (
         <div>
             <div>
-                {/* i just added this style so its easier for me to test the functionality. can remove if you want */}
-                <strong 
-                    onClick={handleUsernameClick}
-                    style={{ cursor: 'pointer' }}
-                >
-                    @{post.username}
-                </strong>
-                <span>
-                    {formatDate(post.created_at)}
-                </span>
+                {/* Profile Picture */}
+                <img 
+                    src={getProfilePictureUrl()}
+                    alt={`${post.username}'s profile`}
+                    onClick={handleProfilePhotoClick}
+                    onError={(e) => {
+                        // Fallback to default avatar if image fails to load
+                        e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                    }}
+                />
+                
+                <div>
+                    <strong 
+                        onClick={handleUsernameClick}
+                    >
+                        @{post.username}
+                    </strong>
+                    <div>
+                        {formatDate(post.created_at)}
+                    </div>
+                </div>
             </div>
             
             <p>{post.content}</p>
@@ -103,7 +135,6 @@ function PostItem({ post }) {
                     onClick={handleLike}
                     disabled={loading}
                 >
-                    {/* you can change the icons to whatever you want. i just used these emojis as placeholders */}
                     <span>{liked ? '❤️' : '🤍'}</span>
                     <span>{likesCount}</span>
                 </button>
