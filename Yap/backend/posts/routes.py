@@ -64,7 +64,7 @@ def get_feed():
 
 @posts_bp.route('/my-posts', methods=['GET'])
 @token_required  # Protected route - only show current user's posts
-def get_my_posts(current_user):
+def get_my_posts_route(current_user):  # RENAMED to avoid conflict
     """Get posts by the authenticated user"""
     try:
         page = int(request.args.get('page', 1))
@@ -83,7 +83,7 @@ def get_my_posts(current_user):
         return jsonify({"error": "Failed to fetch your posts"}), 500
 
 @posts_bp.route('/user/<user_id>', methods=['GET'])
-def get_user_posts(user_id):
+def get_user_posts_route(user_id):  # RENAMED to avoid conflict
     """Get posts by a specific user - PUBLIC route"""
     try:
         page = int(request.args.get('page', 1))
@@ -150,7 +150,7 @@ def get_single_post(post_id):
     
 @posts_bp.route('/liked', methods=['GET'])
 @token_required
-def get_my_liked_posts(current_user):
+def get_my_liked_posts_route(current_user):  # RENAMED to avoid conflict
     """Get posts that the current user has liked"""
     try:
         page = int(request.args.get('page', 1))
@@ -188,7 +188,7 @@ def get_my_liked_posts(current_user):
 
 @posts_bp.route('/user/<user_id>/liked', methods=['GET'])
 @token_required
-def get_user_liked_posts_route(current_user, user_id):
+def get_user_liked_posts_route(current_user, user_id):  # RENAMED to avoid conflict
     """Get posts that a specific user has liked (authenticated route)"""
     try:
         page = int(request.args.get('page', 1))
@@ -229,7 +229,7 @@ def get_user_liked_posts_route(current_user, user_id):
         return jsonify({"error": "Failed to fetch user liked posts"}), 500
 
 @posts_bp.route('/user/<user_id>/liked/public', methods=['GET'])
-def get_user_liked_posts_public(user_id):
+def get_user_liked_posts_public_route(user_id):  # RENAMED to avoid conflict
     """Get posts that a specific user has liked (public route - no like status)"""
     try:
         page = int(request.args.get('page', 1))

@@ -1,5 +1,6 @@
 import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
+import PostItem from '../posts/PostItem'; // Add this import
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -46,11 +47,11 @@ const Profile = () => {
       let url;
       
       if (isOwnProfile) {
-        // Fetch own profile - CORRECTED ENDPOINT
-        url = `${API_BASE_URL}/users/me?include_posts=true&posts_limit=6`;
+        // Fetch own profile - NOW WITH POSTS
+        url = `${API_BASE_URL}/users/me?include_posts=true&posts_limit=10`;
       } else {
-        // Fetch another user's profile - CORRECTED ENDPOINT
-        url = `${API_BASE_URL}/users/profile/${userId}/enhanced?include_posts=true&posts_limit=6`;
+        // Fetch another user's profile - NOW WITH POSTS
+        url = `${API_BASE_URL}/users/profile/${userId}/enhanced?include_posts=true&posts_limit=10`;
       }
       
       console.log('Fetching profile from:', url); // Debug log
@@ -441,21 +442,21 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Recent Posts */}
+        {/* Recent Posts - Using PostItem Component */}
         {profile.recent_posts && profile.recent_posts.length > 0 && (
         <div>
-            <h3>Recent Posts</h3>
+            <h3>Recent Posts ({profile.recent_posts.length})</h3>
             {profile.recent_posts.map((post) => (
-            <div key={post._id}>
-                <p>{post.content}</p>
-                <div>
-                <span>{post.likes_count} likes</span>
-                <span>{post.comments_count} comments</span>
-                <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                </div>
-            </div>
+                <PostItem key={post._id} post={post} />
             ))}
         </div>
+        )}
+        
+        {/* Show message if no posts */}
+        {profile.recent_posts && profile.recent_posts.length === 0 && (
+            <div>
+                <p>{isOwnProfile ? "You haven't posted anything yet." : `${profile.username} hasn't posted anything yet.`}</p>
+            </div>
         )}
     </div>
   );

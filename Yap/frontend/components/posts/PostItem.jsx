@@ -40,6 +40,12 @@ function PostItem({ post }) {
             return;
         }
 
+        // Debug logs
+        console.log('Attempting to like post:');
+        console.log('Post ID:', post._id);
+        console.log('Post object:', post);
+        console.log('URL:', `http://localhost:5000/posts/${post._id}/like`);
+
         setLoading(true);
 
         try {
@@ -50,7 +56,10 @@ function PostItem({ post }) {
                 }
             });
 
+            console.log('Response status:', response.status);
+
             const data = await response.json();
+            console.log('Response data:', data);
 
             if (response.ok) {
                 setLiked(data.liked);
@@ -59,12 +68,12 @@ function PostItem({ post }) {
                 alert(data.error || 'Failed to like post');
             }
         } catch (error) {
+            console.error('Network error:', error);
             alert('Network error. Please try again.');
         } finally {
             setLoading(false);
         }
     };
-
     const handleCommentClick = () => {
         // Debug: Log the post ID and navigation path
         console.log('Navigating to comments for post ID:', post._id);

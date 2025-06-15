@@ -73,52 +73,165 @@ class Post:
         return posts
     
     @staticmethod
+    def get_user_posts(user_id, limit=50, skip=0):
+        """Get posts by a specific user with profile picture - ADDED MISSING METHOD"""
+        db = current_app.config["DB"]
+        
+        pipeline = [
+            {"$match": {"user_id": user_id}},
+            # Convert string user_id to ObjectId for lookup
+            {
+                "$lookup": {
+                    "from": "users",
+                    "let": {"user_id": {"$toObjectId": "$user_id"}},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
+                    ],
+                    "as": "user_info"
+                }
+            },
+            {
+                "$unwind": {
+                    "path": "$user_info",
+                    "preserveNullAndEmptyArrays": True
+                }
+            },
+            {
+                "$project": {
+                    "_id": {"$toString": "$_id"},
+                    "user_id": 1,
+                    "username": {"$ifNull": ["$user_info.username", "$username"]},
+                    "content": 1,
+                    "created_at": 1,
+                    "likes_count": 1,
+                    "comments_count": 1,
+                    "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
+                }
+            },
+            {"$sort": {"created_at": -1}},
+            {"$skip": skip},
+            {"$limit": limit}
+        ]
+        
+        posts = list(db.posts.aggregate(pipeline))
+        return posts
+    
+    @staticmethod
     def get_post_by_id(post_id):
         """Get a single post by ID with profile picture"""
         db = current_app.config["DB"]
         
         try:
-            pipeline = [
-                {"$match": {"_id": ObjectId(post_id)}},
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "user_id",
-                        "foreignField": "_id",
-                        "as": "user_info"
-                    }
-                },
-                {
-                    "$unwind": "$user_info"
-                },
-                {
-                    "$project": {
-                        "_id": {"$toString": "$_id"},
-                        "user_id": 1,
-                        "username": "$user_info.username",  # Get from user_info
-                        "content": 1,
-                        "created_at": 1,
-                        "likes_count": 1,
-                        "comments_count": 1,
-                        "profile_picture": "$user_info.profile_picture"  # Add profile picture
-                    }
-                }
-            ]
+            print(f"Looking for post with ID: {post_id}")
             
-            result = list(db.posts.aggregate(pipeline))
-            return result[0] if result else None
+            # Try both ObjectId and string formats
+            post = None
             
+            # First try with ObjectId
+            try:
+                pipeline = [
+                    {"$match": {"_id": ObjectId(post_id)}},
+                    {
+                        "$lookup": {
+                            "from": "users",
+                            "let": {"user_id": {"$toObjectId": "$user_id"}},
+                            "pipeline": [
+                                {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
+                            ],
+                            "as": "user_info"
+                        }
+                    },
+                    {
+                        "$unwind": {
+                            "path": "$user_info",
+                            "preserveNullAndEmptyArrays": True
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": {"$toString": "$_id"},
+                            "user_id": 1,
+                            "username": {"$ifNull": ["$user_info.username", "$username"]},
+                            "content": 1,
+                            "created_at": 1,
+                            "likes_count": 1,
+                            "comments_count": 1,
+                            "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
+                        }
+                    }
+                ]
+                
+                result = list(db.posts.aggregate(pipeline))
+                if result:
+                    post = result[0]
+                    print(f"Found post with ObjectId: {post['_id']}")
+                    
+            except Exception as e:
+                print(f"ObjectId lookup failed: {e}")
+            
+            # If not found with ObjectId, try with string ID
+            if not post:
+                try:
+                    pipeline = [
+                        {"$match": {"_id": post_id}},  # Try string ID
+                        {
+                            "$lookup": {
+                                "from": "users",
+                                "let": {"user_id": {"$toObjectId": "$user_id"}},
+                                "pipeline": [
+                                    {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
+                                ],
+                                "as": "user_info"
+                            }
+                        },
+                        {
+                            "$unwind": {
+                                "path": "$user_info",
+                                "preserveNullAndEmptyArrays": True
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 1,  # Keep as string if it's stored as string
+                                "user_id": 1,
+                                "username": {"$ifNull": ["$user_info.username", "$username"]},
+                                "content": 1,
+                                "created_at": 1,
+                                "likes_count": 1,
+                                "comments_count": 1,
+                                "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
+                            }
+                        }
+                    ]
+                    
+                    result = list(db.posts.aggregate(pipeline))
+                    if result:
+                        post = result[0]
+                        print(f"Found post with string ID: {post['_id']}")
+                        
+                except Exception as e:
+                    print(f"String ID lookup failed: {e}")
+            
+            if post:
+                print(f"Successfully found post: {post['username']} - {post['content'][:50]}...")
+                return post
+            else:
+                print(f"Post not found with either ObjectId or string ID: {post_id}")
+                return None
+                
         except Exception as e:
             print(f"Error getting post by ID: {e}")
+            import traceback
+            traceback.print_exc()
             return None
-
-    # NEW METHODS FOR LIKES
     @staticmethod
     def like_post(post_id, user_id):
         """Like or unlike a post"""
         db = current_app.config["DB"]
         
         try:
+            print(f"Attempting to like/unlike post {post_id} by user {user_id}")
+            
             # Check if user already liked this post
             existing_like = db.likes.find_one({
                 "post_id": post_id,
@@ -126,13 +239,25 @@ class Post:
                 "type": "post"
             })
             
+            print(f"Existing like found: {existing_like is not None}")
+            
             if existing_like:
                 # Unlike - remove like and decrement count
                 db.likes.delete_one({"_id": existing_like["_id"]})
-                db.posts.update_one(
-                    {"_id": ObjectId(post_id)},
-                    {"$inc": {"likes_count": -1}}
-                )
+                
+                # Update post like count - try both ObjectId and string
+                try:
+                    db.posts.update_one(
+                        {"_id": ObjectId(post_id)},
+                        {"$inc": {"likes_count": -1}}
+                    )
+                except:
+                    db.posts.update_one(
+                        {"_id": post_id},
+                        {"$inc": {"likes_count": -1}}
+                    )
+                    
+                print("Post unliked successfully")
                 return {"liked": False, "message": "Post unliked"}
             else:
                 # Like - add like and increment count
@@ -143,14 +268,27 @@ class Post:
                     "created_at": datetime.utcnow()
                 }
                 db.likes.insert_one(like_doc)
-                db.posts.update_one(
-                    {"_id": ObjectId(post_id)},
-                    {"$inc": {"likes_count": 1}}
-                )
+                
+                # Update post like count - try both ObjectId and string
+                try:
+                    db.posts.update_one(
+                        {"_id": ObjectId(post_id)},
+                        {"$inc": {"likes_count": 1}}
+                    )
+                except:
+                    db.posts.update_one(
+                        {"_id": post_id},
+                        {"$inc": {"likes_count": 1}}
+                    )
+                    
+                print("Post liked successfully")
                 return {"liked": True, "message": "Post liked"}
                 
         except Exception as e:
-            return {"error": str(e)}
+            print(f"Error in like_post: {e}")
+            import traceback
+            traceback.print_exc()
+        return {"error": str(e)}
 
     @staticmethod
     def check_user_liked_post(post_id, user_id):
@@ -164,6 +302,7 @@ class Post:
         })
         
         return like is not None
+
     @staticmethod
     def get_user_liked_posts(user_id, limit=50, skip=0):
         """Get all posts that a user has liked with profile pictures"""

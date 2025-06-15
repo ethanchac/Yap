@@ -22,7 +22,8 @@ function Users() {
             setError('');
 
             try {
-                const response = await fetch(`http://localhost:5000/profile/search?q=${encodeURIComponent(query)}&limit=20`);
+                // FIXED: Changed from /profile/search to /users/search
+                const response = await fetch(`http://localhost:5000/users/search?q=${encodeURIComponent(query)}&limit=20`);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -58,6 +59,18 @@ function Users() {
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString();
+    };
+
+    // Function to get profile picture URL or default
+    const getProfilePictureUrl = (user) => {
+        if (user.profile_picture && user.profile_picture.trim() !== '') {
+            if (user.profile_picture.startsWith('http')) {
+                return user.profile_picture;
+            }
+            return `http://localhost:5000/uploads/profile_pictures/${user.profile_picture}`;
+        }
+        // Default profile picture
+        return "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
     };
 
     return (
@@ -110,19 +123,32 @@ function Users() {
                                     key={user._id}
                                     onClick={() => handleUserClick(user._id)}
                                 >
+                                    {/* Profile Picture */}
+                                    <img 
+                                        src={getProfilePictureUrl(user)}
+                                        alt={`${user.username}'s profile`}
+                                        onError={(e) => {
+                                            e.target.src = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
+                                        }}
+                                    />
+                                    
                                     <div>
                                         <h4>@{user.username}</h4>
                                         {user.email && (
                                             <p>{user.email}</p>
                                         )}
-                                        <p>Joined: {formatDate(user.created_at)}</p>
+                                        <p>
+                                            Joined: {formatDate(user.created_at)}
+                                        </p>
                                     </div>
                                     
                                     <div>
-                                        <button onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleUserClick(user._id);
-                                        }}>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUserClick(user._id);
+                                            }}
+                                        >
                                             View Profile
                                         </button>
                                     </div>
