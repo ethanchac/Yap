@@ -46,23 +46,30 @@ const Profile = () => {
       let url;
       
       if (isOwnProfile) {
-        // Fetch own profile - uses /profile/me (not /users/me)
-        url = `${API_BASE_URL}/profile/me?include_posts=true&posts_limit=6`;
+        // Fetch own profile - CORRECTED ENDPOINT
+        url = `${API_BASE_URL}/users/me?include_posts=true&posts_limit=6`;
       } else {
-        // Fetch another user's profile - uses /profile/profile/{userId}/enhanced
-        url = `${API_BASE_URL}/profile/profile/${userId}/enhanced?include_posts=true&posts_limit=6`;
+        // Fetch another user's profile - CORRECTED ENDPOINT
+        url = `${API_BASE_URL}/users/profile/${userId}/enhanced?include_posts=true&posts_limit=6`;
       }
+      
+      console.log('Fetching profile from:', url); // Debug log
       
       const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
       
+      console.log('Response status:', response.status); // Debug log
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch profile');
+        const errorData = await response.json();
+        console.error('Error response:', errorData); // Debug log
+        throw new Error(errorData.error || 'Failed to fetch profile');
       }
       
       const data = await response.json();
+      console.log('Profile data:', data); // Debug log
       setProfile(data.profile);
       
       // Only set edit form for own profile
@@ -76,6 +83,7 @@ const Profile = () => {
         });
       }
     } catch (err) {
+      console.error('Fetch profile error:', err); // Debug log
       setError(err.message);
     } finally {
       setLoading(false);
@@ -87,14 +95,16 @@ const Profile = () => {
     if (!isOwnProfile) return;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/profile/me`, {
+      // CORRECTED ENDPOINT
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(editForm),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
       }
       
       const data = await response.json();
@@ -116,14 +126,16 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('profile_picture', file);
       
-      const response = await fetch(`${API_BASE_URL}/profile/me/picture/upload`, {
+      // CORRECTED ENDPOINT
+      const response = await fetch(`${API_BASE_URL}/users/me/picture/upload`, {
         method: 'POST',
         headers: getFileUploadHeaders(),
         body: formData,
       });
       
       if (!response.ok) {
-        throw new Error('Failed to upload profile picture');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload profile picture');
       }
       
       const data = await response.json();
@@ -141,14 +153,16 @@ const Profile = () => {
     if (!isOwnProfile) return;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/profile/me/picture`, {
+      // CORRECTED ENDPOINT
+      const response = await fetch(`${API_BASE_URL}/users/me/picture`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ profile_picture: pictureUrl }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update profile picture');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile picture');
       }
       
       const data = await response.json();
@@ -218,9 +232,43 @@ const Profile = () => {
     });
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!profile) return <div>Profile not found</div>;
+  const getProfilePictureUrl = () => {
+    if (profile.profile_picture && profile.profile_picture.trim() !== '') {
+      if (profile.profile_picture.startsWith('http')) {
+        return profile.profile_picture;
+      }
+      return `http://localhost:5000/uploads/profile_pictures/${profile.profile_picture}`;
+    }
+    // Default profile picture
+    return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
+  };
+
+  if (loading) return (
+    <div>
+      <Header />
+      <Sidebar />
+      <div>Loading...</div>
+    </div>
+  );
+  
+  if (error) return (
+    <div>
+      <Header />
+      <Sidebar />
+      <div>
+        <p>Error: {error}</p>
+        <button onClick={fetchProfile}>Try Again</button>
+      </div>
+    </div>
+  );
+  
+  if (!profile) return (
+    <div>
+      <Header />
+      <Sidebar />
+      <div>Profile not found</div>
+    </div>
+  );
 
   return (
     <div>
@@ -232,10 +280,11 @@ const Profile = () => {
         <div>
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <img 
-                src={profile.profile_picture || '/default-avatar.png'} 
+                src={getProfilePictureUrl()} 
                 alt={profile.username}
                 width="100"
                 height="100"
+                style={{ borderRadius: '50%', objectFit: 'cover' }}
             />
             {uploadingImage && (
               <div>

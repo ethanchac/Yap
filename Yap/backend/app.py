@@ -1,3 +1,5 @@
+# Replace your entire CORS section in app.py with this:
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -27,12 +29,29 @@ app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
 # create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# CORS configuration
-CORS(app, 
-     origins=["http://localhost:5173"], 
-     supports_credentials=True,
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization"])
+# SIMPLIFIED CORS CONFIGURATION - Remove Flask-CORS and use manual handling
+# CORS(app, ...) # REMOVE THIS LINE ENTIRELY
+
+# Manual CORS handling - this replaces Flask-CORS
+@app.after_request
+def after_request(response):
+    """Handle CORS manually"""
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,Accept'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
+@app.before_request
+def handle_options():
+    """Handle preflight OPTIONS requests"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,Accept'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        return response
 
 # database selection based on test mode
 if TEST_MODE:
@@ -51,10 +70,10 @@ app.config["DB"] = db
 
 print(f"📊 Connected to database: {db_name}")
 
-# register blueprints (keep adding based on new routes added)
+# register blueprints - CORRECTED
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(registration_bp, url_prefix="/users")
-app.register_blueprint(users_bp, url_prefix="/profile")
+app.register_blueprint(users_bp, url_prefix="/users")  # FIXED: /users not /profile
 app.register_blueprint(verification_bp, url_prefix="/verification")
 app.register_blueprint(posts_bp, url_prefix="/posts")
 app.register_blueprint(comments_bp, url_prefix="/comments")
@@ -75,7 +94,6 @@ def uploaded_file(user_id, filename):
     except Exception as e:
         print(f"Error serving file: {e}")
         return jsonify({"error": "Failed to serve file"}), 500
-
 
 # when file size is too big
 @app.errorhandler(413)

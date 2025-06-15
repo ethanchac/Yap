@@ -66,6 +66,10 @@ function PostItem({ post }) {
     };
 
     const handleCommentClick = () => {
+        // Debug: Log the post ID and navigation path
+        console.log('Navigating to comments for post ID:', post._id);
+        console.log('Navigation path:', `/post/${post._id}/comments`);
+        
         // Navigate to comments page
         navigate(`/post/${post._id}/comments`);
     };
@@ -114,6 +118,7 @@ function PostItem({ post }) {
                         // Fallback to default avatar if image fails to load
                         e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
                     }}
+                    className='w-15 h-15'
                 />
                 
                 <div>

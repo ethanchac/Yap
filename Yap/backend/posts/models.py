@@ -243,12 +243,77 @@ class Post:
 
     @staticmethod
     def get_user_liked_posts_with_like_status(user_id, current_user_id=None, limit=50, skip=0):
-        """Get user's liked posts with like status for current user"""
+        """Get user's liked posts with like status and profile pictures"""
         db = current_app.config["DB"]
         
         try:
-            # Get the basic liked posts
-            liked_posts = Post.get_user_liked_posts(user_id, limit, skip)
+            # Get liked posts with profile pictures
+            pipeline = [
+                # Match likes by this user for posts
+                {
+                    "$match": {
+                        "user_id": user_id,
+                        "type": "post"
+                    }
+                },
+                # Sort by when they liked it (most recent first)
+                {"$sort": {"created_at": -1}},
+                # Pagination
+                {"$skip": skip},
+                {"$limit": limit},
+                # Convert post_id string to ObjectId for lookup
+                {
+                    "$addFields": {
+                        "post_object_id": {"$toObjectId": "$post_id"}
+                    }
+                },
+                # Join with posts collection to get full post details
+                {
+                    "$lookup": {
+                        "from": "posts",
+                        "localField": "post_object_id",
+                        "foreignField": "_id",
+                        "as": "post_details"
+                    }
+                },
+                # Unwind the post details (should be only one match)
+                {"$unwind": "$post_details"},
+                # Join with users collection to get profile pictures
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "let": {"user_id": {"$toObjectId": "$post_details.user_id"}},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
+                        ],
+                        "as": "user_info"
+                    }
+                },
+                {
+                    "$unwind": {
+                        "path": "$user_info",
+                        "preserveNullAndEmptyArrays": True
+                    }
+                },
+                # Project the final structure
+                {
+                    "$project": {
+                        "_id": {"$toString": "$post_details._id"},
+                        "user_id": "$post_details.user_id",
+                        "username": {"$ifNull": ["$user_info.username", "$post_details.username"]},
+                        "content": "$post_details.content",
+                        "created_at": "$post_details.created_at",
+                        "likes_count": "$post_details.likes_count",
+                        "comments_count": "$post_details.comments_count",
+                        "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]},
+                        "liked_at": "$created_at"  # When the user liked this post
+                    }
+                }
+            ]
+            
+            liked_posts = list(db.likes.aggregate(pipeline))
+            
+            print(f"Found {len(liked_posts)} liked posts for user {user_id}")
             
             # If there's a current user, add their like status for each post
             if current_user_id and liked_posts:
@@ -272,4 +337,6 @@ class Post:
             
         except Exception as e:
             print(f"Error getting liked posts with status: {e}")
+            import traceback
+            traceback.print_exc()
             return []

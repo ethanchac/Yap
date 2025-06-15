@@ -147,6 +147,7 @@ def get_single_post(post_id):
         
     except Exception as e:
         return jsonify({"error": "Failed to fetch post"}), 500
+    
 @posts_bp.route('/liked', methods=['GET'])
 @token_required
 def get_my_liked_posts(current_user):
@@ -155,6 +156,8 @@ def get_my_liked_posts(current_user):
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 20))
         skip = (page - 1) * limit
+        
+        print(f"Getting liked posts for user: {current_user['_id']}")
         
         # Get liked posts with current user's like status
         liked_posts = Post.get_user_liked_posts_with_like_status(
@@ -167,6 +170,8 @@ def get_my_liked_posts(current_user):
         # Get total count for pagination
         total_liked = Post.get_liked_posts_count(current_user['_id'])
         
+        print(f"Returning {len(liked_posts)} liked posts, total: {total_liked}")
+        
         return jsonify({
             "posts": liked_posts,
             "page": page,
@@ -177,6 +182,8 @@ def get_my_liked_posts(current_user):
         
     except Exception as e:
         print(f"Error fetching liked posts: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Failed to fetch liked posts"}), 500
 
 @posts_bp.route('/user/<user_id>/liked', methods=['GET'])
