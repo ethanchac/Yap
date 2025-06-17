@@ -1,6 +1,6 @@
 import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
-import PostItem from '../posts/PostItem'; // Add this import
+import PostItem from '../posts/PostItem';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -21,9 +21,9 @@ const Profile = () => {
   const fileInputRef = useRef(null);
 
   const API_BASE_URL = 'http://localhost:5000';
-  const isOwnProfile = !userId; // If no userId in URL, it's own profile
+  const isOwnProfile = !userId; // if no userId in URL, it's own profile
 
-  // Get auth headers
+  // get auth headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -32,7 +32,7 @@ const Profile = () => {
     };
   };
 
-  // Get auth headers for file upload (without Content-Type)
+  // get auth headers for file upload (without Content-Type)
   const getFileUploadHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -47,10 +47,8 @@ const Profile = () => {
       let url;
       
       if (isOwnProfile) {
-        // Fetch own profile - NOW WITH POSTS
         url = `${API_BASE_URL}/users/me?include_posts=true&posts_limit=10`;
       } else {
-        // Fetch another user's profile - NOW WITH POSTS
         url = `${API_BASE_URL}/users/profile/${userId}/enhanced?include_posts=true&posts_limit=10`;
       }
       
@@ -61,16 +59,16 @@ const Profile = () => {
         headers: getAuthHeaders(),
       });
       
-      console.log('Response status:', response.status); // Debug log
+      //console.log('Response status:', response.status); // Debug log
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error response:', errorData); // Debug log
+        //console.error('Error response:', errorData); // Debug log
         throw new Error(errorData.error || 'Failed to fetch profile');
       }
       
       const data = await response.json();
-      console.log('Profile data:', data); // Debug log
+      //console.log('Profile data:', data); // Debug log
       setProfile(data.profile);
       
       // Only set edit form for own profile
@@ -84,14 +82,14 @@ const Profile = () => {
         });
       }
     } catch (err) {
-      console.error('Fetch profile error:', err); // Debug log
+      //console.error('Fetch profile error:', err); // Debug log
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Update profile (only for own profile)
+  // update profile (only for own profile)
   const updateProfile = async () => {
     if (!isOwnProfile) return;
     
@@ -116,7 +114,7 @@ const Profile = () => {
     }
   };
 
-  // Upload profile picture file (only for own profile)
+  // upload profile picture file (only for own profile)
   const uploadProfilePicture = async (file) => {
     if (!isOwnProfile) return;
     
@@ -180,14 +178,14 @@ const Profile = () => {
     
     const file = event.target.files[0];
     if (file) {
-      // Validate file type
+      // type of files that are allows
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       if (!allowedTypes.includes(file.type)) {
         setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
         return;
       }
       
-      // Validate file size (e.g., 5MB limit)
+      // make sure each file has a limit in size
       const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSizeInBytes) {
         setError('File size must be less than 5MB');
@@ -197,7 +195,7 @@ const Profile = () => {
       // Clear any previous errors
       setError(null);
       
-      // Upload the file
+      // upload the file
       uploadProfilePicture(file);
     }
   };
