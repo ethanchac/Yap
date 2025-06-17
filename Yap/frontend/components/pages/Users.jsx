@@ -10,7 +10,7 @@ function Users() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // search function using debouncing
+    // search function using debouncing; used AI for all this
     const debouncedSearch = useCallback(
         debounce(async (query) => {
             if (query.length < 2) {
@@ -22,7 +22,6 @@ function Users() {
             setError('');
 
             try {
-                // FIXED: Changed from /profile/search to /users/search
                 const response = await fetch(`http://localhost:5000/users/search?q=${encodeURIComponent(query)}&limit=20`);
                 const data = await response.json();
 
@@ -61,7 +60,7 @@ function Users() {
         return date.toLocaleDateString();
     };
 
-    // Function to get profile picture URL or default
+    // function to get profile picture URL or default
     const getProfilePictureUrl = (user) => {
         if (user.profile_picture && user.profile_picture.trim() !== '') {
             if (user.profile_picture.startsWith('http')) {
@@ -80,6 +79,7 @@ function Users() {
             <div>
                 <h1>Search Users</h1>
                 
+                {/* this is the search bar */}
                 <div>
                     <input
                         type="text"
@@ -89,7 +89,7 @@ function Users() {
                         autoComplete="off"
                     />
                 </div>
-
+                {/* output of the search bar */}
                 {loading && (
                     <div>
                         <p>Searching...</p>
