@@ -32,9 +32,10 @@ def register():
     if not is_valid_tmu_email(email):
         return jsonify({"error": "Must use a torontomu.ca email"}), 400
 
+    #the users in database
     users_collection = current_app.config["DB"]["users"]
     
-    # Check for existing username
+    # check if username exists
     if users_collection.find_one({"username": username}):
         return jsonify({"error": "Username already exists"}), 409
 
@@ -42,7 +43,7 @@ def register():
     # if users_collection.find_one({"email": email}):
     #     return jsonify({"error": "Email already registered"}), 409
 
-    # Create user with verification data
+    # create the user with verification data
     hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     code = generate_6_digit_code()
     verification_data = create_verification_data(code)
@@ -52,9 +53,10 @@ def register():
     user_doc["email_verification_data"] = verification_data
     
     try:
+        #add to the users
         users_collection.insert_one(user_doc)
         
-        # Send verification email
+        # send the verification email
         email_result = send_verification_email(email, code)
         if not email_result:
             print(f"[WARNING] Failed to send email to {email}")
@@ -78,6 +80,7 @@ def confirm_code():
         return jsonify({"error": "Username and code required"}), 400
 
     users_collection = current_app.config["DB"]["users"]
+    #see if there exists user --> true or false
     user = users_collection.find_one({"username": username})
 
     if not user:
