@@ -80,6 +80,7 @@ def confirm_code():
         return jsonify({"error": "Username and code required"}), 400
 
     users_collection = current_app.config["DB"]["users"]
+
     #see if there exists user --> true or false
     user = users_collection.find_one({"username": username})
 
@@ -100,11 +101,11 @@ def confirm_code():
     print(f"[DEBUG] Code created at: {verification_data.get('created_at')}")
     print(f"[DEBUG] Current time: {datetime.now()}")
 
-    # Check if code expired
+    # check code if it is expired
     if is_code_expired(verification_data.get("created_at")):
         return jsonify({"error": "Verification code expired. Please request a new one."}), 400
 
-    # Check attempt limit
+    # make sure the limit is 3
     if verification_data.get("attempts", 0) >= 3:
         return jsonify({"error": "Too many failed attempts. Please request a new code."}), 400
 
