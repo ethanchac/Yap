@@ -10,6 +10,8 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 def require_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+
+        #check if it is authorized
         auth_header = request.headers.get("Authorization")
 
         if not auth_header or not auth_header.startswith("Bearer "):
@@ -18,6 +20,7 @@ def require_auth(f):
         token = auth_header.split(" ")[1]
 
         try:
+            #decode the jwwt
             decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
             g.user = decoded  # g = Flask's global context object
         except jwt.ExpiredSignatureError:

@@ -17,7 +17,7 @@ def send_verification_email(to_email: str, code: str) -> bool:
     if not SENDGRID_API_KEY or not FROM_EMAIL:
         print("[ERROR] SendGrid not configured properly")
         return False
-    
+    #this is the message of the email with all the styling. Had to AI all this
     message = Mail(
         from_email=FROM_EMAIL,
         to_emails=to_email,

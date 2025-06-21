@@ -2,7 +2,10 @@ from pymongo import MongoClient
 import os
 from flask import current_app
 
-# Global variable to store our database connection
+
+"""THIS ISNT BEING USED JUST KEPT HERE FOR REFERENCE"""
+
+
 _db = None
 _client = None
 
