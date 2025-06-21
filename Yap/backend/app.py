@@ -1,7 +1,5 @@
-# Replace your entire CORS section in app.py with this:
-
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+from flask_socketio import SocketIO
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from auth.routes import auth_bp
@@ -10,6 +8,7 @@ from users.routes import users_bp
 from verification.routes import verification_bp
 from posts.routes import posts_bp
 from comments.routes import comments_bp
+from messages.routes import messages_bp  # NEW
 import os
 import sys
 
@@ -21,6 +20,14 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 
 # setting up flask
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+
+# ADD SOCKETIO CONFIGURATION
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="http://localhost:5173",
+    async_mode='threading'
+)
 
 # configuring file upload
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
@@ -29,10 +36,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
 # create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# SIMPLIFIED CORS CONFIGURATION - Remove Flask-CORS and use manual handling
-# CORS(app, ...) # REMOVE THIS LINE ENTIRELY
-
-# Manual CORS handling - this replaces Flask-CORS
+# Manual CORS handling
 @app.after_request
 def after_request(response):
     """Handle CORS manually"""
@@ -70,13 +74,58 @@ app.config["DB"] = db
 
 print(f"📊 Connected to database: {db_name}")
 
-# register blueprints - CORRECTED
+# register blueprints
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(registration_bp, url_prefix="/users")
-app.register_blueprint(users_bp, url_prefix="/users")  # FIXED: /users not /profile
+app.register_blueprint(users_bp, url_prefix="/users")
 app.register_blueprint(verification_bp, url_prefix="/verification")
 app.register_blueprint(posts_bp, url_prefix="/posts")
 app.register_blueprint(comments_bp, url_prefix="/comments")
+app.register_blueprint(messages_bp, url_prefix="/messages")  # NEW
+
+# ===== SOCKETIO EVENT HANDLERS =====
+
+@socketio.on('connect')
+def handle_connect(auth):
+    """Handle client connection"""
+    from messages.service import handle_connect
+    handle_connect(socketio, auth)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    from messages.service import handle_disconnect
+    handle_disconnect()
+
+@socketio.on('join_conversation')
+def handle_join_conversation(data):
+    """Join a conversation room"""
+    from messages.service import handle_join_conversation
+    handle_join_conversation(socketio, data)
+
+@socketio.on('leave_conversation')
+def handle_leave_conversation(data):
+    """Leave a conversation room"""
+    from messages.service import handle_leave_conversation
+    handle_leave_conversation(data)
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    """Handle sending a message"""
+    from messages.service import handle_send_message
+    handle_send_message(socketio, data)
+
+@socketio.on('typing_start')
+def handle_typing_start(data):
+    """Handle typing indicator start"""
+    from messages.service import handle_typing_start
+    handle_typing_start(socketio, data)
+
+@socketio.on('typing_stop')
+def handle_typing_stop(data):
+    """Handle typing indicator stop"""
+    from messages.service import handle_typing_stop
+    handle_typing_stop(socketio, data)
 
 # route to serve uploaded profile pictures
 @app.route('/uploads/profile_pictures/<user_id>/<filename>')
@@ -101,4 +150,5 @@ def too_large(e):
     return jsonify({"error": "File too large. Maximum size is 5MB"}), 413
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Use socketio.run instead of app.run for WebSocket support
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)

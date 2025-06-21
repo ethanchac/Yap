@@ -533,3 +533,34 @@ def serve_profile_picture(user_id, filename):
         # Return default avatar if file not found
         default_dir = os.path.join(current_app.root_path, 'static', 'default')
         return send_from_directory(default_dir, 'default-avatar.png')
+@users_bp.route('/<user_id>/start-conversation', methods=['POST'])
+@token_required
+def start_conversation_with_user(current_user, user_id):
+    """Start a conversation with a specific user (for Message button)"""
+    try:
+        # Check if target user exists
+        target_user = User.get_user_profile(user_id)
+        if not target_user:
+            return jsonify({"error": "User not found"}), 404
+        
+        if user_id == current_user['_id']:
+            return jsonify({"error": "Cannot message yourself"}), 400
+        
+        # Import Message models
+        from messages.models import Conversation
+        
+        # Create or get existing conversation
+        conversation = Conversation.create_conversation([current_user['_id'], user_id])
+        
+        if not conversation:
+            return jsonify({"error": "Failed to create conversation"}), 500
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation["_id"],
+            "message": "Conversation ready"
+        }), 200
+        
+    except Exception as e:
+        print(f"Error starting conversation with user: {e}")
+        return jsonify({"error": "Failed to start conversation"}), 500
