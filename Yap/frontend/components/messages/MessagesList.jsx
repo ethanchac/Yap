@@ -1,4 +1,3 @@
-import React from 'react';
 import MessagePerson from './MessagePerson';
 
 function MessagesList({ conversations, selectedConversation, onConversationSelect, loading }) {

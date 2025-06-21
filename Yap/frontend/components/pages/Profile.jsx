@@ -2,14 +2,16 @@ import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { userId } = useParams(); // Get userId from URL
+  const navigate = useNavigate(); // For navigation
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [messagingUser, setMessagingUser] = useState(false); // Loading state for message button
   const [editForm, setEditForm] = useState({
     full_name: '',
     bio: '',
@@ -38,6 +40,68 @@ const Profile = () => {
     return {
       ...(token && { 'Authorization': `Bearer ${token}` })
     };
+  };
+
+  // Handle message button click
+  const handleMessageUser = async () => {
+    if (isOwnProfile) return; // Can't message yourself
+    
+    try {
+      setMessagingUser(true);
+      
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/start-conversation`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to start conversation');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Redirect to messages page with the conversation ID
+        navigate(`/messages?conversation=${data.conversation_id}`);
+      }
+      
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMessagingUser(false);
+    }
+  };
+
+  // Handle follow/unfollow
+  const handleFollowToggle = async () => {
+    if (isOwnProfile) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/follow`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update follow status');
+      }
+      
+      const data = await response.json();
+      
+      // Update profile state with new follow status
+      setProfile(prev => ({
+        ...prev,
+        is_following: data.following,
+        followers_count: data.following 
+          ? prev.followers_count + 1 
+          : prev.followers_count - 1
+      }));
+      
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   // Fetch profile (own or other user's)
@@ -350,11 +414,18 @@ const Profile = () => {
         )}
         </div>
 
-        {/* Follow button for other users */}
+        {/* Action buttons for other users */}
         {!isOwnProfile && (
           <div>
-            <button>
+            <button onClick={handleFollowToggle}>
               {profile.is_following ? 'Unfollow' : 'Follow'}
+            </button>
+            
+            <button 
+              onClick={handleMessageUser}
+              disabled={messagingUser}
+            >
+              {messagingUser ? 'Starting chat...' : 'Message'}
             </button>
           </div>
         )}
