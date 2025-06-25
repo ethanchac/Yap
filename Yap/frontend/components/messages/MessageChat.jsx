@@ -11,38 +11,61 @@ function MessageChat({ conversation, onNewMessage }) {
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     
-    // Enhanced method to get current user ID with better error handling
-    const getCurrentUserId = () => {
+    // Get current user identifier (could be ID or username)
+    const getCurrentUserIdentifier = () => {
         try {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            // Check localStorage for user data
+            const userString = localStorage.getItem('user');
             const token = localStorage.getItem('token');
             
-            // Try multiple possible user ID fields
-            const userId = user._id || user.id || user.userId;
+            console.log('Raw user string from localStorage:', userString);
+            console.log('Token exists:', !!token);
             
-            console.log('Current user from localStorage:', user);
-            console.log('Extracted user ID:', userId);
+            if (userString) {
+                const user = JSON.parse(userString);
+                console.log('Parsed user object:', user);
+                
+                // Try multiple possible user ID fields
+                const userId = user._id || user.id || user.userId || user.user_id || user.username;
+                console.log('Extracted user identifier from user object:', userId);
+                
+                if (userId) return String(userId); // Ensure it's a string
+            }
             
-            if (!userId && token) {
-                // If we have a token but no user ID, try to extract from token
+            // If no user ID from user object, try token
+            if (token) {
                 try {
                     const payload = JSON.parse(atob(token.split('.')[1]));
                     console.log('Token payload:', payload);
-                    return payload.userId || payload.id || payload._id;
+                    // Try ID fields first, then fall back to username
+                    const tokenIdentifier = payload.userId || payload.id || payload._id || payload.user_id || payload.sub || payload.username;
+                    console.log('Extracted identifier from token:', tokenIdentifier);
+                    if (tokenIdentifier) return String(tokenIdentifier);
                 } catch (e) {
                     console.warn('Could not parse token:', e);
                 }
             }
             
-            return userId;
+            // Last resort: check other possible localStorage keys
+            const altKeys = ['userId', 'user_id', 'currentUserId', 'authUserId', 'username'];
+            for (const key of altKeys) {
+                const altId = localStorage.getItem(key);
+                if (altId) {
+                    console.log(`Found user identifier in ${key}:`, altId);
+                    return String(altId);
+                }
+            }
+            
+            console.warn('No user identifier found anywhere!');
+            return null;
         } catch (error) {
-            console.error('Error parsing user from localStorage:', error);
+            console.error('Error getting current user identifier:', error);
             return null;
         }
     };
     
-    const currentUserId = getCurrentUserId();
-    console.log('Current User ID:', currentUserId);
+    const currentUserIdentifier = getCurrentUserIdentifier();
+    console.log('Current User Identifier:', currentUserIdentifier);
 
     useEffect(() => {
         if (!conversation || !conversation._id) {
@@ -71,7 +94,7 @@ function MessageChat({ conversation, onNewMessage }) {
         });
 
         newSocket.on('user_typing', (data) => {
-            if (data.conversation_id === conversation._id && data.user_id !== currentUserId) {
+            if (data.conversation_id === conversation._id && data.user_id !== currentUserIdentifier) {
                 setOtherUserTyping(data.typing);
             }
         });
@@ -192,14 +215,50 @@ function MessageChat({ conversation, onNewMessage }) {
 
     // Enhanced function to check if message is from current user
     const isMyMessage = (message) => {
-        if (!currentUserId) return false;
+        if (!currentUserIdentifier) {
+            console.log('No current user identifier available');
+            return false;
+        }
         
-        // Check multiple possible sender ID fields
-        const senderId = message.sender_id || message.sender?._id || message.sender?.id;
-        const isOwn = senderId === currentUserId;
+        // Get all possible sender identifiers (IDs and usernames)
+        const senderVariations = [
+            message.sender_id,
+            message.senderId,
+            message.sender?._id,
+            message.sender?.id,
+            message.sender?.userId,
+            message.sender?.user_id,
+            message.sender?.username, // Added username check
+            message.user_id,
+            message.userId,
+            message.username, // Added username check
+            message.from,
+            message.author_id,
+            message.authorId,
+            message.author?.username // Added author username check
+        ].filter(Boolean); // Remove null/undefined values
         
-        console.log(`Message sender ID: ${senderId}, Current user: ${currentUserId}, Is my message: ${isOwn}`);
-        return isOwn;
+        console.log('=== Message Debug ===');
+        console.log('Current User Identifier:', currentUserIdentifier, typeof currentUserIdentifier);
+        console.log('Message sender object:', message.sender);
+        console.log('Sender variations found:', senderVariations);
+        
+        // Check each variation (comparing as strings)
+        for (const senderIdentifier of senderVariations) {
+            const senderStr = String(senderIdentifier);
+            const currentStr = String(currentUserIdentifier);
+            
+            console.log(`Comparing: "${senderStr}" === "${currentStr}" = ${senderStr === currentStr}`);
+            
+            if (senderStr === currentStr) {
+                console.log('✅ MATCH FOUND! This is my message');
+                return true;
+            }
+        }
+        
+        console.log('❌ No match found. This is NOT my message');
+        console.log('Full message object for debugging:', message);
+        return false;
     };
 
     if (!conversation) {
@@ -258,9 +317,20 @@ function MessageChat({ conversation, onNewMessage }) {
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Debug Info - Remove this in production */}
-                <div className="text-xs text-gray-500 p-2 bg-gray-700 rounded">
-                    Current User ID: {currentUserId || 'Not found'}
+                {/* Enhanced Debug Info - Shows detailed debugging */}
+                <div className="text-xs text-gray-500 p-3 bg-gray-700 rounded mb-4">
+                    <div><strong>Current User Identifier:</strong> {currentUserIdentifier || 'Not found'}</div>
+                    <div><strong>Identifier Type:</strong> {typeof currentUserIdentifier}</div>
+                    <div><strong>Total Messages:</strong> {messages.length}</div>
+                    {messages.length > 0 && (
+                        <div className="mt-2">
+                            <strong>Last Message Debug:</strong>
+                            <div className="ml-2 text-xs">
+                                <div>Sender: {JSON.stringify(messages[messages.length - 1].sender)}</div>
+                                <div>Is My Message: {isMyMessage(messages[messages.length - 1]) ? 'YES' : 'NO'}</div>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 
                 {messages.map((message, index) => {
