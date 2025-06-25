@@ -11,11 +11,40 @@ function MessageChat({ conversation, onNewMessage }) {
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     
-    // FIXED: Added safety check for current user
-    const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')._id;
+    // Enhanced method to get current user ID with better error handling
+    const getCurrentUserId = () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const token = localStorage.getItem('token');
+            
+            // Try multiple possible user ID fields
+            const userId = user._id || user.id || user.userId;
+            
+            console.log('Current user from localStorage:', user);
+            console.log('Extracted user ID:', userId);
+            
+            if (!userId && token) {
+                // If we have a token but no user ID, try to extract from token
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    console.log('Token payload:', payload);
+                    return payload.userId || payload.id || payload._id;
+                } catch (e) {
+                    console.warn('Could not parse token:', e);
+                }
+            }
+            
+            return userId;
+        } catch (error) {
+            console.error('Error parsing user from localStorage:', error);
+            return null;
+        }
+    };
+    
+    const currentUserId = getCurrentUserId();
+    console.log('Current User ID:', currentUserId);
 
     useEffect(() => {
-        // FIXED: Added safety check for conversation
         if (!conversation || !conversation._id) {
             console.error('No conversation provided to MessageChat');
             setLoading(false);
@@ -34,6 +63,7 @@ function MessageChat({ conversation, onNewMessage }) {
         });
 
         newSocket.on('new_message', (message) => {
+            console.log('Received new message:', message);
             setMessages(prev => [...prev, message]);
             if (onNewMessage) {
                 onNewMessage(conversation._id, message);
@@ -51,8 +81,6 @@ function MessageChat({ conversation, onNewMessage }) {
         });
 
         setSocket(newSocket);
-
-        // Fetch message history
         fetchMessages();
 
         return () => {
@@ -79,6 +107,7 @@ function MessageChat({ conversation, onNewMessage }) {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('Fetched messages:', data.messages);
                 setMessages(data.messages || []);
             } else {
                 console.error('Failed to fetch messages:', response.status);
@@ -106,7 +135,6 @@ function MessageChat({ conversation, onNewMessage }) {
 
         setNewMessage('');
         
-        // Stop typing indicator
         if (isTyping) {
             socket.emit('typing_stop', { conversation_id: conversation._id });
             setIsTyping(false);
@@ -118,18 +146,15 @@ function MessageChat({ conversation, onNewMessage }) {
 
         if (!socket) return;
 
-        // Start typing indicator
         if (!isTyping) {
             socket.emit('typing_start', { conversation_id: conversation._id });
             setIsTyping(true);
         }
 
-        // Clear existing timeout
         if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
         }
 
-        // Stop typing after 2 seconds of inactivity
         typingTimeoutRef.current = setTimeout(() => {
             socket.emit('typing_stop', { conversation_id: conversation._id });
             setIsTyping(false);
@@ -165,7 +190,18 @@ function MessageChat({ conversation, onNewMessage }) {
         return currentDate !== previousDate;
     };
 
-    // FIXED: Added safety checks
+    // Enhanced function to check if message is from current user
+    const isMyMessage = (message) => {
+        if (!currentUserId) return false;
+        
+        // Check multiple possible sender ID fields
+        const senderId = message.sender_id || message.sender?._id || message.sender?.id;
+        const isOwn = senderId === currentUserId;
+        
+        console.log(`Message sender ID: ${senderId}, Current user: ${currentUserId}, Is my message: ${isOwn}`);
+        return isOwn;
+    };
+
     if (!conversation) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -222,55 +258,78 @@ function MessageChat({ conversation, onNewMessage }) {
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((message, index) => (
-                    <div key={message._id}>
-                        {/* Date separator */}
-                        {shouldShowDateSeparator(message, messages[index - 1]) && (
-                            <div className="flex items-center justify-center my-4">
-                                <div className="bg-gray-600 text-gray-300 px-3 py-1 rounded-full text-xs">
-                                    {formatMessageDate(message.created_at)}
+                {/* Debug Info - Remove this in production */}
+                <div className="text-xs text-gray-500 p-2 bg-gray-700 rounded">
+                    Current User ID: {currentUserId || 'Not found'}
+                </div>
+                
+                {messages.map((message, index) => {
+                    const myMessage = isMyMessage(message);
+                    
+                    return (
+                        <div key={message._id}>
+                            {/* Date separator */}
+                            {shouldShowDateSeparator(message, messages[index - 1]) && (
+                                <div className="flex items-center justify-center my-4">
+                                    <div className="bg-gray-600 text-gray-300 px-3 py-1 rounded-full text-xs">
+                                        {formatMessageDate(message.created_at)}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                        
-                        {/* Message */}
-                        <div className={`flex items-start space-x-3 ${message.sender_id === currentUserId ? 'justify-end' : 'justify-start'}`}>
-                            {message.sender_id !== currentUserId && (
-                                <img 
-                                    src={message.sender?.profile_picture || '/default-avatar.png'}
-                                    alt={message.sender?.username || 'Unknown'}
-                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                />
                             )}
                             
-                            <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${message.sender_id === currentUserId ? 'order-first' : ''}`}>
-                                {message.sender_id !== currentUserId && (
-                                    <div className="text-gray-300 text-sm font-medium mb-1">
-                                        {message.sender?.username || 'Unknown'}
-                                    </div>
+                            {/* Message Container */}
+                            <div className={`flex items-end space-x-3 mb-4 ${
+                                myMessage ? 'justify-end' : 'justify-start'
+                            }`}>
+                                {/* Profile Picture - Show on left for others, right for you */}
+                                {!myMessage && (
+                                    <img 
+                                        src={message.sender?.profile_picture || '/default-avatar.png'}
+                                        alt={message.sender?.username || 'Unknown'}
+                                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                    />
                                 )}
-                                <div className={`rounded-lg px-4 py-2 ${
-                                    message.sender_id === currentUserId 
-                                        ? 'bg-blue-600 text-white' 
-                                        : 'bg-gray-600 text-white'
+                                
+                                {/* Message Bubble */}
+                                <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${
+                                    myMessage ? 'order-1' : 'order-2'
                                 }`}>
-                                    <p className="break-words">{message.content}</p>
+                                    {/* Username (only for other people's messages) */}
+                                    {!myMessage && (
+                                        <div className="text-gray-300 text-sm font-medium mb-1 ml-1">
+                                            {message.sender?.username || 'Unknown'}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Message Content with improved styling */}
+                                    <div className={`rounded-2xl px-4 py-3 ${
+                                        myMessage 
+                                            ? 'bg-blue-500 text-white rounded-br-md shadow-lg' 
+                                            : 'bg-gray-600 text-white rounded-bl-md shadow-md'
+                                    }`}>
+                                        <p className="break-words">{message.content}</p>
+                                    </div>
+                                    
+                                    {/* Timestamp */}
+                                    <div className={`text-xs text-gray-400 mt-1 px-1 ${
+                                        myMessage ? 'text-right' : 'text-left'
+                                    }`}>
+                                        {formatMessageTime(message.created_at)}
+                                    </div>
                                 </div>
-                                <div className={`text-xs text-gray-400 mt-1 ${message.sender_id === currentUserId ? 'text-right' : 'text-left'}`}>
-                                    {formatMessageTime(message.created_at)}
-                                </div>
-                            </div>
 
-                            {message.sender_id === currentUserId && (
-                                <img 
-                                    src={message.sender?.profile_picture || '/default-avatar.png'}
-                                    alt={message.sender?.username || 'You'}
-                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                />
-                            )}
+                                {/* Profile Picture for your messages */}
+                                {myMessage && (
+                                    <img 
+                                        src={message.sender?.profile_picture || '/default-avatar.png'}
+                                        alt="You"
+                                        className="w-8 h-8 rounded-full object-cover flex-shrink-0 order-2"
+                                    />
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
                 
                 {/* Typing indicator */}
                 {otherUserTyping && (

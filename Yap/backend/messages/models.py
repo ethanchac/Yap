@@ -1,6 +1,7 @@
 from datetime import datetime
 from bson import ObjectId
 from flask import current_app
+import json
 
 class Conversation:
     @staticmethod
@@ -98,7 +99,7 @@ class Conversation:
                             "_id": str(last_msg["_id"]),
                             "content": last_msg["content"],
                             "sender_id": last_msg["sender_id"],
-                            "created_at": last_msg["created_at"]
+                            "created_at": last_msg["created_at"].isoformat() if isinstance(last_msg["created_at"], datetime) else last_msg["created_at"]
                         }
                 
                 conv["other_participant"] = other_participant
@@ -145,13 +146,16 @@ class Message:
             if sender:
                 sender["_id"] = str(sender["_id"])
             
+            # FIXED: Convert datetime to ISO string for JSON serialization
+            created_at_iso = message_doc["created_at"].isoformat()
+            
             # Prepare message response
             message_response = {
                 "_id": str(result.inserted_id),
                 "conversation_id": conversation_id,
                 "sender_id": sender_id,
                 "content": content,
-                "created_at": message_doc["created_at"],
+                "created_at": created_at_iso,  # FIXED: Use ISO string instead of datetime object
                 "sender": {
                     "_id": sender["_id"] if sender else sender_id,
                     "username": sender["username"] if sender else "Unknown",
@@ -182,12 +186,15 @@ class Message:
                 # Get sender info
                 sender = db.users.find_one({"_id": ObjectId(msg["sender_id"])})
                 
+                # FIXED: Convert datetime to ISO string
+                created_at_iso = msg["created_at"].isoformat() if isinstance(msg["created_at"], datetime) else msg["created_at"]
+                
                 message = {
                     "_id": str(msg["_id"]),
                     "conversation_id": str(msg["conversation_id"]),
                     "sender_id": msg["sender_id"],
                     "content": msg["content"],
-                    "created_at": msg["created_at"],
+                    "created_at": created_at_iso,  # FIXED: Use ISO string
                     "read_by": msg.get("read_by", []),
                     "sender": {
                         "_id": str(sender["_id"]) if sender else msg["sender_id"],
