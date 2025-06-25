@@ -1,15 +1,19 @@
+import React from 'react';
+
 function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
-    const { other_participant, last_message, last_message_at } = conversation;
+    const { other_participant, last_message, last_message_at } = conversation || {};
     
     // Fallback for missing participant data
     const participantName = other_participant?.username || 'Unknown User';
     const participantPicture = other_participant?.profile_picture || '/default-avatar.png';
     
-    // Format last message preview
+    // Format last message preview - FIXED: Added safety checks
     const getLastMessagePreview = () => {
-        if (!last_message) return 'Start a conversation';
+        if (!last_message || !last_message.content) return 'Start a conversation';
         
         const content = last_message.content;
+        if (typeof content !== 'string') return 'Start a conversation';
+        
         if (content.length > 50) {
             return content.substring(0, 50) + '...';
         }

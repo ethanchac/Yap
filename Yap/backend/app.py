@@ -88,43 +88,43 @@ app.register_blueprint(messages_bp, url_prefix="/messages")  # NEW
 @socketio.on('connect')
 def handle_connect(auth):
     """Handle client connection"""
-    from messages.service import handle_connect
+    from messages.services import handle_connect
     handle_connect(socketio, auth)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handle client disconnection"""
-    from messages.service import handle_disconnect
+    from messages.services import handle_disconnect
     handle_disconnect()
 
 @socketio.on('join_conversation')
 def handle_join_conversation(data):
     """Join a conversation room"""
-    from messages.service import handle_join_conversation
+    from messages.services import handle_join_conversation
     handle_join_conversation(socketio, data)
 
 @socketio.on('leave_conversation')
 def handle_leave_conversation(data):
     """Leave a conversation room"""
-    from messages.service import handle_leave_conversation
+    from messages.services import handle_leave_conversation
     handle_leave_conversation(data)
 
 @socketio.on('send_message')
 def handle_send_message(data):
     """Handle sending a message"""
-    from messages.service import handle_send_message
+    from messages.services import handle_send_message
     handle_send_message(socketio, data)
 
 @socketio.on('typing_start')
 def handle_typing_start(data):
     """Handle typing indicator start"""
-    from messages.service import handle_typing_start
+    from messages.services import handle_typing_start
     handle_typing_start(socketio, data)
 
 @socketio.on('typing_stop')
 def handle_typing_stop(data):
     """Handle typing indicator stop"""
-    from messages.service import handle_typing_stop
+    from messages.services import handle_typing_stop
     handle_typing_stop(socketio, data)
 
 # route to serve uploaded profile pictures

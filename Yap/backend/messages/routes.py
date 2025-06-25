@@ -65,6 +65,37 @@ def start_conversation(current_user):
         print(f"Error starting conversation: {e}")
         return jsonify({"error": "Failed to start conversation"}), 500
 
+@messages_bp.route('/conversations/<conversation_id>', methods=['GET'])
+@token_required
+def get_conversation_details(current_user, conversation_id):
+    """Get conversation details with participant info"""
+    try:
+        conversation = Conversation.get_conversation(conversation_id)
+        if not conversation or current_user['_id'] not in conversation['participants']:
+            return jsonify({"error": "Access denied"}), 403
+        
+        # Get other participant info
+        other_participant_id = None
+        for participant in conversation['participants']:
+            if participant != current_user['_id']:
+                other_participant_id = participant
+                break
+        
+        other_participant = None
+        if other_participant_id:
+            other_participant = User.get_user_profile(other_participant_id)
+        
+        conversation['other_participant'] = other_participant
+        
+        return jsonify({
+            "success": True,
+            "conversation": conversation
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching conversation details: {e}")
+        return jsonify({"error": "Failed to fetch conversation details"}), 500
+
 @messages_bp.route('/conversations/<conversation_id>/messages', methods=['GET'])
 @token_required
 def get_messages(current_user, conversation_id):
@@ -132,34 +163,3 @@ def send_message_http(current_user, conversation_id):
     except Exception as e:
         print(f"Error sending message: {e}")
         return jsonify({"error": "Failed to send message"}), 500
-
-@messages_bp.route('/conversations/<conversation_id>', methods=['GET'])
-@token_required
-def get_conversation_details(current_user, conversation_id):
-    """Get conversation details"""
-    try:
-        conversation = Conversation.get_conversation(conversation_id)
-        if not conversation or current_user['_id'] not in conversation['participants']:
-            return jsonify({"error": "Access denied"}), 403
-        
-        # Get other participant info
-        other_participant_id = None
-        for participant in conversation['participants']:
-            if participant != current_user['_id']:
-                other_participant_id = participant
-                break
-        
-        other_participant = None
-        if other_participant_id:
-            other_participant = User.get_user_profile(other_participant_id)
-        
-        conversation['other_participant'] = other_participant
-        
-        return jsonify({
-            "success": True,
-            "conversation": conversation
-        }), 200
-        
-    except Exception as e:
-        print(f"Error fetching conversation details: {e}")
-        return jsonify({"error": "Failed to fetch conversation details"}), 500

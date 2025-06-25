@@ -18,33 +18,35 @@ function Messages() {
     // Handle URL parameter for direct conversation access
     useEffect(() => {
         const conversationId = searchParams.get('conversation');
-        if (conversationId && conversations.length > 0) {
-            // Find and select the conversation from URL parameter
-            const conversation = conversations.find(conv => conv._id === conversationId);
-            if (conversation) {
-                setSelectedConversation(conversation);
-            } else {
-                // If conversation not found in list, fetch it directly
-                fetchSpecificConversation(conversationId);
-            }
+        console.log('Conversation ID from URL:', conversationId); // DEBUG
+        
+        if (conversationId) {
+            // Fetch the specific conversation directly
+            fetchSpecificConversation(conversationId);
         }
-    }, [searchParams, conversations]);
+    }, [searchParams]);
 
     const fetchConversations = async () => {
         try {
+            console.log('Fetching conversations...'); // DEBUG
             const token = localStorage.getItem('token');
-            const response = await fetch('/messages/conversations', {
+            const response = await fetch('http://localhost:5000/messages/conversations', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
+            console.log('Conversations response status:', response.status); // DEBUG
+
             if (response.ok) {
                 const data = await response.json();
-                setConversations(data.conversations);
+                console.log('Conversations data:', data); // DEBUG
+                setConversations(data.conversations || []);
             } else {
-                console.error('Failed to fetch conversations');
+                console.error('Failed to fetch conversations:', response.status);
+                const errorData = await response.json();
+                console.error('Error data:', errorData);
             }
         } catch (error) {
             console.error('Error fetching conversations:', error);
@@ -55,28 +57,46 @@ function Messages() {
 
     const fetchSpecificConversation = async (conversationId) => {
         try {
+            console.log('Fetching specific conversation:', conversationId); // DEBUG
             const token = localStorage.getItem('token');
-            const response = await fetch(`/messages/conversations/${conversationId}`, {
+            const response = await fetch(`http://localhost:5000/messages/conversations/${conversationId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
+            console.log('Specific conversation response status:', response.status); // DEBUG
+
             if (response.ok) {
                 const data = await response.json();
-                setSelectedConversation(data.conversation);
-                // Also refresh conversations list to include this new one
-                fetchConversations();
+                console.log('Specific conversation data:', data); // DEBUG
+                
+                if (data.success && data.conversation) {
+                    setSelectedConversation(data.conversation);
+                    
+                    // Also refresh conversations list to include this one if it's not there
+                    fetchConversations();
+                } else {
+                    console.error('No conversation in response:', data);
+                }
             } else {
-                console.error('Failed to fetch specific conversation');
+                console.error('Failed to fetch specific conversation:', response.status);
+                const errorData = await response.json();
+                console.error('Error data:', errorData);
+                
+                // If specific conversation fails, still try to fetch all conversations
+                fetchConversations();
             }
         } catch (error) {
             console.error('Error fetching specific conversation:', error);
+            // Fallback to fetching all conversations
+            fetchConversations();
         }
     };
 
     const handleConversationSelect = (conversation) => {
+        console.log('Selecting conversation:', conversation); // DEBUG
         setSelectedConversation(conversation);
         // Update URL without causing a page reload
         const newSearchParams = new URLSearchParams(searchParams);
@@ -85,6 +105,7 @@ function Messages() {
     };
 
     const handleNewMessage = (conversationId, message) => {
+        console.log('New message received:', message); // DEBUG
         // Update conversations list with new message
         setConversations(prev => 
             prev.map(conv => 
@@ -94,6 +115,69 @@ function Messages() {
             )
         );
     };
+
+    // Debug logging
+    useEffect(() => {
+        console.log('Current state:');
+        console.log('- Loading:', loading);
+        console.log('- Conversations count:', conversations.length);
+        console.log('- Selected conversation:', selectedConversation ? selectedConversation._id : 'none');
+        console.log('- URL conversation param:', searchParams.get('conversation'));
+    }, [loading, conversations, selectedConversation, searchParams]);
+
+    return (
+        <>
+            <Header />
+            <div>
+                <Sidebar />
+                <div>
+                    <div>
+                        {/* Left side - Conversations list */}
+                        <div>
+                            <MessagesList 
+                                conversations={conversations}
+                                selectedConversation={selectedConversation}
+                                onConversationSelect={handleConversationSelect}
+                                loading={loading}
+                            />
+                        </div>
+                        
+                        {/* Right side - Chat interface */}
+                        <div>
+                            {selectedConversation ? (
+                                <MessageChat 
+                                    conversation={selectedConversation}
+                                    onNewMessage={handleNewMessage}
+                                />
+                            ) : (
+                                <div>
+                                    <div>
+                                        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <h2>Your messages</h2>
+                                    <p>Send a message to start a chat.</p>
+                                    <button>Send message</button>
+                                    {/* DEBUG INFO */}
+                                    <div style={{marginTop: '20px', fontSize: '12px', color: '#666'}}>
+                                        <p>Debug Info:</p>
+                                        <p>Loading: {loading.toString()}</p>
+                                        <p>Conversations: {conversations.length}</p>
+                                        <p>URL Param: {searchParams.get('conversation') || 'none'}</p>
+                                        <p>Selected: {selectedConversation ? 'yes' : 'no'}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
 
     return (
         <>
@@ -141,6 +225,51 @@ function Messages() {
         </>
     );
 
+    return (
+        <>
+            <Header />
+            <div>
+                <Sidebar />
+                <div>
+                    <div>
+                        {/* Left side - Conversations list */}
+                        <div>
+                            <MessagesList 
+                                conversations={conversations}
+                                selectedConversation={selectedConversation}
+                                onConversationSelect={handleConversationSelect}
+                                loading={loading}
+                            />
+                        </div>
+                        
+                        {/* Right side - Chat interface */}
+                        <div>
+                            {selectedConversation ? (
+                                <MessageChat 
+                                    conversation={selectedConversation}
+                                    onNewMessage={handleNewMessage}
+                                />
+                            ) : (
+                                <div>
+                                    <div>
+                                        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <h2>Your messages</h2>
+                                    <p>Send a message to start a chat.</p>
+                                    <button>Send message</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
 }
 
 export default Messages;
