@@ -533,6 +533,7 @@ def serve_profile_picture(user_id, filename):
         # Return default avatar if file not found
         default_dir = os.path.join(current_app.root_path, 'static', 'default')
         return send_from_directory(default_dir, 'default-avatar.png')
+    
 @users_bp.route('/<user_id>/start-conversation', methods=['POST'])
 @token_required
 def start_conversation_with_user(current_user, user_id):

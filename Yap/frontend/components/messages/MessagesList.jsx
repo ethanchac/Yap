@@ -1,3 +1,4 @@
+import React from 'react';
 import MessagePerson from './MessagePerson';
 
 function MessagesList({ conversations, selectedConversation, onConversationSelect, loading }) {
@@ -19,12 +20,12 @@ function MessagesList({ conversations, selectedConversation, onConversationSelec
 
     if (loading) {
         return (
-            <div>
-                <div>
-                    <h2>Messages</h2>
+            <div className="h-full flex flex-col">
+                <div className="p-4 border-b border-gray-600">
+                    <h2 className="text-white text-lg font-semibold">Messages</h2>
                 </div>
-                <div>
-                    <p>Loading conversations...</p>
+                <div className="flex-1 flex items-center justify-center">
+                    <p className="text-gray-400">Loading conversations...</p>
                 </div>
             </div>
         );
@@ -32,30 +33,25 @@ function MessagesList({ conversations, selectedConversation, onConversationSelec
 
     if (!conversations || conversations.length === 0) {
         return (
-            <div>
-                <div>
-                    <h2>Messages</h2>
+            <div className="h-full flex flex-col">
+                <div className="p-4 border-b border-gray-600">
+                    <h2 className="text-white text-lg font-semibold">Messages</h2>
                 </div>
-                <div>
-                    <p>No conversations yet</p>
-                    <p>Start messaging someone to see conversations here.</p>
+                <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                    <p className="text-gray-400 mb-2">No conversations yet</p>
+                    <p className="text-gray-500 text-sm">Start messaging someone to see conversations here.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div>
-            <div>
-                <h2>Messages</h2>
-                <button>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                </button>
+        <div className="h-full flex flex-col">
+            <div className="p-4 border-b border-gray-600">
+                <h2 className="text-white text-lg font-semibold">Messages</h2>
             </div>
             
-            <div>
+            <div className="flex-1 overflow-y-auto">
                 {conversations.map((conversation) => (
                     <MessagePerson
                         key={conversation._id}

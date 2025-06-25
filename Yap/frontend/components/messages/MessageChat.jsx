@@ -11,9 +11,17 @@ function MessageChat({ conversation, onNewMessage }) {
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     
-    const currentUserId = JSON.parse(localStorage.getItem('user'))?._id;
+    // FIXED: Added safety check for current user
+    const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')._id;
 
     useEffect(() => {
+        // FIXED: Added safety check for conversation
+        if (!conversation || !conversation._id) {
+            console.error('No conversation provided to MessageChat');
+            setLoading(false);
+            return;
+        }
+
         // Initialize WebSocket connection
         const token = localStorage.getItem('token');
         const newSocket = io('http://localhost:5000', {
@@ -27,7 +35,9 @@ function MessageChat({ conversation, onNewMessage }) {
 
         newSocket.on('new_message', (message) => {
             setMessages(prev => [...prev, message]);
-            onNewMessage(conversation._id, message);
+            if (onNewMessage) {
+                onNewMessage(conversation._id, message);
+            }
         });
 
         newSocket.on('user_typing', (data) => {
@@ -36,14 +46,20 @@ function MessageChat({ conversation, onNewMessage }) {
             }
         });
 
+        newSocket.on('error', (error) => {
+            console.error('Socket error:', error);
+        });
+
         setSocket(newSocket);
 
         // Fetch message history
         fetchMessages();
 
         return () => {
-            newSocket.emit('leave_conversation', { conversation_id: conversation._id });
-            newSocket.disconnect();
+            if (newSocket) {
+                newSocket.emit('leave_conversation', { conversation_id: conversation._id });
+                newSocket.disconnect();
+            }
         };
     }, [conversation._id]);
 
@@ -54,7 +70,7 @@ function MessageChat({ conversation, onNewMessage }) {
     const fetchMessages = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/messages/conversations/${conversation._id}/messages`, {
+            const response = await fetch(`http://localhost:5000/messages/conversations/${conversation._id}/messages`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -63,7 +79,9 @@ function MessageChat({ conversation, onNewMessage }) {
 
             if (response.ok) {
                 const data = await response.json();
-                setMessages(data.messages);
+                setMessages(data.messages || []);
+            } else {
+                console.error('Failed to fetch messages:', response.status);
             }
         } catch (error) {
             console.error('Error fetching messages:', error);
@@ -147,94 +165,127 @@ function MessageChat({ conversation, onNewMessage }) {
         return currentDate !== previousDate;
     };
 
+    // FIXED: Added safety checks
+    if (!conversation) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-gray-400">No conversation selected</div>
+            </div>
+        );
+    }
+
     if (loading) {
         return (
-            <div>
-                <div>Loading messages...</div>
+            <div className="flex items-center justify-center h-full">
+                <div className="text-gray-400">Loading messages...</div>
             </div>
         );
     }
 
     return (
-        <div>
+        <div className="flex flex-col h-full">
             {/* Chat Header */}
-            <div>
-                <div>
+            <div className="bg-gray-700 border-b border-gray-600 p-4 flex items-center justify-between">
+                <div className="flex items-center">
                     <img 
                         src={conversation.other_participant?.profile_picture || '/default-avatar.png'}
-                        alt={conversation.other_participant?.username}
-                        width="40"
-                        height="40"
+                        alt={conversation.other_participant?.username || 'Unknown User'}
+                        className="w-10 h-10 rounded-full object-cover"
                     />
-                    <div>
-                        <h3>{conversation.other_participant?.username || 'Unknown User'}</h3>
-                        <p>Active now</p>
+                    <div className="ml-3">
+                        <h3 className="text-white font-semibold">{conversation.other_participant?.username || 'Unknown User'}</h3>
+                        <p className="text-green-400 text-sm">Active now</p>
                     </div>
                 </div>
                 
-                <div>
-                    <button>
+                <div className="flex items-center space-x-4">
+                    <button className="text-gray-400 hover:text-white transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" strokeWidth="2"/>
                         </svg>
                     </button>
-                    <button>
+                    <button className="text-gray-400 hover:text-white transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <polygon points="23 7 16 12 23 17 23 7"/>
-                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                            <polygon points="23 7 16 12 23 17 23 7" fill="currentColor"/>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
                         </svg>
                     </button>
-                    <button>
+                    <button className="text-gray-400 hover:text-white transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="1"/>
-                            <circle cx="19" cy="12" r="1"/>
-                            <circle cx="5" cy="12" r="1"/>
+                            <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                            <circle cx="19" cy="12" r="1" fill="currentColor"/>
+                            <circle cx="5" cy="12" r="1" fill="currentColor"/>
                         </svg>
                     </button>
                 </div>
             </div>
 
             {/* Messages Area */}
-            <div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((message, index) => (
                     <div key={message._id}>
                         {/* Date separator */}
                         {shouldShowDateSeparator(message, messages[index - 1]) && (
-                            <div>
-                                <span>{formatMessageDate(message.created_at)}</span>
+                            <div className="flex items-center justify-center my-4">
+                                <div className="bg-gray-600 text-gray-300 px-3 py-1 rounded-full text-xs">
+                                    {formatMessageDate(message.created_at)}
+                                </div>
                             </div>
                         )}
                         
                         {/* Message */}
-                        <div data-sender={message.sender_id === currentUserId ? 'me' : 'other'}>
+                        <div className={`flex items-start space-x-3 ${message.sender_id === currentUserId ? 'justify-end' : 'justify-start'}`}>
                             {message.sender_id !== currentUserId && (
                                 <img 
                                     src={message.sender?.profile_picture || '/default-avatar.png'}
-                                    alt={message.sender?.username}
-                                    width="28"
-                                    height="28"
+                                    alt={message.sender?.username || 'Unknown'}
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                 />
                             )}
                             
-                            <div>
-                                <p>{message.content}</p>
-                                <small>{formatMessageTime(message.created_at)}</small>
+                            <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${message.sender_id === currentUserId ? 'order-first' : ''}`}>
+                                {message.sender_id !== currentUserId && (
+                                    <div className="text-gray-300 text-sm font-medium mb-1">
+                                        {message.sender?.username || 'Unknown'}
+                                    </div>
+                                )}
+                                <div className={`rounded-lg px-4 py-2 ${
+                                    message.sender_id === currentUserId 
+                                        ? 'bg-blue-600 text-white' 
+                                        : 'bg-gray-600 text-white'
+                                }`}>
+                                    <p className="break-words">{message.content}</p>
+                                </div>
+                                <div className={`text-xs text-gray-400 mt-1 ${message.sender_id === currentUserId ? 'text-right' : 'text-left'}`}>
+                                    {formatMessageTime(message.created_at)}
+                                </div>
                             </div>
+
+                            {message.sender_id === currentUserId && (
+                                <img 
+                                    src={message.sender?.profile_picture || '/default-avatar.png'}
+                                    alt={message.sender?.username || 'You'}
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                />
+                            )}
                         </div>
                     </div>
                 ))}
                 
                 {/* Typing indicator */}
                 {otherUserTyping && (
-                    <div>
+                    <div className="flex items-start space-x-3">
                         <img 
                             src={conversation.other_participant?.profile_picture || '/default-avatar.png'}
                             alt="typing"
-                            width="28"
-                            height="28"
+                            className="w-8 h-8 rounded-full object-cover"
                         />
-                        <div>
-                            <span>typing...</span>
+                        <div className="bg-gray-600 rounded-lg px-4 py-2">
+                            <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -243,36 +294,45 @@ function MessageChat({ conversation, onNewMessage }) {
             </div>
 
             {/* Message Input */}
-            <div>
-                <form onSubmit={handleSendMessage}>
-                    <div>
-                        <button type="button">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                                <path d="M9 9h.01"/>
-                                <path d="M15 9h.01"/>
-                            </svg>
-                        </button>
-                        
+            <div className="border-t border-gray-600 p-4">
+                <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
+                    <button 
+                        type="button"
+                        className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-600"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                    </button>
+                    
+                    <div className="flex-1 relative">
                         <input
                             type="text"
                             value={newMessage}
                             onChange={handleTyping}
-                            placeholder="Type a message..."
+                            placeholder={`Message ${conversation.other_participant?.username || 'user'}...`}
+                            className="w-full bg-gray-600 text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
                         />
-                        
-                        <button type="button">
+                        <button 
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49"/>
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49" stroke="currentColor" strokeWidth="2"/>
                             </svg>
                         </button>
                     </div>
                     
                     {newMessage.trim() && (
-                        <button type="submit">
+                        <button 
+                            type="submit"
+                            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors"
+                        >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2"/>
                             </svg>
                         </button>
                     )}

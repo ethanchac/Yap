@@ -60,74 +60,52 @@ class Conversation:
         db = current_app.config["DB"]
         
         try:
-            pipeline = [
-                {
-                    "$match": {
-                        "participants": user_id
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "messages",
-                        "localField": "_id",
-                        "foreignField": "conversation_id",
-                        "as": "messages",
-                        "pipeline": [
-                            {"$sort": {"created_at": -1}},
-                            {"$limit": 1}
-                        ]
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "participants",
-                        "foreignField": "_id",
-                        "as": "participant_users"
-                    }
-                },
-                {
-                    "$addFields": {
-                        "last_message": {"$arrayElemAt": ["$messages", 0]},
-                        "other_participant": {
-                            "$arrayElemAt": [
-                                {
-                                    "$filter": {
-                                        "input": "$participant_users",
-                                        "cond": {"$ne": [{"$toString": "$$this._id"}, user_id]}
-                                    }
-                                },
-                                0
-                            ]
-                        }
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": {"$toString": "$_id"},
-                        "participants": 1,
-                        "created_at": 1,
-                        "last_message_at": "$last_message.created_at",
-                        "last_message": {
-                            "_id": {"$toString": "$last_message._id"},
-                            "content": "$last_message.content",
-                            "sender_id": "$last_message.sender_id",
-                            "created_at": "$last_message.created_at"
-                        },
-                        "other_participant": {
-                            "_id": {"$toString": "$other_participant._id"},
-                            "username": "$other_participant.username",
-                            "profile_picture": "$other_participant.profile_picture"
-                        }
-                    }
-                },
-                {"$sort": {"last_message_at": -1}},
-                {"$skip": skip},
-                {"$limit": limit}
-            ]
+            # Simple approach - get conversations and populate data manually
+            conversations = list(db.conversations.find({
+                "participants": user_id
+            }).sort("last_message_at", -1).skip(skip).limit(limit))
             
-            conversations = list(db.conversations.aggregate(pipeline))
-            return conversations
+            result = []
+            
+            for conv in conversations:
+                # Convert ObjectId to string
+                conv["_id"] = str(conv["_id"])
+                
+                # Get other participant
+                other_participant_id = None
+                for participant in conv["participants"]:
+                    if participant != user_id:
+                        other_participant_id = participant
+                        break
+                
+                # Get other participant user info
+                other_participant = None
+                if other_participant_id:
+                    other_user = db.users.find_one({"_id": ObjectId(other_participant_id)})
+                    if other_user:
+                        other_participant = {
+                            "_id": str(other_user["_id"]),
+                            "username": other_user["username"],
+                            "profile_picture": other_user.get("profile_picture", "")
+                        }
+                
+                # Get last message
+                last_message = None
+                if conv.get("last_message"):
+                    last_msg = db.messages.find_one({"_id": conv["last_message"]})
+                    if last_msg:
+                        last_message = {
+                            "_id": str(last_msg["_id"]),
+                            "content": last_msg["content"],
+                            "sender_id": last_msg["sender_id"],
+                            "created_at": last_msg["created_at"]
+                        }
+                
+                conv["other_participant"] = other_participant
+                conv["last_message"] = last_message
+                result.append(conv)
+            
+            return result
             
         except Exception as e:
             print(f"Error getting user conversations: {e}")
@@ -189,51 +167,38 @@ class Message:
     
     @staticmethod
     def get_conversation_messages(conversation_id, limit=50, skip=0):
-        """Get messages for a conversation"""
+        """Get messages for a conversation - SIMPLIFIED VERSION"""
         db = current_app.config["DB"]
         
         try:
-            pipeline = [
-                {
-                    "$match": {
-                        "conversation_id": ObjectId(conversation_id)
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "sender_id",
-                        "foreignField": "_id",
-                        "as": "sender_info"
-                    }
-                },
-                {
-                    "$addFields": {
-                        "sender": {"$arrayElemAt": ["$sender_info", 0]}
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": {"$toString": "$_id"},
-                        "conversation_id": {"$toString": "$conversation_id"},
-                        "sender_id": 1,
-                        "content": 1,
-                        "created_at": 1,
-                        "read_by": 1,
-                        "sender": {
-                            "_id": {"$toString": "$sender._id"},
-                            "username": "$sender.username",
-                            "profile_picture": "$sender.profile_picture"
-                        }
-                    }
-                },
-                {"$sort": {"created_at": -1}},
-                {"$skip": skip},
-                {"$limit": limit}
-            ]
+            # Simple query without complex aggregation
+            messages = list(db.messages.find({
+                "conversation_id": ObjectId(conversation_id)
+            }).sort("created_at", -1).skip(skip).limit(limit))
             
-            messages = list(db.messages.aggregate(pipeline))
-            return messages[::-1]  # Reverse to get chronological order
+            result = []
+            
+            for msg in messages:
+                # Get sender info
+                sender = db.users.find_one({"_id": ObjectId(msg["sender_id"])})
+                
+                message = {
+                    "_id": str(msg["_id"]),
+                    "conversation_id": str(msg["conversation_id"]),
+                    "sender_id": msg["sender_id"],
+                    "content": msg["content"],
+                    "created_at": msg["created_at"],
+                    "read_by": msg.get("read_by", []),
+                    "sender": {
+                        "_id": str(sender["_id"]) if sender else msg["sender_id"],
+                        "username": sender["username"] if sender else "Unknown",
+                        "profile_picture": sender.get("profile_picture", "") if sender else ""
+                    }
+                }
+                result.append(message)
+            
+            # Reverse to get chronological order (oldest first)
+            return result[::-1]
             
         except Exception as e:
             print(f"Error getting conversation messages: {e}")

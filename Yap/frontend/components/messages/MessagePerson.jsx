@@ -14,8 +14,8 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
         const content = last_message.content;
         if (typeof content !== 'string') return 'Start a conversation';
         
-        if (content.length > 50) {
-            return content.substring(0, 50) + '...';
+        if (content.length > 40) {
+            return content.substring(0, 40) + '...';
         }
         return content;
     };
@@ -24,34 +24,40 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
     const hasUnreadMessages = false; // Placeholder - implement based on your needs
 
     return (
-        <div onClick={onClick}>
-            <div>
+        <div 
+            onClick={onClick}
+            className={`flex items-center p-3 hover:bg-gray-600 cursor-pointer transition-colors ${
+                isSelected ? 'bg-gray-600' : ''
+            }`}
+        >
+            <div className="relative">
                 <img 
                     src={participantPicture} 
                     alt={participantName}
-                    width="56"
-                    height="56"
+                    className="w-12 h-12 rounded-full object-cover"
                     onError={(e) => {
                         e.target.src = '/default-avatar.png';
                     }}
                 />
                 
-                {/* Online status indicator - you can implement this */}
-                <div></div>
+                {/* Online status indicator */}
+                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-700"></div>
             </div>
             
-            <div>
-                <div>
-                    <h3>{participantName}</h3>
+            <div className="ml-3 flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-white font-medium truncate">{participantName}</h3>
                     {last_message_at && (
-                        <span>{formatTime(last_message_at)}</span>
+                        <span className="text-gray-400 text-xs ml-2 flex-shrink-0">
+                            {formatTime(last_message_at)}
+                        </span>
                     )}
                 </div>
                 
-                <div>
-                    <p>{getLastMessagePreview()}</p>
+                <div className="flex items-center justify-between mt-1">
+                    <p className="text-gray-400 text-sm truncate pr-2">{getLastMessagePreview()}</p>
                     {hasUnreadMessages && (
-                        <div></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                     )}
                 </div>
             </div>

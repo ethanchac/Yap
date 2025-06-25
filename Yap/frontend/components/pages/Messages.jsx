@@ -128,51 +128,51 @@ function Messages() {
     return (
         <>
             <Header />
-            <div>
+            <div className="flex h-screen bg-gray-800">
                 <Sidebar />
-                <div>
-                    <div>
-                        {/* Left side - Conversations list */}
-                        <div>
-                            <MessagesList 
-                                conversations={conversations}
-                                selectedConversation={selectedConversation}
-                                onConversationSelect={handleConversationSelect}
-                                loading={loading}
+                <div className="flex flex-1 h-full">
+                    {/* Left side - Conversations list */}
+                    <div className="w-80 bg-gray-700 border-r border-gray-600 flex flex-col h-full">
+                        <MessagesList 
+                            conversations={conversations}
+                            selectedConversation={selectedConversation}
+                            onConversationSelect={handleConversationSelect}
+                            loading={loading}
+                        />
+                    </div>
+                    
+                    {/* Right side - Chat interface */}
+                    <div className="flex-1 bg-gray-800 flex flex-col h-full">
+                        {selectedConversation ? (
+                            <MessageChat 
+                                conversation={selectedConversation}
+                                onNewMessage={handleNewMessage}
                             />
-                        </div>
-                        
-                        {/* Right side - Chat interface */}
-                        <div>
-                            {selectedConversation ? (
-                                <MessageChat 
-                                    conversation={selectedConversation}
-                                    onNewMessage={handleNewMessage}
-                                />
-                            ) : (
-                                <div>
-                                    <div>
-                                        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                        </svg>
-                                    </div>
-                                    <h2>Your messages</h2>
-                                    <p>Send a message to start a chat.</p>
-                                    <button>Send message</button>
-                                    {/* DEBUG INFO */}
-                                    <div style={{marginTop: '20px', fontSize: '12px', color: '#666'}}>
-                                        <p>Debug Info:</p>
-                                        <p>Loading: {loading.toString()}</p>
-                                        <p>Conversations: {conversations.length}</p>
-                                        <p>URL Param: {searchParams.get('conversation') || 'none'}</p>
-                                        <p>Selected: {selectedConversation ? 'yes' : 'no'}</p>
-                                    </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center">
+                                <div className="mb-5">
+                                    <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-500">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                        <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                        <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                        <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                    </svg>
                                 </div>
-                            )}
-                        </div>
+                                <h2 className="text-white text-xl font-semibold mb-2">Your messages</h2>
+                                <p className="text-gray-400 mb-5">Send a message to start a chat.</p>
+                                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">
+                                    Send message
+                                </button>
+                                {/* DEBUG INFO */}
+                                <div className="mt-8 text-xs text-gray-500">
+                                    <p>Debug Info:</p>
+                                    <p>Loading: {loading.toString()}</p>
+                                    <p>Conversations: {conversations.length}</p>
+                                    <p>URL Param: {searchParams.get('conversation') || 'none'}</p>
+                                    <p>Selected: {selectedConversation ? 'yes' : 'no'}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
