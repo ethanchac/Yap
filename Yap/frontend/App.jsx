@@ -2,9 +2,7 @@ import AuthRoutes from './AuthRoutes'; // Import AuthRoutes
 
 function App() {
   return (
-      <div>
-        <AuthRoutes />
-      </div>
+      <AuthRoutes />
   );
 }
 
