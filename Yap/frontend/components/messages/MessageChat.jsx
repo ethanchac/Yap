@@ -42,6 +42,20 @@ function MessageChat({ conversation, onNewMessage }) {
         }
     };
 
+    // Function to get profile picture URL or default - ADDED
+    const getProfilePictureUrl = (profilePic) => {
+        if (profilePic) {
+            // If it's already a full URL (like from your upload system), use it directly
+            if (profilePic.startsWith('http')) {
+                return profilePic;
+            }
+            // If it's just a filename, construct the full URL
+            return `http://localhost:5000/uploads/profile_pictures/${profilePic}`;
+        }
+        // Default profile picture if none exists
+        return `http://localhost:5000/static/default/default-avatar.png`;
+    };
+
     const currentUserIdentifier = getCurrentUserIdentifier();
 
     useEffect(() => {
@@ -214,9 +228,12 @@ function MessageChat({ conversation, onNewMessage }) {
             <div className="bg-gray-700 border-b border-gray-600 p-4 flex items-center justify-between">
                 <div className="flex items-center">
                     <img 
-                        src={conversation.other_participant?.profile_picture || '/default-avatar.png'}
+                        src={getProfilePictureUrl(conversation.other_participant?.profile_picture)}
                         alt={conversation.other_participant?.username || 'Unknown User'}
                         className="w-10 h-10 rounded-full object-cover"
+                        onError={(e) => {
+                            e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                        }}
                     />
                     <div className="ml-3">
                         <h3 className="text-white font-semibold">{conversation.other_participant?.username || 'Unknown User'}</h3>
@@ -270,9 +287,12 @@ function MessageChat({ conversation, onNewMessage }) {
                                 {/* Profile Picture - Show on left for others, right for you */}
                                 {!myMessage && (
                                     <img 
-                                        src={message.sender?.profile_picture || '/default-avatar.png'}
+                                        src={getProfilePictureUrl(message.sender?.profile_picture)}
                                         alt={message.sender?.username || 'Unknown'}
                                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                        onError={(e) => {
+                                            e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                                        }}
                                     />
                                 )}
                                 
@@ -307,9 +327,12 @@ function MessageChat({ conversation, onNewMessage }) {
                                 {/* Profile Picture for your messages */}
                                 {myMessage && (
                                     <img 
-                                        src={message.sender?.profile_picture || '/default-avatar.png'}
+                                        src={getProfilePictureUrl(message.sender?.profile_picture)}
                                         alt="You"
                                         className="w-8 h-8 rounded-full object-cover flex-shrink-0 order-2"
+                                        onError={(e) => {
+                                            e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                                        }}
                                     />
                                 )}
                             </div>
@@ -321,9 +344,12 @@ function MessageChat({ conversation, onNewMessage }) {
                 {otherUserTyping && (
                     <div className="flex items-start space-x-3">
                         <img 
-                            src={conversation.other_participant?.profile_picture || '/default-avatar.png'}
+                            src={getProfilePictureUrl(conversation.other_participant?.profile_picture)}
                             alt="typing"
                             className="w-8 h-8 rounded-full object-cover"
+                            onError={(e) => {
+                                e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                            }}
                         />
                         <div className="bg-gray-600 rounded-lg px-4 py-2">
                             <div className="flex space-x-1">
