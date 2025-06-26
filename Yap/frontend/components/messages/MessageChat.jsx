@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
 function MessageChat({ conversation, onNewMessage }) {
@@ -10,87 +10,58 @@ function MessageChat({ conversation, onNewMessage }) {
     const [otherUserTyping, setOtherUserTyping] = useState(false);
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
-    
-    // Get current user identifier (could be ID or username)
+
     const getCurrentUserIdentifier = () => {
         try {
-            // Check localStorage for user data
             const userString = localStorage.getItem('user');
             const token = localStorage.getItem('token');
-            
-            console.log('Raw user string from localStorage:', userString);
-            console.log('Token exists:', !!token);
-            
+
             if (userString) {
                 const user = JSON.parse(userString);
-                console.log('Parsed user object:', user);
-                
-                // Try multiple possible user ID fields
                 const userId = user._id || user.id || user.userId || user.user_id || user.username;
-                console.log('Extracted user identifier from user object:', userId);
-                
-                if (userId) return String(userId); // Ensure it's a string
+                if (userId) return String(userId);
             }
-            
-            // If no user ID from user object, try token
+
             if (token) {
                 try {
                     const payload = JSON.parse(atob(token.split('.')[1]));
-                    console.log('Token payload:', payload);
-                    // Try ID fields first, then fall back to username
                     const tokenIdentifier = payload.userId || payload.id || payload._id || payload.user_id || payload.sub || payload.username;
-                    console.log('Extracted identifier from token:', tokenIdentifier);
                     if (tokenIdentifier) return String(tokenIdentifier);
-                } catch (e) {
-                    console.warn('Could not parse token:', e);
-                }
+                } catch (e) {}
             }
-            
-            // Last resort: check other possible localStorage keys
+
             const altKeys = ['userId', 'user_id', 'currentUserId', 'authUserId', 'username'];
             for (const key of altKeys) {
                 const altId = localStorage.getItem(key);
-                if (altId) {
-                    console.log(`Found user identifier in ${key}:`, altId);
-                    return String(altId);
-                }
+                if (altId) return String(altId);
             }
-            
-            console.warn('No user identifier found anywhere!');
+
             return null;
-        } catch (error) {
-            console.error('Error getting current user identifier:', error);
+        } catch {
             return null;
         }
     };
-    
+
     const currentUserIdentifier = getCurrentUserIdentifier();
-    console.log('Current User Identifier:', currentUserIdentifier);
 
     useEffect(() => {
         if (!conversation || !conversation._id) {
-            console.error('No conversation provided to MessageChat');
             setLoading(false);
             return;
         }
 
-        // Initialize WebSocket connection
         const token = localStorage.getItem('token');
         const newSocket = io('http://localhost:5000', {
             auth: { token: token }
         });
 
         newSocket.on('connect', () => {
-            console.log('Connected to messaging service');
             newSocket.emit('join_conversation', { conversation_id: conversation._id });
         });
 
         newSocket.on('new_message', (message) => {
-            console.log('Received new message:', message);
             setMessages(prev => [...prev, message]);
-            if (onNewMessage) {
-                onNewMessage(conversation._id, message);
-            }
+            if (onNewMessage) onNewMessage(conversation._id, message);
         });
 
         newSocket.on('user_typing', (data) => {
@@ -99,9 +70,7 @@ function MessageChat({ conversation, onNewMessage }) {
             }
         });
 
-        newSocket.on('error', (error) => {
-            console.error('Socket error:', error);
-        });
+        newSocket.on('error', () => {});
 
         setSocket(newSocket);
         fetchMessages();
@@ -130,13 +99,9 @@ function MessageChat({ conversation, onNewMessage }) {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Fetched messages:', data.messages);
                 setMessages(data.messages || []);
-            } else {
-                console.error('Failed to fetch messages:', response.status);
             }
-        } catch (error) {
-            console.error('Error fetching messages:', error);
+        } catch {
         } finally {
             setLoading(false);
         }
@@ -148,16 +113,12 @@ function MessageChat({ conversation, onNewMessage }) {
 
     const handleSendMessage = (e) => {
         e.preventDefault();
-        
         if (!newMessage.trim() || !socket) return;
-
         socket.emit('send_message', {
             conversation_id: conversation._id,
             content: newMessage.trim()
         });
-
         setNewMessage('');
-        
         if (isTyping) {
             socket.emit('typing_stop', { conversation_id: conversation._id });
             setIsTyping(false);
@@ -166,18 +127,14 @@ function MessageChat({ conversation, onNewMessage }) {
 
     const handleTyping = (e) => {
         setNewMessage(e.target.value);
-
         if (!socket) return;
-
         if (!isTyping) {
             socket.emit('typing_start', { conversation_id: conversation._id });
             setIsTyping(true);
         }
-
         if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
         }
-
         typingTimeoutRef.current = setTimeout(() => {
             socket.emit('typing_stop', { conversation_id: conversation._id });
             setIsTyping(false);
@@ -206,21 +163,13 @@ function MessageChat({ conversation, onNewMessage }) {
 
     const shouldShowDateSeparator = (currentMessage, previousMessage) => {
         if (!previousMessage) return true;
-        
         const currentDate = new Date(currentMessage.created_at).toDateString();
         const previousDate = new Date(previousMessage.created_at).toDateString();
-        
         return currentDate !== previousDate;
     };
 
-    // Enhanced function to check if message is from current user
     const isMyMessage = (message) => {
-        if (!currentUserIdentifier) {
-            console.log('No current user identifier available');
-            return false;
-        }
-        
-        // Get all possible sender identifiers (IDs and usernames)
+        if (!currentUserIdentifier) return false;
         const senderVariations = [
             message.sender_id,
             message.senderId,
@@ -228,36 +177,18 @@ function MessageChat({ conversation, onNewMessage }) {
             message.sender?.id,
             message.sender?.userId,
             message.sender?.user_id,
-            message.sender?.username, // Added username check
+            message.sender?.username,
             message.user_id,
             message.userId,
-            message.username, // Added username check
+            message.username,
             message.from,
             message.author_id,
             message.authorId,
-            message.author?.username // Added author username check
-        ].filter(Boolean); // Remove null/undefined values
-        
-        console.log('=== Message Debug ===');
-        console.log('Current User Identifier:', currentUserIdentifier, typeof currentUserIdentifier);
-        console.log('Message sender object:', message.sender);
-        console.log('Sender variations found:', senderVariations);
-        
-        // Check each variation (comparing as strings)
+            message.author?.username
+        ].filter(Boolean);
         for (const senderIdentifier of senderVariations) {
-            const senderStr = String(senderIdentifier);
-            const currentStr = String(currentUserIdentifier);
-            
-            console.log(`Comparing: "${senderStr}" === "${currentStr}" = ${senderStr === currentStr}`);
-            
-            if (senderStr === currentStr) {
-                console.log('✅ MATCH FOUND! This is my message');
-                return true;
-            }
+            if (String(senderIdentifier) === String(currentUserIdentifier)) return true;
         }
-        
-        console.log('❌ No match found. This is NOT my message');
-        console.log('Full message object for debugging:', message);
         return false;
     };
 
@@ -317,21 +248,6 @@ function MessageChat({ conversation, onNewMessage }) {
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Enhanced Debug Info - Shows detailed debugging */}
-                <div className="text-xs text-gray-500 p-3 bg-gray-700 rounded mb-4">
-                    <div><strong>Current User Identifier:</strong> {currentUserIdentifier || 'Not found'}</div>
-                    <div><strong>Identifier Type:</strong> {typeof currentUserIdentifier}</div>
-                    <div><strong>Total Messages:</strong> {messages.length}</div>
-                    {messages.length > 0 && (
-                        <div className="mt-2">
-                            <strong>Last Message Debug:</strong>
-                            <div className="ml-2 text-xs">
-                                <div>Sender: {JSON.stringify(messages[messages.length - 1].sender)}</div>
-                                <div>Is My Message: {isMyMessage(messages[messages.length - 1]) ? 'YES' : 'NO'}</div>
-                            </div>
-                        </div>
-                    )}
-                </div>
                 
                 {messages.map((message, index) => {
                     const myMessage = isMyMessage(message);
