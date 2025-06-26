@@ -5,7 +5,22 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
     
     // Fallback for missing participant data
     const participantName = other_participant?.username || 'Unknown User';
-    const participantPicture = other_participant?.profile_picture || '/default-avatar.png';
+    
+    // Function to get profile picture URL or default - FIXED
+    const getProfilePictureUrl = () => {
+        const profilePic = other_participant?.profile_picture;
+        
+        if (profilePic) {
+            // If it's already a full URL (like from your upload system), use it directly
+            if (profilePic.startsWith('http')) {
+                return profilePic;
+            }
+            // If it's just a filename, construct the full URL
+            return `http://localhost:5000/uploads/profile_pictures/${profilePic}`;
+        }
+        // Default profile picture if none exists
+        return `http://localhost:5000/static/default/default-avatar.png`;
+    };
     
     // Format last message preview - FIXED: Added safety checks
     const getLastMessagePreview = () => {
@@ -32,11 +47,12 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
         >
             <div className="relative">
                 <img 
-                    src={participantPicture} 
+                    src={getProfilePictureUrl()} 
                     alt={participantName}
                     className="w-12 h-12 rounded-full object-cover"
                     onError={(e) => {
-                        e.target.src = '/default-avatar.png';
+                        // Fallback to default avatar if image fails to load
+                        e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
                     }}
                 />
                 
