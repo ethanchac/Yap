@@ -51,32 +51,62 @@ export default function LoginForm() {
   };
 
   return (
-    <div>
-      <form onSubmit={handleLogin}>
-        <input 
-          type="text"
-          name="username"
-          placeholder="Username or Email" 
-          value={formData.username} 
-          onChange={handleInputChange}
-          required 
-        />
-        <input 
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password} 
-          onChange={handleInputChange}
-          required 
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-        {msg && <p>{msg}</p>}
-      </form>
-      <p>
-        Don't have an account? <Link to="/signup">Sign up here</Link>
-      </p>
+    <div className="min-h-screen flex items-center justify-center px-6" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans', fontWeight: 'bold', fontSize: '20px'}}>
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h1 className="text-white text-2xl font-medium mb-2">
+            Welcome back to Yapp.
+          </h1>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="text-left">
+            <label className="block text-white text-sm mb-2">
+              Username/Email
+            </label>
+            <input 
+              type="text"
+              name="username"
+              placeholder="Username or Email" 
+              value={formData.username} 
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400"
+            />
+          </div>
+
+          <div className="text-left">
+            <label className="block text-white text-sm mb-2">
+              Password
+            </label>
+            <input 
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password} 
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400"
+            />
+          </div>
+
+          <div className="pt-4 text-center">
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="px-8 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 text-white rounded font-medium"
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </div>
+
+          {msg && <p className={`text-center text-sm mt-4 ${msg.includes('success') ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
+        </form>
+        
+        <p className="text-center text-white text-sm mt-8">
+          Don't have an account? <Link to="/signup" className="text-white hover:underline">Sign up here</Link>
+        </p>
+      </div>
     </div>
   );
 }
