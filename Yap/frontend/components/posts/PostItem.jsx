@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Heart, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 function PostItem({ post }) {
@@ -74,6 +75,7 @@ function PostItem({ post }) {
             setLoading(false);
         }
     };
+
     const handleCommentClick = () => {
         // Debug: Log the post ID and navigation path
         console.log('Navigating to comments for post ID:', post._id);
@@ -116,8 +118,8 @@ function PostItem({ post }) {
     };
 
     return (
-        <div>
-            <div>
+        <div className="rounded-lg p-6 font-bold mb-4" style={{fontFamily: 'Albert Sans', backgroundColor: '#1f2937'}}>
+            <div className="flex items-start space-x-3">
                 {/* Profile Picture */}
                 <img 
                     src={getProfilePictureUrl()}
@@ -127,38 +129,45 @@ function PostItem({ post }) {
                         // Fallback to default avatar if image fails to load
                         e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
                     }}
-                    className='w-15 h-15'
+                    className='w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity object-cover'
                 />
                 
-                <div>
-                    <strong 
-                        onClick={handleUsernameClick}
-                    >
-                        @{post.username}
-                    </strong>
-                    <div>
-                        {formatDate(post.created_at)}
+                <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <strong 
+                            onClick={handleUsernameClick}
+                            className="text-white hover:text-gray-300 cursor-pointer transition-colors"
+                        >
+                            @{post.username}
+                        </strong>
+                        <div className="text-gray-400 text-sm">
+                            {formatDate(post.created_at)}
+                        </div>
+                    </div>
+                    
+                    <p className="text-white mb-4 leading-relaxed">{post.content}</p>
+                    
+                    <div className="flex items-center space-x-6">
+                        <button 
+                            onClick={handleLike}
+                            disabled={loading}
+                            className="flex items-center space-x-1 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                        >
+                            <Heart 
+                                className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : ''}`}
+                            />
+                            <span className="text-sm font-bold">{likesCount}</span>
+                        </button>
+                        
+                        <button 
+                            onClick={handleCommentClick}
+                            className="flex items-center space-x-1 text-gray-400 hover:text-blue-400 transition-colors"
+                        >
+                            <MessageCircle className="w-5 h-5" />
+                            <span className="text-sm font-bold">{post.comments_count}</span>
+                        </button>
                     </div>
                 </div>
-            </div>
-            
-            <p>{post.content}</p>
-            
-            <div>
-                <button 
-                    onClick={handleLike}
-                    disabled={loading}
-                >
-                    <span>{liked ? '❤️' : '🤍'}</span>
-                    <span>{likesCount}</span>
-                </button>
-                
-                <button 
-                    onClick={handleCommentClick}
-                >
-                    <span>💬</span>
-                    <span>{post.comments_count}</span>
-                </button>
             </div>
         </div>
     );
