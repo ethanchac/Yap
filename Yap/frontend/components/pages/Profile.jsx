@@ -3,6 +3,7 @@ import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3 } from 'lucide-react';
 
 const Profile = () => {
   const { userId } = useParams(); // Get userId from URL
@@ -123,16 +124,12 @@ const Profile = () => {
         headers: getAuthHeaders(),
       });
       
-      //console.log('Response status:', response.status); // Debug log
-      
       if (!response.ok) {
         const errorData = await response.json();
-        //console.error('Error response:', errorData); // Debug log
         throw new Error(errorData.error || 'Failed to fetch profile');
       }
       
       const data = await response.json();
-      //console.log('Profile data:', data); // Debug log
       setProfile(data.profile);
       
       // Only set edit form for own profile
@@ -146,7 +143,6 @@ const Profile = () => {
         });
       }
     } catch (err) {
-      //console.error('Fetch profile error:', err); // Debug log
       setError(err.message);
     } finally {
       setLoading(false);
@@ -158,7 +154,6 @@ const Profile = () => {
     if (!isOwnProfile) return;
     
     try {
-      // CORRECTED ENDPOINT
       const response = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PUT',
         headers: getAuthHeaders(),
@@ -185,11 +180,9 @@ const Profile = () => {
     try {
       setUploadingImage(true);
       
-      // Create FormData for file upload
       const formData = new FormData();
       formData.append('profile_picture', file);
       
-      // CORRECTED ENDPOINT
       const response = await fetch(`${API_BASE_URL}/users/me/picture/upload`, {
         method: 'POST',
         headers: getFileUploadHeaders(),
@@ -216,7 +209,6 @@ const Profile = () => {
     if (!isOwnProfile) return;
     
     try {
-      // CORRECTED ENDPOINT
       const response = await fetch(`${API_BASE_URL}/users/me/picture`, {
         method: 'PUT',
         headers: getAuthHeaders(),
@@ -242,24 +234,19 @@ const Profile = () => {
     
     const file = event.target.files[0];
     if (file) {
-      // type of files that are allows
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       if (!allowedTypes.includes(file.type)) {
         setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
         return;
       }
       
-      // make sure each file has a limit in size
       const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSizeInBytes) {
         setError('File size must be less than 5MB');
         return;
       }
       
-      // Clear any previous errors
       setError(null);
-      
-      // upload the file
       uploadProfilePicture(file);
     }
   };
@@ -285,7 +272,6 @@ const Profile = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset form to original values
     setEditForm({
       full_name: profile.full_name || '',
       bio: profile.bio || '',
@@ -302,231 +288,290 @@ const Profile = () => {
       }
       return `http://localhost:5000/uploads/profile_pictures/${profile.profile_picture}`;
     }
-    // Default profile picture
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };
 
   if (loading) return (
-    <div>
+    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div>Loading...</div>
+      <div className="ml-64 p-6">
+        <p className="text-white">Loading...</p>
+      </div>
     </div>
   );
   
   if (error) return (
-    <div>
+    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div>
-        <p>Error: {error}</p>
-        <button onClick={fetchProfile}>Try Again</button>
+      <div className="ml-64 p-6">
+        <div className="text-center py-12">
+          <p className="text-red-400 mb-4">Error: {error}</p>
+          <button 
+            onClick={fetchProfile}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     </div>
   );
   
   if (!profile) return (
-    <div>
+    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div>Profile not found</div>
+      <div className="ml-64 p-6">
+        <p className="text-white">Profile not found</p>
+      </div>
     </div>
   );
 
   return (
-    <div>
-        <Header />
-        <Sidebar />
-        <h1>{isOwnProfile ? 'My Profile' : `${profile.username}'s Profile`}</h1>
-        
-        {/* Profile Picture */}
-        <div>
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-            <img 
-                src={getProfilePictureUrl()} 
-                alt={profile.username}
-                width="100"
-                height="100"
-                style={{ borderRadius: '50%', objectFit: 'cover' }}
-            />
-            {uploadingImage && (
-              <div>
-                Uploading...
-              </div>
-            )}
-          </div>
-          
-          {/* Only show upload controls for own profile */}
-          {isOwnProfile && (
-            <>
-              {/* File input (hidden) */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                style={{ display: 'none' }}
-              />
-              
-              {/* Upload/Edit buttons */}
-              <div style={{ marginTop: '10px' }}>
-                <button 
-                  onClick={openFilePicker}
-                  disabled={uploadingImage}
-                >
-                  {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
-                </button>
+    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+      <Header />
+      <Sidebar />
+      <div className="ml-64 p-6">
+        <div className="max-w-4xl mx-auto">
+          {/* Profile Header */}
+          <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+            <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-6">
+              {/* Profile Picture */}
+              <div className="relative">
+                <img 
+                  src={getProfilePictureUrl()} 
+                  alt={profile.username}
+                  className="w-32 h-32 rounded-full object-cover border-4 border-gray-600"
+                />
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm">Uploading...</span>
+                  </div>
+                )}
                 
-                {isEditing && (
-                  <div style={{ marginTop: '10px' }}>
-                    <label>Or enter image URL:</label>
-                    <input
-                      type="url"
-                      placeholder="Profile picture URL"
-                      value={editForm.profile_picture}
-                      onChange={(e) => handleInputChange('profile_picture', e.target.value)}
-                    />
+                {/* Upload button for own profile */}
+                {isOwnProfile && (
+                  <button
+                    onClick={openFilePicker}
+                    disabled={uploadingImage}
+                    className="absolute bottom-2 right-2 p-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded-full transition-colors"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                )}
+                
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Profile Info */}
+              <div className="flex-1">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                  <div>
+                    <h1 className="text-white text-2xl font-bold flex items-center space-x-2">
+                      <span>@{profile.username}</span>
+                      {profile.is_verified && <Check className="w-5 h-5 text-blue-400" />}
+                    </h1>
+                    {profile.full_name && (
+                      <p className="text-gray-300 text-lg">{profile.full_name}</p>
+                    )}
+                  </div>
+
+                  {/* Action buttons for other users */}
+                  {!isOwnProfile && (
+                    <div className="flex space-x-3 mt-4 md:mt-0">
+                      <button 
+                        onClick={handleFollowToggle}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors ${
+                          profile.is_following 
+                            ? 'bg-gray-600 hover:bg-gray-500 text-white' 
+                            : 'bg-blue-600 hover:bg-blue-500 text-white'
+                        }`}
+                      >
+                        {profile.is_following ? <UserMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                        <span>{profile.is_following ? 'Unfollow' : 'Follow'}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={handleMessageUser}
+                        disabled={messagingUser}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{messagingUser ? 'Starting chat...' : 'Message'}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Edit button for own profile */}
+                  {isOwnProfile && !isEditing && (
                     <button 
-                      onClick={() => updateProfilePictureUrl(editForm.profile_picture)}
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold transition-colors mt-4 md:mt-0"
                     >
-                      Update from URL
+                      <Edit3 className="w-4 h-4" />
+                      <span>Edit Profile</span>
                     </button>
+                  )}
+                </div>
+
+                {/* Stats */}
+                <div className="flex space-x-6 mb-4">
+                  <span className="text-white"><strong>{profile.posts_count}</strong> <span className="text-gray-400">posts</span></span>
+                  <span className="text-white"><strong>{profile.followers_count}</strong> <span className="text-gray-400">followers</span></span>
+                  <span className="text-white"><strong>{profile.following_count}</strong> <span className="text-gray-400">following</span></span>
+                  {profile.liked_posts_count !== undefined && (
+                    <span className="text-white"><strong>{profile.liked_posts_count}</strong> <span className="text-gray-400">likes</span></span>
+                  )}
+                </div>
+
+                {/* Profile Details */}
+                {!isEditing ? (
+                  <div className="space-y-2">
+                    {profile.bio && <p className="text-white">{profile.bio}</p>}
+                    
+                    <div className="flex flex-wrap gap-4 text-gray-400 text-sm">
+                      {profile.location && (
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="w-4 h-4" />
+                          <span>{profile.location}</span>
+                        </div>
+                      )}
+                      {profile.website && (
+                        <div className="flex items-center space-x-1">
+                          <Globe className="w-4 h-4" />
+                          <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                            {profile.website}
+                          </a>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>Joined {new Date(profile.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white text-sm mb-1">Full Name</label>
+                      <input
+                        type="text"
+                        value={editForm.full_name}
+                        onChange={(e) => handleInputChange('full_name', e.target.value)}
+                        maxLength={100}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm mb-1">Bio</label>
+                      <textarea
+                        value={editForm.bio}
+                        onChange={(e) => handleInputChange('bio', e.target.value)}
+                        maxLength={500}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400 h-20 resize-none"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-white text-sm mb-1">Website</label>
+                        <input
+                          type="url"
+                          value={editForm.website}
+                          onChange={(e) => handleInputChange('website', e.target.value)}
+                          placeholder="https://yourwebsite.com"
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-white text-sm mb-1">Location</label>
+                        <input
+                          type="text"
+                          value={editForm.location}
+                          onChange={(e) => handleInputChange('location', e.target.value)}
+                          maxLength={100}
+                          placeholder="City, Country"
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Profile Picture URL */}
+                    <div>
+                      <label className="block text-white text-sm mb-1">Profile Picture URL</label>
+                      <div className="flex space-x-2">
+                        <input
+                          type="url"
+                          placeholder="Profile picture URL"
+                          value={editForm.profile_picture}
+                          onChange={(e) => handleInputChange('profile_picture', e.target.value)}
+                          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                        />
+                        <button 
+                          onClick={() => updateProfilePictureUrl(editForm.profile_picture)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors"
+                        >
+                          Update
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Save/Cancel buttons */}
+                    <div className="flex space-x-3 pt-4">
+                      <button 
+                        onClick={handleSave}
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+                      >
+                        Save Changes
+                      </button>
+                      <button 
+                        onClick={handleCancel}
+                        className="px-6 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-            </>
-          )}
-        </div>
-
-        {/* Basic Info */}
-        <div>
-        <h2>@{profile.username}</h2>
-        {profile.is_verified && <span>✓ Verified</span>}
-        </div>
-
-        {/* Stats */}
-        <div>
-        <span>{profile.posts_count} posts</span>
-        <span>{profile.followers_count} followers</span>
-        <span>{profile.following_count} following</span>
-        {profile.liked_posts_count !== undefined && (
-          <span>{profile.liked_posts_count} liked posts</span>
-        )}
-        </div>
-
-        {/* Action buttons for other users */}
-        {!isOwnProfile && (
-          <div>
-            <button onClick={handleFollowToggle}>
-              {profile.is_following ? 'Unfollow' : 'Follow'}
-            </button>
-            
-            <button 
-              onClick={handleMessageUser}
-              disabled={messagingUser}
-            >
-              {messagingUser ? 'Starting chat...' : 'Message'}
-            </button>
+            </div>
           </div>
-        )}
 
-        {/* Profile Details */}
-        {!isEditing ? (
-        <div>
-            {profile.full_name && <p><strong>Name:</strong> {profile.full_name}</p>}
-            {profile.bio && <p><strong>Bio:</strong> {profile.bio}</p>}
-            {profile.website && (
-            <p>
-                <strong>Website:</strong> 
-                <a href={profile.website} target="_blank" rel="noopener noreferrer">
-                {profile.website}
-                </a>
-            </p>
-            )}
-            {profile.location && <p><strong>Location:</strong> {profile.location}</p>}
-            {profile.email && isOwnProfile && <p><strong>Email:</strong> {profile.email}</p>}
-            
-            <p><strong>Joined:</strong> {new Date(profile.created_at).toLocaleDateString()}</p>
-            {profile.updated_at && (
-            <p><strong>Last updated:</strong> {new Date(profile.updated_at).toLocaleDateString()}</p>
-            )}
-        </div>
-        ) : (
-        <div>
+          {/* Recent Posts */}
+          {profile.recent_posts && profile.recent_posts.length > 0 && (
             <div>
-            <label>Full Name:</label>
-            <input
-                type="text"
-                value={editForm.full_name}
-                onChange={(e) => handleInputChange('full_name', e.target.value)}
-                maxLength={100}
-            />
-            </div>
-            
-            <div>
-            <label>Bio:</label>
-            <textarea
-                value={editForm.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
-                maxLength={500}
-            />
-            </div>
-            
-            <div>
-            <label>Website:</label>
-            <input
-                type="url"
-                value={editForm.website}
-                onChange={(e) => handleInputChange('website', e.target.value)}
-                placeholder="https://yourwebsite.com"
-            />
-            </div>
-            
-            <div>
-            <label>Location:</label>
-            <input
-                type="text"
-                value={editForm.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                maxLength={100}
-                placeholder="City, Country"
-            />
-            </div>
-        </div>
-        )}
-
-        {/* Action Buttons - Only for own profile */}
-        {isOwnProfile && (
-          <div>
-          {!isEditing ? (
-              <button onClick={() => setIsEditing(true)}>
-              Edit Profile
-              </button>
-          ) : (
-              <div>
-              <button onClick={handleSave}>Save</button>
-              <button onClick={handleCancel}>Cancel</button>
+              <h3 className="text-white text-xl font-bold mb-4">Recent Posts ({profile.recent_posts.length})</h3>
+              <div className="space-y-4">
+                {profile.recent_posts.map((post) => (
+                  <PostItem key={post._id} post={post} />
+                ))}
               </div>
-          )}
-          </div>
-        )}
-
-        {/* Recent Posts - Using PostItem Component */}
-        {profile.recent_posts && profile.recent_posts.length > 0 && (
-        <div>
-            <h3>Recent Posts ({profile.recent_posts.length})</h3>
-            {profile.recent_posts.map((post) => (
-                <PostItem key={post._id} post={post} />
-            ))}
-        </div>
-        )}
-        
-        {/* Show message if no posts */}
-        {profile.recent_posts && profile.recent_posts.length === 0 && (
-            <div>
-                <p>{isOwnProfile ? "You haven't posted anything yet." : `${profile.username} hasn't posted anything yet.`}</p>
             </div>
-        )}
+          )}
+          
+          {/* No posts message */}
+          {profile.recent_posts && profile.recent_posts.length === 0 && (
+            <div className="text-center py-12">
+              <div className="rounded-lg p-8" style={{backgroundColor: '#1f2937'}}>
+                <p className="text-gray-400">
+                  {isOwnProfile ? "You haven't posted anything yet." : `${profile.username} hasn't posted anything yet.`}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
