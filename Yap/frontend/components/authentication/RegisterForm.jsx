@@ -131,80 +131,151 @@ export default function RegisterForm() {
 
   if (step === 2) {
     return (
-      <div>
-        <h2>Verify Your Email</h2>
-        <p>We sent a verification code to {formData.email}</p>
-        <p>Username: {formData.username}</p>
-        <form onSubmit={handleVerification}>
-          <input
-            type="text"
-            placeholder="Enter verification code"
-            value={verificationCode}
-            onChange={(e) => setVerificationCode(e.target.value)}
-            required
-            maxLength="6"
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? "Verifying..." : "Verify Email"}
-          </button>
-        </form>
-        <button type="button" onClick={resendVerification} disabled={loading}>
-          Resend Code
-        </button>
-        <button type="button" onClick={() => setStep(1)}>
-          Back to Registration
-        </button>
-        {msg && <p>{msg}</p>}
+      <div className="min-h-screen flex items-center justify-center px-6 font-bold text-xl" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h2 className="text-white text-2xl font-bold mb-4">Verify Your Email</h2>
+            <p className="text-white text-sm font-bold mb-2">We sent a verification code to {formData.email}</p>
+            <p className="text-white text-sm font-bold">Username: {formData.username}</p>
+          </div>
+
+          <form onSubmit={handleVerification} className="space-y-4">
+            <div className="text-left">
+              <label className="block text-white text-sm mb-2 font-bold">
+                Verification Code
+              </label>
+              <input
+                type="text"
+                placeholder="Enter verification code"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                required
+                maxLength="6"
+                className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 font-bold"
+              />
+            </div>
+
+            <div className="pt-4 text-center space-y-3">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full px-8 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 text-white rounded font-bold"
+              >
+                {loading ? "Verifying..." : "Verify Email"}
+              </button>
+
+              <button 
+                type="button" 
+                onClick={resendVerification} 
+                disabled={loading}
+                className="w-full px-8 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white rounded font-bold"
+              >
+                Resend Code
+              </button>
+
+              <button 
+                type="button" 
+                onClick={() => setStep(1)}
+                className="w-full px-8 py-2 bg-transparent border-2 border-gray-600 hover:border-gray-400 text-white rounded font-bold"
+              >
+                Back to Registration
+              </button>
+            </div>
+
+            {msg && <p className={`text-center text-sm mt-4 font-bold ${msg.includes('success') ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
+          </form>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h2>Register</h2>
-      <form onSubmit={handleRegister}>
-        <input
-          type="text"
-          name="username"
-          placeholder="Username"
-          value={formData.username}
-          onChange={handleInputChange}
-          required
-          minLength="3"
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleInputChange}
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleInputChange}
-          required
-          minLength="6"
-        />
-        <input
-          type="password"
-          name="confirmPassword"
-          placeholder="Confirm Password"
-          value={formData.confirmPassword}
-          onChange={handleInputChange}
-          required
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? "Registering..." : "Register"}
-        </button>
-        {msg && <p>{msg}</p>}
-      </form>
-      <p>
-        Already have an account? <Link to="/login">Login here</Link>
-      </p>
+    <div className="min-h-screen flex items-center justify-center px-6 font-bold text-xl" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h2 className="text-white text-2xl font-bold mb-2">Welcome to Yapp</h2>
+        </div>
+
+        <form onSubmit={handleRegister} className="space-y-4">
+          <div className="text-left">
+            <label className="block text-white text-sm mb-2 font-bold">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              value={formData.username}
+              onChange={handleInputChange}
+              required
+              minLength="3"
+              className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 font-bold"
+            />
+          </div>
+
+          <div className="text-left">
+            <label className="block text-white text-sm mb-2 font-bold">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 font-bold"
+            />
+          </div>
+
+          <div className="text-left">
+            <label className="block text-white text-sm mb-2 font-bold">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleInputChange}
+              required
+              minLength="6"
+              className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 font-bold"
+            />
+          </div>
+
+          <div className="text-left">
+            <label className="block text-white text-sm mb-2 font-bold">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 font-bold"
+            />
+          </div>
+
+          <div className="pt-4 text-center">
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="px-8 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 text-white rounded font-bold"
+            >
+              {loading ? "Registering..." : "Register"}
+            </button>
+          </div>
+
+          {msg && <p className={`text-center text-sm mt-4 font-bold ${msg.includes('success') ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
+        </form>
+        
+        <p className="text-center text-white text-sm mt-8 font-bold">
+          Already have an account? <Link to="/login" className="text-white hover:underline font-bold">Login here</Link>
+        </p>
+      </div>
     </div>
   );
 }
