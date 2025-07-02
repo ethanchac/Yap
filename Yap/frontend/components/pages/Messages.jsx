@@ -126,13 +126,13 @@ function Messages() {
     }, [loading, conversations, selectedConversation, searchParams]);
 
     return (
-        <>
+        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Header />
-            <div className="flex h-screen bg-gray-800">
+            <div className="flex h-screen">
                 <Sidebar />
-                <div className="flex flex-1 h-full">
+                <div className="flex flex-1 h-full ml-64">
                     {/* Left side - Conversations list */}
-                    <div className="w-80 bg-gray-700 border-r border-gray-600 flex flex-col h-full">
+                    <div className="w-80 border-r border-gray-600 flex flex-col h-full" style={{backgroundColor: '#121212'}}>
                         <MessagesList 
                             conversations={conversations}
                             selectedConversation={selectedConversation}
@@ -142,30 +142,33 @@ function Messages() {
                     </div>
                     
                     {/* Right side - Chat interface */}
-                    <div className="flex-1 bg-gray-800 flex flex-col h-full">
+                    <div className="flex-1 flex flex-col h-full" style={{backgroundColor: '#121212'}}>
                         {selectedConversation ? (
                             <MessageChat 
                                 conversation={selectedConversation}
                                 onNewMessage={handleNewMessage}
                             />
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center">
-                                <div className="mb-5">
-                                    <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-500">
-                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                                        <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                        <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                        <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                    </svg>
+                            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                                <div className="rounded-lg p-8 mb-6" style={{backgroundColor: '#1f2937'}}>
+                                    <div className="mb-6">
+                                        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-500 mx-auto">
+                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <h2 className="text-white text-2xl font-bold mb-4">Your messages</h2>
+                                    <p className="text-gray-400 mb-6">Send a message to start a chat.</p>
+                                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                        Send message
+                                    </button>
                                 </div>
-                                <h2 className="text-white text-xl font-semibold mb-2">Your messages</h2>
-                                <p className="text-gray-400 mb-5">Send a message to start a chat.</p>
-                                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">
-                                    Send message
-                                </button>
+                                
                                 {/* DEBUG INFO */}
-                                <div className="mt-8 text-xs text-gray-500">
-                                    <p>Debug Info:</p>
+                                <div className="text-xs text-gray-500 space-y-1">
+                                    <p className="font-bold">Debug Info:</p>
                                     <p>Loading: {loading.toString()}</p>
                                     <p>Conversations: {conversations.length}</p>
                                     <p>URL Param: {searchParams.get('conversation') || 'none'}</p>
@@ -176,99 +179,7 @@ function Messages() {
                     </div>
                 </div>
             </div>
-        </>
-    );
-
-    return (
-        <>
-            <Header />
-            <div>
-                <Sidebar />
-                <div>
-                    <div>
-                        {/* Left side - Conversations list */}
-                        <div>
-                            <MessagesList 
-                                conversations={conversations}
-                                selectedConversation={selectedConversation}
-                                onConversationSelect={handleConversationSelect}
-                                loading={loading}
-                            />
-                        </div>
-                        
-                        {/* Right side - Chat interface */}
-                        <div>
-                            {selectedConversation ? (
-                                <MessageChat 
-                                    conversation={selectedConversation}
-                                    onNewMessage={handleNewMessage}
-                                />
-                            ) : (
-                                <div>
-                                    <div>
-                                        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                        </svg>
-                                    </div>
-                                    <h2>Your messages</h2>
-                                    <p>Send a message to start a chat.</p>
-                                    <button>Send message</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </>
-    );
-
-    return (
-        <>
-            <Header />
-            <div>
-                <Sidebar />
-                <div>
-                    <div>
-                        {/* Left side - Conversations list */}
-                        <div>
-                            <MessagesList 
-                                conversations={conversations}
-                                selectedConversation={selectedConversation}
-                                onConversationSelect={handleConversationSelect}
-                                loading={loading}
-                            />
-                        </div>
-                        
-                        {/* Right side - Chat interface */}
-                        <div>
-                            {selectedConversation ? (
-                                <MessageChat 
-                                    conversation={selectedConversation}
-                                    onNewMessage={handleNewMessage}
-                                />
-                            ) : (
-                                <div>
-                                    <div>
-                                        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                        </svg>
-                                    </div>
-                                    <h2>Your messages</h2>
-                                    <p>Send a message to start a chat.</p>
-                                    <button>Send message</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </>
+        </div>
     );
 }
 
