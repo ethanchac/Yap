@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import Header from '../header/Header'
 import Sidebar from '../sidebar/Sidebar';
+import PostItem from '../posts/PostItem';
 
 function CommentsPage() {
     const { postId } = useParams();
@@ -220,46 +221,8 @@ function CommentsPage() {
 
                 <h1 className="text-white text-2xl font-bold mb-6">Post</h1>
 
-                {/* original post with profile picture */}
-                <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
-                    <div className="flex items-start space-x-3 mb-4">
-                        <img 
-                            src={getProfilePictureUrl(post.profile_picture)}
-                            alt={`${post.username}'s profile`}
-                            onClick={() => navigate(`/profile/${post.user_id}`)}
-                            onError={(e) => {
-                                e.target.src = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
-                            }}
-                            className='w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity object-cover'
-                        />
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                                <strong 
-                                    onClick={() => navigate(`/profile/${post.user_id}`)}
-                                    className="text-white hover:text-gray-300 cursor-pointer transition-colors"
-                                >
-                                    @{post.username}
-                                </strong>
-                                <span className="text-gray-400 text-sm">
-                                    {formatDate(post.created_at)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p className="text-white mb-4 leading-relaxed">{post.content}</p>
-                    
-                    <div className="flex items-center space-x-6">
-                        <div className="flex items-center space-x-1 text-gray-400">
-                            <Heart className="w-5 h-5" />
-                            <span className="text-sm font-bold">{post.likes_count}</span>
-                        </div>
-                        <div className="flex items-center space-x-1 text-gray-400">
-                            <MessageCircle className="w-5 h-5" />
-                            <span className="text-sm font-bold">{post.comments_count}</span>
-                        </div>
-                    </div>
-                </div>
+                {/* Use PostItem component instead of recreating the post */}
+                {post && <PostItem post={post} />}
 
                 {/* comment form */}
                 <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
@@ -350,4 +313,5 @@ function CommentsPage() {
         </div>
     );
 }
+
 export default CommentsPage;
