@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Search, User } from 'lucide-react';
 import Sidebar from '../sidebar/Sidebar';
 import Header from '../header/Header'
 
@@ -8,7 +8,6 @@ function Users() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const navigate = useNavigate();
 
     // search function using debouncing; used AI for all this
     const debouncedSearch = useCallback(
@@ -52,7 +51,8 @@ function Users() {
 
     const handleUserClick = (userId) => {
         // goes to the profile page
-        navigate(`/profile/${userId}`);
+        // navigate(`/profile/${userId}`);
+        console.log('Navigate to profile:', userId);
     };
 
     const formatDate = (dateString) => {
@@ -73,92 +73,114 @@ function Users() {
     };
 
     return (
-        <>
+        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Header />
             <Sidebar />
-            <div>
-                <h1>Search Users</h1>
-                
-                {/* this is the search bar */}
-                <div>
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={handleInputChange}
-                        placeholder="Search for users..."
-                        autoComplete="off"
-                    />
-                </div>
-                {/* output of the search bar */}
-                {loading && (
-                    <div>
-                        <p>Searching...</p>
-                    </div>
-                )}
-
-                {error && (
-                    <div>
-                        <p>{error}</p>
-                    </div>
-                )}
-
-                {searchQuery.length > 0 && searchQuery.length < 2 && (
-                    <div>
-                        <p>Type at least 2 characters to search</p>
-                    </div>
-                )}
-
-                {users.length === 0 && searchQuery.length >= 2 && !loading && (
-                    <div>
-                        <p>No users found for "{searchQuery}"</p>
-                    </div>
-                )}
-
-                {users.length > 0 && (
-                    <div>
-                        <h3>Search Results ({users.length})</h3>
-                        <div>
-                            {users.map((user) => (
-                                <div 
-                                    key={user._id}
-                                    onClick={() => handleUserClick(user._id)}
-                                >
-                                    {/* Profile Picture */}
-                                    <img 
-                                        src={getProfilePictureUrl(user)}
-                                        alt={`${user.username}'s profile`}
-                                        onError={(e) => {
-                                            e.target.src = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
-                                        }}
-                                    />
-                                    
-                                    <div>
-                                        <h4>@{user.username}</h4>
-                                        {user.email && (
-                                            <p>{user.email}</p>
-                                        )}
-                                        <p>
-                                            Joined: {formatDate(user.created_at)}
-                                        </p>
-                                    </div>
-                                    
-                                    <div>
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleUserClick(user._id);
-                                            }}
-                                        >
-                                            View Profile
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+            <div className="ml-64 p-6">
+                <div className="max-w-2xl mx-auto">
+                    <h1 className="text-white text-2xl font-bold mb-6">Search Users</h1>
+                    
+                    {/* Search bar */}
+                    <div className="mb-6">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={handleInputChange}
+                                placeholder="Search for users..."
+                                autoComplete="off"
+                                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
+                            />
                         </div>
                     </div>
-                )}
+
+                    {/* Loading state */}
+                    {loading && (
+                        <div className="text-center py-8">
+                            <p className="text-gray-400">Searching...</p>
+                        </div>
+                    )}
+
+                    {/* Error state */}
+                    {error && (
+                        <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#1f2937'}}>
+                            <p className="text-red-400">{error}</p>
+                        </div>
+                    )}
+
+                    {/* Minimum character message */}
+                    {searchQuery.length > 0 && searchQuery.length < 2 && (
+                        <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#1f2937'}}>
+                            <p className="text-gray-400">Type at least 2 characters to search</p>
+                        </div>
+                    )}
+
+                    {/* No results */}
+                    {users.length === 0 && searchQuery.length >= 2 && !loading && (
+                        <div className="text-center py-8">
+                            <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                                <User className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                                <p className="text-gray-400">No users found for "{searchQuery}"</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Search results */}
+                    {users.length > 0 && (
+                        <div className="space-y-4">
+                            <h3 className="text-white text-lg font-bold">Search Results ({users.length})</h3>
+                            <div className="space-y-3">
+                                {users.map((user) => (
+                                    <div 
+                                        key={user._id}
+                                        onClick={() => handleUserClick(user._id)}
+                                        className="rounded-lg p-4 cursor-pointer hover:opacity-80 transition-opacity"
+                                        style={{backgroundColor: '#1f2937'}}
+                                    >
+                                        <div className="flex items-center space-x-4">
+                                            {/* Profile Picture */}
+                                            <img 
+                                                src={getProfilePictureUrl(user)}
+                                                alt={`${user.username}'s profile`}
+                                                onError={(e) => {
+                                                    e.target.src = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
+                                                }}
+                                                className="w-12 h-12 rounded-full object-cover"
+                                            />
+                                            
+                                            <div className="flex-1">
+                                                <h4 className="text-white font-bold">@{user.username}</h4>
+                                                {user.email && (
+                                                    <p className="text-gray-400 text-sm">{user.email}</p>
+                                                )}
+                                                <p className="text-gray-500 text-xs">
+                                                    Joined: {formatDate(user.created_at)}
+                                                </p>
+                                            </div>
+                                            
+                                            <div>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleUserClick(user._id);
+                                                    }}
+                                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-bold transition-colors"
+                                                >
+                                                    View Profile
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
-        </>
+        </div>
     );
 }
 

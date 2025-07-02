@@ -71,60 +71,75 @@ function Likes() {
     }, []);
 
     return (
-        <>
+        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Header />
             <Sidebar />
-            <div>
-                <div>
-                    <h1>Posts You've Liked</h1>
-                    {totalLiked > 0 && (
-                        <p>{totalLiked} liked posts</p>
+            <div className="ml-64 p-6">
+                <div className="max-w-2xl mx-auto">
+                    <div className="mb-6">
+                        <h1 className="text-white text-2xl font-bold mb-2">Posts You've Liked</h1>
+                        {totalLiked > 0 && (
+                            <p className="text-gray-400">{totalLiked} liked posts</p>
+                        )}
+                    </div>
+
+                    {loading && (
+                        <div className="text-center py-12">
+                            <p className="text-white">Loading your liked posts...</p>
+                        </div>
                     )}
-                </div>
 
-                {loading && (
-                    <div>
-                        <p>Loading your liked posts...</p>
-                    </div>
-                )}
-
-                {error && (
-                    <div>
-                        <p>Error: {error}</p>
-                        <button onClick={() => fetchLikedPosts()}>Try Again</button>
-                    </div>
-                )}
-
-                {!loading && !error && likedPosts.length === 0 && (
-                    <div>
-                        <h2>No liked posts yet</h2>
-                        <p>Posts you like will appear here</p>
-                    </div>
-                )}
-
-                {!loading && !error && likedPosts.length > 0 && (
-                    <div>
-                        {likedPosts.map((post) => (
-                            <PostItem key={post._id} post={post} />
-                        ))}
-
-                        {hasMore && (
-                            <div>
-                                <button onClick={loadMore} disabled={loadingMore}>
-                                    {loadingMore ? 'Loading...' : 'Load More'}
+                    {error && (
+                        <div className="text-center py-12">
+                            <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+                                <p className="text-red-400 mb-4">Error: {error}</p>
+                                <button 
+                                    onClick={() => fetchLikedPosts()}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+                                >
+                                    Try Again
                                 </button>
                             </div>
-                        )}
+                        </div>
+                    )}
 
-                        {!hasMore && likedPosts.length > 0 && (
-                            <div>
-                                <p>You've seen all your liked posts!</p>
+                    {!loading && !error && likedPosts.length === 0 && (
+                        <div className="text-center py-12">
+                            <div className="rounded-lg p-8" style={{backgroundColor: '#1f2937'}}>
+                                <h2 className="text-white text-xl font-bold mb-2">No liked posts yet</h2>
+                                <p className="text-gray-400">Posts you like will appear here</p>
                             </div>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    )}
+
+                    {!loading && !error && likedPosts.length > 0 && (
+                        <div className="space-y-6">
+                            {likedPosts.map((post) => (
+                                <PostItem key={post._id} post={post} />
+                            ))}
+
+                            {hasMore && (
+                                <div className="text-center mt-8">
+                                    <button 
+                                        onClick={loadMore} 
+                                        disabled={loadingMore}
+                                        className="px-6 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                                    >
+                                        {loadingMore ? 'Loading...' : 'Load More'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {!hasMore && likedPosts.length > 0 && (
+                                <div className="text-center mt-8">
+                                    <p className="text-gray-400">You've seen all your liked posts!</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
-        </>
+        </div>
     );
 }
 
