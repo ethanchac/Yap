@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Heart, MessageCircle, Trash2 } from 'lucide-react';
 import Header from '../header/Header'
 import Sidebar from '../sidebar/Sidebar';
 
@@ -146,57 +147,82 @@ function CommentsPage() {
 
     if (loading) {
         return (
-            <>
+            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
                 <Header />
                 <Sidebar />
-                <div>
-                    <p>Loading...</p>
+                <div className="ml-64 p-6">
+                    <p className="text-white">Loading...</p>
                 </div>
-            </>
+            </div>
         );
     }
 
     if (error && !post) {
         return (
-            <>  
+            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
                 <Header />
                 <Sidebar />
-                <div>
-                    <p>Error: {error}</p>
-                    <p>Post ID: {postId}</p>
-                    <button onClick={() => navigate(-1)}>Go Back</button>
-                    <button onClick={fetchPostAndComments}>Try Again</button>
+                <div className="ml-64 p-6">
+                    <div className="text-center py-12">
+                        <p className="text-red-400 mb-4">Error: {error}</p>
+                        <p className="text-gray-400 mb-6">Post ID: {postId}</p>
+                        <div className="space-x-4">
+                            <button 
+                                onClick={() => navigate(-1)}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                            >
+                                Go Back
+                            </button>
+                            <button 
+                                onClick={fetchPostAndComments}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </>
+            </div>
         );
     }
 
     if (!post) {
         return (
-            <>  
+            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
                 <Header />
                 <Sidebar />
-                <div>
-                    <p>Post not found</p>
-                    <button onClick={() => navigate(-1)}>Go Back</button>
+                <div className="ml-64 p-6">
+                    <div className="text-center py-12">
+                        <p className="text-gray-400 mb-6">Post not found</p>
+                        <button 
+                            onClick={() => navigate(-1)}
+                            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                        >
+                            Go Back
+                        </button>
+                    </div>
                 </div>
-            </>
+            </div>
         );
     }
 
     return (
-        <>
+        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Sidebar />
-            <div>
-                <button onClick={() => navigate(-1)}>
-                    ← Back
+            <div className="ml-64 p-6">
+                <button 
+                    onClick={() => navigate(-1)}
+                    className="flex items-center space-x-2 mb-6 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back</span>
                 </button>
 
-                <h1>Post</h1>
+                <h1 className="text-white text-2xl font-bold mb-6">Post</h1>
 
                 {/* original post with profile picture */}
-                <div>
-                    <div>
+                <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+                    <div className="flex items-start space-x-3 mb-4">
                         <img 
                             src={getProfilePictureUrl(post.profile_picture)}
                             alt={`${post.username}'s profile`}
@@ -204,68 +230,80 @@ function CommentsPage() {
                             onError={(e) => {
                                 e.target.src = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
                             }}
-                            className='w-15 h-15'
+                            className='w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity object-cover'
                         />
-                        <div>
-                            <strong onClick={() => navigate(`/profile/${post.user_id}`)}>
-                                @{post.username}
-                            </strong>
-                            <span>
-                                {formatDate(post.created_at)}
-                            </span>
+                        <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                                <strong 
+                                    onClick={() => navigate(`/profile/${post.user_id}`)}
+                                    className="text-white hover:text-gray-300 cursor-pointer transition-colors"
+                                >
+                                    @{post.username}
+                                </strong>
+                                <span className="text-gray-400 text-sm">
+                                    {formatDate(post.created_at)}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     
-                    <p>{post.content}</p>
+                    <p className="text-white mb-4 leading-relaxed">{post.content}</p>
                     
-                    <div>
-                        <span>❤️ {post.likes_count}</span>
-                        <span>💬 {post.comments_count}</span>
+                    <div className="flex items-center space-x-6">
+                        <div className="flex items-center space-x-1 text-gray-400">
+                            <Heart className="w-5 h-5" />
+                            <span className="text-sm font-bold">{post.likes_count}</span>
+                        </div>
+                        <div className="flex items-center space-x-1 text-gray-400">
+                            <MessageCircle className="w-5 h-5" />
+                            <span className="text-sm font-bold">{post.comments_count}</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* comment form */}
-                <div>
-                    <h3>Add a Comment</h3>
-                    <form onSubmit={handleSubmitComment}>
+                <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+                    <h3 className="text-white text-lg font-bold mb-4">Add a Comment</h3>
+                    <form onSubmit={handleSubmitComment} className="space-y-4">
                         <textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             placeholder="Write your comment..."
                             maxLength={500}
                             disabled={submitting}
+                            className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 resize-none h-24"
                         />
                         
-                        <div>
-                            <span>{newComment.length}/500</span>
+                        <div className="flex items-center justify-between">
+                            <span className="text-gray-400 text-sm">{newComment.length}/500</span>
+                            <button 
+                                type="submit" 
+                                disabled={submitting || !newComment.trim()}
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                            >
+                                {submitting ? 'Posting...' : 'Post Comment'}
+                            </button>
                         </div>
-                        
-                        <button 
-                            type="submit" 
-                            disabled={submitting || !newComment.trim()}
-                        >
-                            {submitting ? 'Posting...' : 'Post Comment'}
-                        </button>
                     </form>
 
                     {error && (
-                        <div>
+                        <div className="mt-4 p-3 bg-red-900 border border-red-700 text-red-300 rounded-lg">
                             {error}
                         </div>
                     )}
                 </div>
 
                 {/* Comments List with profile pictures */}
-                <div>
-                    <h3>View comments ({comments.length})</h3>
+                <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                    <h3 className="text-white text-lg font-bold mb-4">Comments ({comments.length})</h3>
                     
                     {comments.length === 0 ? (
-                        <p>No comments yet. Be the first to comment!</p>
+                        <p className="text-gray-400 text-center py-8">No comments yet. Be the first to comment!</p>
                     ) : (
-                        <div>
+                        <div className="space-y-4">
                             {comments.map((comment) => (
-                                <div key={comment._id}>
-                                    <div>
+                                <div key={comment._id} className="border-b border-gray-600 pb-4 last:border-b-0">
+                                    <div className="flex items-start space-x-3">
                                         <img 
                                             src={getProfilePictureUrl(comment.profile_picture)}
                                             alt={`${comment.username}'s profile`}
@@ -273,36 +311,43 @@ function CommentsPage() {
                                             onError={(e) => {
                                                 e.target.src = "data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23e0e0e0'/%3E%3Ccircle cx='16' cy='12' r='5' fill='%23bdbdbd'/%3E%3Cellipse cx='16' cy='28' rx='10' ry='6' fill='%23bdbdbd'/%3E%3C/svg%3E";
                                             }}
-                                            className='w-15 h-15'
+                                            className='w-10 h-10 rounded-full cursor-pointer hover:opacity-80 transition-opacity object-cover'
                                         />
-                                        <div>
-                                            <strong onClick={() => navigate(`/profile/${comment.user_id}`)}>
-                                                @{comment.username}
-                                            </strong>
-                                            <span>
-                                                {formatDate(comment.created_at)}
-                                            </span>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-2 mb-2">
+                                                    <strong 
+                                                        onClick={() => navigate(`/profile/${comment.user_id}`)}
+                                                        className="text-white hover:text-gray-300 cursor-pointer transition-colors"
+                                                    >
+                                                        @{comment.username}
+                                                    </strong>
+                                                    <span className="text-gray-400 text-sm">
+                                                        {formatDate(comment.created_at)}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* show delete button if user owns the comment */}
+                                                {localStorage.getItem('token') && (
+                                                    <button 
+                                                        onClick={() => deleteComment(comment._id)}
+                                                        className="text-gray-400 hover:text-red-400 transition-colors p-1"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                             
-                                            {/* show delete button if user owns the comment */}
-                                            {localStorage.getItem('token') && (
-                                                <button 
-                                                    onClick={() => deleteComment(comment._id)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            )}
+                                            <p className="text-white">{comment.content}</p>
                                         </div>
                                     </div>
-                                    
-                                    <p>{comment.content}</p>
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
             </div>
-        </>
+        </div>
     );
 }
-
 export default CommentsPage;
