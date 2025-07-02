@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
-import Header from '../header/Header'
+import Header from '../header/Header';
 
 function Home() {
     const [posts, setPosts] = useState([]);
@@ -80,38 +80,41 @@ function Home() {
 
     if (loading && posts.length === 0) {
         return (
-            <>
+            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
                 <Sidebar />
-                <div>
-                    <p>Loading posts...</p>
+                <div className="ml-64 p-6">
+                    <p className="text-white">Loading posts...</p>
                 </div>
-            </>
+            </div>
         );
     }
 
     return (
-        <>
+        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Header />
             <Sidebar />
-            <div>
-                <h1>Home Feed</h1>
+            <div className="ml-64 p-6">
+                <h1 className="text-white text-2xl font-bold mb-6">Home Feed</h1>
                 
-                <button onClick={refreshPosts}>
+                <button 
+                    onClick={refreshPosts}
+                    className="mb-6 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                >
                     Refresh
                 </button>
 
                 {error && (
-                    <div>
+                    <div className="mb-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-lg">
                         {error}
                     </div>
                 )}
 
                 {posts.length === 0 ? (
-                    <div>
-                        <p>No posts yet. Be the first to create one!</p>
+                    <div className="text-center py-12">
+                        <p className="text-gray-400">No posts yet. Be the first to create one!</p>
                     </div>
                 ) : (
-                    <div>
+                    <div className="space-y-6">
                         {posts.map((post) => (
                             <PostItem key={post._id} post={post} />
                         ))}
@@ -119,16 +122,21 @@ function Home() {
                 )}
 
                 {hasMore && !loadingMore && (
-                    <button onClick={loadMorePosts}>
-                        Load More Posts
-                    </button>
+                    <div className="text-center mt-8">
+                        <button 
+                            onClick={loadMorePosts}
+                            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                        >
+                            Load More Posts
+                        </button>
+                    </div>
                 )}
 
                 {loadingMore && (
-                    <p>Loading more posts...</p>
+                    <p className="text-center text-gray-400 mt-8">Loading more posts...</p>
                 )}
             </div>
-        </>
+        </div>
     );
 }
 
