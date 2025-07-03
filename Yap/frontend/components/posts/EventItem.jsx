@@ -220,7 +220,7 @@ function EventItem() {
                             >
                                 <div 
                                     className={`rounded-2xl p-4 h-80 flex flex-col justify-between transition-all duration-500 hover:shadow-lg relative ${
-                                        isExpanded ? 'transform hover:scale-105' : 'items-center justify-center'
+                                        isExpanded ? 'transform hover:scale-101' : 'items-center justify-center'
                                     }`}
                                     style={{ 
                                         backgroundColor: '#e8e2f0',
