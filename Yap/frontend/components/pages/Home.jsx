@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
 import Header from '../header/Header';
+import EventItem from '../posts/EventItem';
 
 function Home() {
     const [posts, setPosts] = useState([]);
@@ -29,7 +30,7 @@ function Home() {
                     setPosts(prevPosts => [...prevPosts, ...data.posts]);
                 }
                 
-                // chheck if there are more posts to load
+                // check if there are more posts to load
                 setHasMore(data.posts.length === 20);
             } else {
                 setError(data.error || 'Failed to fetch posts');
@@ -81,6 +82,7 @@ function Home() {
     if (loading && posts.length === 0) {
         return (
             <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+                <Header />
                 <Sidebar />
                 <div className="ml-64 p-6">
                     <p className="text-white">Loading posts...</p>
@@ -96,12 +98,29 @@ function Home() {
             <div className="ml-64 p-6">
                 <h1 className="text-white text-2xl font-bold mb-6">Home Feed</h1>
                 
-                <button 
-                    onClick={refreshPosts}
-                    className="mb-6 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
-                >
-                    Refresh
-                </button>
+                {/* Events Section */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-white text-xl font-bold">Events</h2>
+                        <button className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                            View All Events (not implemented yet)
+                        </button>
+                    </div>
+                    <div className="rounded-lg p-4" style={{backgroundColor: '#1f2937'}}>
+                        <EventItem />
+                    </div>
+                </div>
+
+                {/* Posts Section */}
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-white text-xl font-bold">Posts</h2>
+                    <button 
+                        onClick={refreshPosts}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                    >
+                        Refresh
+                    </button>
+                </div>
 
                 {error && (
                     <div className="mb-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-lg">
