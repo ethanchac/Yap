@@ -8,7 +8,8 @@ from users.routes import users_bp
 from verification.routes import verification_bp
 from posts.routes import posts_bp
 from comments.routes import comments_bp
-from messages.routes import messages_bp  # NEW
+from messages.routes import messages_bp 
+from events.routes import events_bp
 import os
 import sys
 
@@ -81,7 +82,8 @@ app.register_blueprint(users_bp, url_prefix="/users")
 app.register_blueprint(verification_bp, url_prefix="/verification")
 app.register_blueprint(posts_bp, url_prefix="/posts")
 app.register_blueprint(comments_bp, url_prefix="/comments")
-app.register_blueprint(messages_bp, url_prefix="/messages")  # NEW
+app.register_blueprint(messages_bp, url_prefix="/messages") 
+app.register_blueprint(events_bp, url_prefix='/events')
 
 # ===== SOCKETIO EVENT HANDLERS =====
 
