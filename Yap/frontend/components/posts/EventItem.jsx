@@ -336,7 +336,7 @@ function EventItem() {
                                                     <span className="text-sm">{event.likes_count}</span>
                                                 </button>
                                                 <button className="bg-white bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded-full text-sm transition-all duration-200">
-                                                    Join
+                                                    Join (Not implemented)
                                                 </button>
                                             </div>
                                         </>
