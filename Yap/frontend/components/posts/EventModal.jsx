@@ -141,8 +141,14 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
 
   return (
     <div 
-      className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all duration-300 scale-100 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+      className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all duration-300 scale-100 relative z-50 mx-4"
       onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+      style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)'
+      }}
     >
         {/* Modal Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
