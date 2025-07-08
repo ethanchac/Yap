@@ -13,8 +13,8 @@ function Sidebar() {
         <nav className="fixed left-0 top-0 h-screen w-64 p-6 font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             {/* Yapp Logo Section */}
             <div className="mb-8 pb-6 border-b border-gray-700">
-                <Link to="/home" className="flex items-center space-x-3">
-                    <h1 className="text-white text-2xl font-bold">Yapp.</h1>
+                <Link to="/home" className="flex items-center justify-center">
+                    <h1 className="text-white text-4xl font-bold">Yapp.</h1>
                 </Link>
             </div>
 

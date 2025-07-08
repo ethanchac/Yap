@@ -64,7 +64,7 @@ function Feedback() {
     if (submitSuccess && !submitted) {
         return (
             <div className="min-h-screen bg-black text-white flex">
-                <div className="w-64"></div> {/* Sidebar spacer */}
+                <Sidebar />
                 <div className="flex-1 p-8 flex justify-center items-center">
                     <div className="text-center">
                         <div className="animate-bounce">
