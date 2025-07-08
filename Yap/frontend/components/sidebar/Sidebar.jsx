@@ -22,8 +22,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/home" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/home') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/home') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <Home className="w-5 h-5" />
@@ -33,8 +35,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/create" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/create') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/create') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <Plus className="w-5 h-5" />
@@ -44,8 +48,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/users" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/users') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/users') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <Users className="w-5 h-5" />
@@ -55,8 +61,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/messages" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/messages') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/messages') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <MessageCircle className="w-5 h-5" />
@@ -66,8 +74,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/likes" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/likes') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/likes') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <Heart className="w-5 h-5" />
@@ -77,8 +87,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/profile" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/profile') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/profile') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <User className="w-5 h-5" />
@@ -88,8 +100,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/settings" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/settings') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/settings') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <Settings className="w-5 h-5" />
@@ -99,8 +113,10 @@ function Sidebar() {
                 <li>
                     <Link 
                         to="/feedback" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
-                            isActive('/feedback') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/feedback') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
                         <MessageSquare className="w-5 h-5" />

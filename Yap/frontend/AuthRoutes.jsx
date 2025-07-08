@@ -11,6 +11,7 @@ import Profile from './components/pages/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
 import Feedback from './components/pages/Feedback.jsx';
 import CommentsPage from './components/pages/CommentsPage.jsx';
+import PageTransition from './components/common/PageTransition.jsx';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -26,15 +27,33 @@ const PrivateRoute = ({ children }) => {
 function AuthRoutes() {
     return (
         <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ADD THIS LINE */}
-            <Route path="/" element={<Login />} />
+            <Route path="/login" element={
+                <PageTransition>
+                    <Login />
+                </PageTransition>
+            } />
+            <Route path="/signup" element={
+                <PageTransition>
+                    <Signup />
+                </PageTransition>
+            } />
+            <Route path="/forgot-password" element={
+                <PageTransition>
+                    <ForgotPassword />
+                </PageTransition>
+            } />
+            <Route path="/" element={
+                <PageTransition>
+                    <Login />
+                </PageTransition>
+            } />
             <Route
                 path="/home"
                 element={
                     <PrivateRoute>
-                        <Home />
+                        <PageTransition>
+                            <Home />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -42,7 +61,9 @@ function AuthRoutes() {
                 path="/create"
                 element={
                     <PrivateRoute>
-                        <Create />
+                        <PageTransition>
+                            <Create />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -50,7 +71,9 @@ function AuthRoutes() {
                 path="/users"
                 element={
                     <PrivateRoute>
-                        <Users />
+                        <PageTransition>
+                            <Users />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -58,7 +81,9 @@ function AuthRoutes() {
                 path="/messages"
                 element={
                     <PrivateRoute>
-                        <Messages />
+                        <PageTransition>
+                            <Messages />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -66,7 +91,9 @@ function AuthRoutes() {
                 path="/likes"
                 element={
                     <PrivateRoute>
-                        <Likes />
+                        <PageTransition>
+                            <Likes />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -74,7 +101,9 @@ function AuthRoutes() {
                 path="/profile"
                 element={
                     <PrivateRoute>
-                        <Profile />
+                        <PageTransition>
+                            <Profile />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -82,7 +111,9 @@ function AuthRoutes() {
                 path="/profile/:userId"
                 element={
                     <PrivateRoute>
-                        <Profile />
+                        <PageTransition>
+                            <Profile />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -90,7 +121,9 @@ function AuthRoutes() {
                 path="/settings"
                 element={
                     <PrivateRoute>
-                        <Settings />
+                        <PageTransition>
+                            <Settings />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -98,7 +131,9 @@ function AuthRoutes() {
                 path="/feedback"
                 element={
                     <PrivateRoute>
-                        <Feedback />
+                        <PageTransition>
+                            <Feedback />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
@@ -106,7 +141,9 @@ function AuthRoutes() {
                 path="/post/:postId/comments"
                 element={
                     <PrivateRoute>
-                        <CommentsPage />
+                        <PageTransition>
+                            <CommentsPage />
+                        </PageTransition>
                     </PrivateRoute>
                 }
             />
