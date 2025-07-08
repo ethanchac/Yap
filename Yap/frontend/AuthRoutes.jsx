@@ -1,6 +1,7 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/authentication/LoginForm.jsx';
 import Signup from './components/authentication/RegisterForm.jsx';
+import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx'; // ADD THIS LINE
 import Home from './components/pages/Home.jsx';
 import Create from './components/pages/Create.jsx';
 import Users from './components/pages/Users.jsx';
@@ -26,6 +27,7 @@ function AuthRoutes() {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ADD THIS LINE */}
             <Route path="/" element={<Login />} />
             <Route
                 path="/home"
