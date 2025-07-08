@@ -1,0 +1,296 @@
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, Clock, MapPin, Users, Heart, Share2, UserPlus } from 'lucide-react';
+
+const EventModal = ({ event, isOpen, onClose, currentUser }) => {
+  const [eventDetails, setEventDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isAttending, setIsAttending] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [attendingFriends, setAttendingFriends] = useState([]);
+  const [totalAttendees, setTotalAttendees] = useState(0);
+
+  // Fetch detailed event information
+  const fetchEventDetails = async () => {
+    if (!event || !isOpen) return;
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/events/${event._id}/details`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setEventDetails(data.event);
+        setIsAttending(data.is_attending || false);
+        setIsLiked(data.is_liked || false);
+        setAttendingFriends(data.attending_friends || []);
+        setTotalAttendees(data.total_attendees || event.attendees_count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching event details:', error);
+      // Fallback to basic event data
+      setEventDetails(event);
+      setTotalAttendees(event.attendees_count || 0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle attendance
+  const toggleAttendance = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/events/${event._id}/attend`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setIsAttending(data.attending);
+        setTotalAttendees(prev => data.attending ? prev + 1 : prev - 1);
+      }
+    } catch (error) {
+      console.error('Error toggling attendance:', error);
+    }
+  };
+
+  // Toggle like
+  const toggleLike = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/events/${event._id}/like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setIsLiked(data.liked);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
+  // Get profile picture URL
+  const getProfilePictureUrl = (profilePicture) => {
+    if (profilePicture && profilePicture.trim() !== '') {
+      if (profilePicture.startsWith('http')) {
+        return profilePicture;
+      }
+      return `http://localhost:5000/uploads/profile_pictures/${profilePicture}`;
+    }
+    return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
+  };
+
+  // Format date and time
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      time: date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      })
+    };
+  };
+
+  const getEventIcon = (index) => {
+    const icons = ['🎉', '🎵', '🎨', '🏃', '🍕', '📚', '🎬', '🎪', '🎯', '🎮'];
+    return icons[index % icons.length];
+  };
+
+  useEffect(() => {
+    if (isOpen && event) {
+      fetchEventDetails();
+    }
+  }, [isOpen, event]);
+
+  useEffect(() => {
+    // Prevent body scroll when modal is open
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !event) return null;
+
+  const dateTime = formatDateTime(event.event_datetime);
+
+  return (
+    <div 
+      className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all duration-300 scale-100 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+      onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+    >
+        {/* Modal Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
+          <div className="flex items-center space-x-3">
+            <div className="text-4xl">{getEventIcon(0)}</div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{event.title}</h2>
+              <p className="text-gray-600">Hosted by @{event.host_username || 'Unknown'}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="p-6 space-y-6">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <>
+              {/* Event Details */}
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <Calendar className="w-5 h-5 text-gray-500 mt-1" />
+                  <div>
+                    <p className="font-semibold text-gray-900">{dateTime.date}</p>
+                    <p className="text-gray-600">{dateTime.time}</p>
+                  </div>
+                </div>
+
+                {event.location && (
+                  <div className="flex items-start space-x-3">
+                    <MapPin className="w-5 h-5 text-gray-500 mt-1" />
+                    <div>
+                      <p className="font-semibold text-gray-900">Location</p>
+                      <p className="text-gray-600">{event.location}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-start space-x-3">
+                  <Users className="w-5 h-5 text-gray-500 mt-1" />
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {totalAttendees} {totalAttendees === 1 ? 'person' : 'people'} attending
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Event Description */}
+              {event.description && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">About this event</h3>
+                  <p className="text-gray-700 leading-relaxed">{event.description}</p>
+                </div>
+              )}
+
+              {/* Friends Attending */}
+              {attendingFriends.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Friends attending ({attendingFriends.length})
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    {attendingFriends.slice(0, 8).map((friend) => (
+                      <div key={friend._id} className="flex items-center space-x-2 bg-gray-50 rounded-full pr-3 py-1">
+                        <img
+                          src={getProfilePictureUrl(friend.profile_picture)}
+                          alt={friend.username}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                        <span className="text-sm font-medium text-gray-900">
+                          {friend.full_name || friend.username}
+                        </span>
+                      </div>
+                    ))}
+                    {attendingFriends.length > 8 && (
+                      <div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
+                        <span className="text-xs font-medium text-gray-600">
+                          +{attendingFriends.length - 8}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={toggleAttendance}
+                  className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors ${
+                    isAttending
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <UserPlus className="w-5 h-5" />
+                  <span>{isAttending ? 'Attending' : 'Join Event'}</span>
+                </button>
+
+                <button
+                  onClick={toggleLike}
+                  className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors ${
+                    isLiked
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                  <span>{event.likes_count || 0}</span>
+                </button>
+
+                <button className="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
+                  <Share2 className="w-5 h-5" />
+                  <span>Share</span>
+                </button>
+              </div>
+
+              {/* Event Stats */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{totalAttendees}</p>
+                    <p className="text-sm text-gray-600">Attending</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{event.likes_count || 0}</p>
+                    <p className="text-sm text-gray-600">Likes</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{attendingFriends.length}</p>
+                    <p className="text-sm text-gray-600">Friends</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+  );
+};
+
+export default EventModal;

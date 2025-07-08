@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import EventModal from './EventModal'; // Import your EventModal component
 
 function EventItem() {
     const [events, setEvents] = useState([]);
@@ -7,12 +8,13 @@ function EventItem() {
     const [error, setError] = useState('');
     const [currentUser, setCurrentUser] = useState(null);
     const [deletingEvent, setDeletingEvent] = useState(null);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Get current user info
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            // Decode token to get user info (you might want to make an API call instead)
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 setCurrentUser(payload);
@@ -65,11 +67,9 @@ function EventItem() {
             return events;
         }
         
-        // Calculate the window of visible events
         let startIndex = Math.max(0, currentIndex - 1);
         let endIndex = Math.min(totalEvents, startIndex + maxVisible);
         
-        // Adjust start index if we're near the end
         if (endIndex - startIndex < maxVisible) {
             startIndex = Math.max(0, endIndex - maxVisible);
         }
@@ -116,11 +116,14 @@ function EventItem() {
             });
 
             if (response.ok) {
-                // Remove the event from the local state
                 setEvents(prevEvents => prevEvents.filter(event => event._id !== eventId));
-                // Adjust current index if necessary
                 if (currentIndex > 0 && currentIndex >= events.length - 3) {
                     setCurrentIndex(Math.max(0, currentIndex - 1));
+                }
+                // Close modal if the deleted event was selected
+                if (selectedEvent && selectedEvent._id === eventId) {
+                    setIsModalOpen(false);
+                    setSelectedEvent(null);
                 }
             } else {
                 const data = await response.json();
@@ -131,6 +134,24 @@ function EventItem() {
         } finally {
             setDeletingEvent(null);
         }
+    };
+
+    const handleEventClick = (event, isExpanded) => {
+        if (isExpanded) {
+            // Open modal for expanded events
+            setSelectedEvent(event);
+            setIsModalOpen(true);
+        } else {
+            // Center the event for compressed events
+            const originalIndex = events.findIndex(e => e._id === event._id);
+            const newIndex = Math.max(0, Math.min(originalIndex - 1, events.length - 2));
+            setCurrentIndex(newIndex);
+        }
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedEvent(null);
     };
 
     if (loading) {
@@ -158,251 +179,250 @@ function EventItem() {
     }
 
     return (
-        <div className="relative w-full p-4">
-            {/* Navigation Arrows */}
-            {events.length > 2 && (
-                <>
-                    <button
-                        onClick={prevSlide}
-                        disabled={currentIndex === 0}
-                        className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
-                            currentIndex === 0 
-                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                                : 'bg-gray-800 hover:bg-gray-700 text-white hover:scale-110'
-                        }`}
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
-                    
-                    <button
-                        onClick={nextSlide}
-                        disabled={currentIndex >= events.length - 2}
-                        className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
-                            currentIndex >= events.length - 2 
-                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                                : 'bg-gray-800 hover:bg-gray-700 text-white hover:scale-110'
-                        }`}
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                </>
-            )}
+        <>
+            <div className="relative w-full p-4">
+                {/* Navigation Arrows */}
+                {events.length > 2 && (
+                    <>
+                        <button
+                            onClick={prevSlide}
+                            disabled={currentIndex === 0}
+                            className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
+                                currentIndex === 0 
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-gray-800 hover:bg-gray-700 text-white hover:scale-110'
+                            }`}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        
+                        <button
+                            onClick={nextSlide}
+                            disabled={currentIndex >= events.length - 2}
+                            className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
+                                currentIndex >= events.length - 2 
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-gray-800 hover:bg-gray-700 text-white hover:scale-110'
+                            }`}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </>
+                )}
 
-            {/* Events Container */}
-            <div className="overflow-hidden mx-12">
-                <div className="flex gap-2 transition-all duration-500 ease-in-out w-full">
-                    {getVisibleEvents().map((event, visibleIndex) => {
-                        // Find the original index in the full events array
-                        const originalIndex = events.findIndex(e => e._id === event._id);
-                        
-                        // Check if this event is one of the two main expanded ones
-                        const isExpanded = originalIndex >= currentIndex && originalIndex < currentIndex + 2;
-                        
-                        return (
-                            <div
-                                key={event._id}
-                                className={`transition-all duration-500 ease-in-out cursor-pointer ${
-                                    isExpanded 
-                                        ? 'flex-1 min-w-0' 
-                                        : 'w-16 flex-shrink-0'
-                                }`}
-                                onClick={() => {
-                                    // If clicking on a compressed event, center it
-                                    if (!isExpanded) {
-                                        const newIndex = Math.max(0, Math.min(originalIndex - 1, events.length - 2));
-                                        setCurrentIndex(newIndex);
-                                    }
-                                }}
-                            >
-                                <div 
-                                    className={`rounded-2xl p-4 h-80 flex flex-col justify-between transition-all duration-500 hover:shadow-lg relative ${
-                                        isExpanded ? 'transform hover:scale-101' : 'items-center justify-center'
+                {/* Events Container */}
+                <div className="overflow-hidden mx-12">
+                    <div className="flex gap-2 transition-all duration-500 ease-in-out w-full">
+                        {getVisibleEvents().map((event, visibleIndex) => {
+                            const originalIndex = events.findIndex(e => e._id === event._id);
+                            const isExpanded = originalIndex >= currentIndex && originalIndex < currentIndex + 2;
+                            
+                            return (
+                                <div
+                                    key={event._id}
+                                    className={`transition-all duration-500 ease-in-out cursor-pointer ${
+                                        isExpanded 
+                                            ? 'flex-1 min-w-0' 
+                                            : 'w-16 flex-shrink-0'
                                     }`}
-                                    style={{ 
-                                        backgroundColor: '#e8e2f0',
-                                        background: `linear-gradient(135deg, ${
-                                            originalIndex % 4 === 0 ? '#e8e2f0' : 
-                                            originalIndex % 4 === 1 ? '#f0e8e2' : 
-                                            originalIndex % 4 === 2 ? '#e2f0e8' : 
-                                            '#e2e8f0'
-                                        }, ${
-                                            originalIndex % 4 === 0 ? '#d1c4e0' : 
-                                            originalIndex % 4 === 1 ? '#e0d1c4' : 
-                                            originalIndex % 4 === 2 ? '#c4e0d1' : 
-                                            '#c4d1e0'
-                                        })`
-                                    }}
+                                    onClick={() => handleEventClick(event, isExpanded)}
                                 >
-                                    {isExpanded ? (
-                                        // Full expanded view
-                                        <>
-                                            {/* Delete Button for Event Owner */}
-                                            {currentUser && (
-                                                <div className="absolute top-2 right-2 z-10">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            console.log('Delete clicked for event:', event._id);
-                                                            console.log('Current user:', currentUser);
-                                                            console.log('Event user_id:', event.user_id);
-                                                            handleDeleteEvent(event._id);
-                                                        }}
-                                                        disabled={deletingEvent === event._id}
-                                                        className="bg-gray-200 hover:bg-red-500 disabled:bg-gray-100 text-gray-700 hover:text-white p-2 rounded-full transition-colors duration-200 shadow-lg"
-                                                        title="Delete Event"
-                                                    >
-                                                        {deletingEvent === event._id ? (
-                                                            <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                            </svg>
-                                                        ) : (
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {/* Event Icon */}
-                                            <div className="flex justify-center mb-4">
-                                                <div className="text-6xl">
-                                                    {getEventIcon(originalIndex)}
-                                                </div>
-                                            </div>
-
-                                            {/* Event Content */}
-                                            <div className="flex-1 flex flex-col justify-center text-center">
-                                                <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                                                    {event.title}
-                                                </h3>
-                                                <p className="text-gray-600 mb-4 line-clamp-3 text-sm">
-                                                    {event.description}
-                                                </p>
-                                            </div>
-
-                                            {/* Event Details */}
-                                            <div className="space-y-2">
-                                                <div className="flex justify-center items-center text-gray-700">
-                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium">
-                                                        {formatDate(event.event_datetime)}
-                                                    </span>
-                                                </div>
-                                                
-                                                <div className="flex justify-center items-center text-gray-700">
-                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium">
-                                                        {formatTime(event.event_datetime)}
-                                                    </span>
-                                                </div>
-
-                                                {event.location && (
-                                                    <div className="flex justify-center items-center text-gray-700">
-                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                        <span className="text-sm font-medium truncate">
-                                                            {event.location}
-                                                        </span>
+                                    <div 
+                                        className={`rounded-2xl p-4 h-80 flex flex-col justify-between transition-all duration-500 hover:shadow-lg relative ${
+                                            isExpanded ? 'transform hover:scale-101' : 'items-center justify-center'
+                                        }`}
+                                        style={{ 
+                                            backgroundColor: '#e8e2f0',
+                                            background: `linear-gradient(135deg, ${
+                                                originalIndex % 4 === 0 ? '#e8e2f0' : 
+                                                originalIndex % 4 === 1 ? '#f0e8e2' : 
+                                                originalIndex % 4 === 2 ? '#e2f0e8' : 
+                                                '#e2e8f0'
+                                            }, ${
+                                                originalIndex % 4 === 0 ? '#d1c4e0' : 
+                                                originalIndex % 4 === 1 ? '#e0d1c4' : 
+                                                originalIndex % 4 === 2 ? '#c4e0d1' : 
+                                                '#c4d1e0'
+                                            })`
+                                        }}
+                                    >
+                                        {isExpanded ? (
+                                            // Full expanded view
+                                            <>
+                                                {/* Delete Button for Event Owner */}
+                                                {currentUser && (
+                                                    <div className="absolute top-2 right-2 z-10">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteEvent(event._id);
+                                                            }}
+                                                            disabled={deletingEvent === event._id}
+                                                            className="bg-gray-200 hover:bg-red-500 disabled:bg-gray-100 text-gray-700 hover:text-white p-2 rounded-full transition-colors duration-200 shadow-lg"
+                                                            title="Delete Event"
+                                                        >
+                                                            {deletingEvent === event._id ? (
+                                                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                            )}
+                                                        </button>
                                                     </div>
                                                 )}
 
-                                                <div className="flex justify-center items-center text-gray-700">
-                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium">
-                                                        {event.attendees_count} attending
-                                                    </span>
+                                                {/* Event Icon */}
+                                                <div className="flex justify-center mb-4">
+                                                    <div className="text-6xl">
+                                                        {getEventIcon(originalIndex)}
+                                                    </div>
+                                                </div>
+
+                                                {/* Event Content */}
+                                                <div className="flex-1 flex flex-col justify-center text-center">
+                                                    <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                                                        {event.title}
+                                                    </h3>
+                                                    <p className="text-gray-600 mb-4 line-clamp-3 text-sm">
+                                                        {event.description}
+                                                    </p>
+                                                </div>
+
+                                                {/* Event Details */}
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-center items-center text-gray-700">
+                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        <span className="text-sm font-medium">
+                                                            {formatDate(event.event_datetime)}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-center items-center text-gray-700">
+                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span className="text-sm font-medium">
+                                                            {formatTime(event.event_datetime)}
+                                                        </span>
+                                                    </div>
+
+                                                    {event.location && (
+                                                        <div className="flex justify-center items-center text-gray-700">
+                                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            </svg>
+                                                            <span className="text-sm font-medium truncate">
+                                                                {event.location}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex justify-center items-center text-gray-700">
+                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                                        </svg>
+                                                        <span className="text-sm font-medium">
+                                                            {event.attendees_count} attending
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Click to view more indicator */}
+                                                <div className="flex justify-center mt-4">
+                                                    <div className="bg-white bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded-full text-sm transition-all duration-200">
+                                                        Click to view details
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            // Compressed view - only show icon and title vertically
+                                            <div className="flex flex-col items-center justify-center h-full text-center relative">
+                                                {/* Delete Button for Event Owner (Compressed View) */}
+                                                {currentUser && (
+                                                    <div className="absolute top-1 right-1 z-10">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteEvent(event._id);
+                                                            }}
+                                                            disabled={deletingEvent === event._id}
+                                                            className="bg-gray-200 hover:bg-red-500 disabled:bg-gray-100 text-gray-700 hover:text-white p-1 rounded-full transition-colors duration-200 shadow-sm"
+                                                            title="Delete Event"
+                                                        >
+                                                            {deletingEvent === event._id ? (
+                                                                <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                <div className="text-3xl mb-2">
+                                                    {getEventIcon(originalIndex)}
+                                                </div>
+                                                <div className="writing-mode-vertical-lr text-orientation-mixed">
+                                                    <h4 className="text-sm font-bold text-gray-800 transform rotate-90 whitespace-nowrap">
+                                                        {event.title}
+                                                    </h4>
                                                 </div>
                                             </div>
-
-                                            {/* Event Actions */}
-                                            <div className="flex justify-center space-x-2 mt-4">
-                                                <button className="flex items-center space-x-1 bg-white bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded-full transition-all duration-200">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                                    </svg>
-                                                    <span className="text-sm">{event.likes_count}</span>
-                                                </button>
-                                                <button className="bg-white bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded-full text-sm transition-all duration-200">
-                                                    Join (Not implemented)
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        // Compressed view - only show icon and title vertically
-                                        <div className="flex flex-col items-center justify-center h-full text-center relative">
-                                            {/* Delete Button for Event Owner (Compressed View) */}
-                                            {currentUser && (
-                                                <div className="absolute top-1 right-1 z-10">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            console.log('Delete clicked for event:', event._id);
-                                                            handleDeleteEvent(event._id);
-                                                        }}
-                                                        disabled={deletingEvent === event._id}
-                                                        className="bg-gray-200 hover:bg-red-500 disabled:bg-gray-100 text-gray-700 hover:text-white p-1 rounded-full transition-colors duration-200 shadow-sm"
-                                                        title="Delete Event"
-                                                    >
-                                                        {deletingEvent === event._id ? (
-                                                            <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                            </svg>
-                                                        ) : (
-                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            <div className="text-3xl mb-2">
-                                                {getEventIcon(originalIndex)}
-                                            </div>
-                                            <div className="writing-mode-vertical-lr text-orientation-mixed">
-                                                <h4 className="text-sm font-bold text-gray-800 transform rotate-90 whitespace-nowrap">
-                                                    {event.title}
-                                                </h4>
-                                            </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
+
+                {/* Dots Indicator */}
+                {events.length > 2 && (
+                    <div className="flex justify-center mt-6 space-x-2">
+                        {Array.from({ length: events.length - 1 }).map((_, index) => (
+                            <button
+                                key={index}
+                                onClick={() => setCurrentIndex(index)}
+                                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                                    currentIndex === index 
+                                        ? 'bg-gray-600 w-4' 
+                                        : 'bg-gray-400 hover:bg-gray-500'
+                                }`}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
-            {/* Dots Indicator */}
-            {events.length > 2 && (
-                <div className="flex justify-center mt-6 space-x-2">
-                    {Array.from({ length: events.length - 1 }).map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={() => setCurrentIndex(index)}
-                            className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                                currentIndex === index 
-                                    ? 'bg-gray-600 w-4' 
-                                    : 'bg-gray-400 hover:bg-gray-500'
-                            }`}
-                        />
-                    ))}
-                </div>
+            {/* Event Modal */}
+            <EventModal
+                event={selectedEvent}
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                currentUser={currentUser}
+            />
+
+            {/* Updated Dark Overlay with backdrop blur - shows background but darker */}
+            {isModalOpen && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40 transition-all duration-300"
+                    onClick={closeModal}
+                />
             )}
-        </div>
+        </>
     );
 }
 
