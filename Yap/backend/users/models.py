@@ -372,3 +372,75 @@ class Follow:
         
         following = list(db.follows.aggregate(pipeline))
         return following
+    
+    @staticmethod
+    def get_mutual_followers(user_id, limit=50):
+        """Get mutual followers (friends) for a user"""
+        db = current_app.config["DB"]
+        
+        try:
+            # MongoDB aggregation to find mutual followers
+            pipeline = [
+                # Find all users that the target user follows
+                {"$match": {"follower_id": user_id}},
+                
+                # Look up if those users also follow the target user back
+                {
+                    "$lookup": {
+                        "from": "follows",
+                        "let": {"following_user": "$following_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {
+                                        "$and": [
+                                            {"$eq": ["$follower_id", "$$following_user"]},
+                                            {"$eq": ["$following_id", user_id]}
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                        "as": "mutual_follow"
+                    }
+                },
+                
+                # Only keep relationships where the follow is mutual
+                {"$match": {"mutual_follow": {"$ne": []}}},
+                
+                # Get user information for the mutual followers
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "following_id",
+                        "foreignField": "_id",
+                        "as": "user_info"
+                    }
+                },
+                {"$unwind": "$user_info"},
+                
+                # Sort by most recent follow relationship
+                {"$sort": {"created_at": -1}},
+                
+                # Limit results
+                {"$limit": limit},
+                
+                # Project the fields we want
+                {
+                    "$project": {
+                        "_id": {"$toString": "$user_info._id"},
+                        "username": "$user_info.username",
+                        "full_name": "$user_info.full_name",
+                        "profile_picture": "$user_info.profile_picture",
+                        "is_verified": "$user_info.is_verified",
+                        "followed_at": "$created_at"
+                    }
+                }
+            ]
+            
+            friends = list(db.follows.aggregate(pipeline))
+            return friends
+            
+        except Exception as e:
+            print(f"Error getting mutual followers: {e}")
+            return []

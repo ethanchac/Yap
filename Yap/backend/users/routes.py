@@ -607,3 +607,30 @@ def get_my_enhanced_profile(current_user):
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Failed to fetch profile: {str(e)}"}), 500
+    
+@users_bp.route('/<user_id>/friends', methods=['GET'])
+@token_required
+def get_user_friends(current_user, user_id):
+    """Get mutual followers (friends) for a user"""
+    try:
+        # Handle 'me' endpoint
+        if user_id == 'me':
+            target_user_id = current_user['_id']
+        else:
+            target_user_id = user_id
+            # Check if target user exists
+            target_user = User.get_user_profile(target_user_id)
+            if not target_user:
+                return jsonify({"error": "User not found"}), 404
+        
+        friends = Follow.get_mutual_followers(target_user_id)
+        
+        return jsonify({
+            "success": True,
+            "friends": friends,
+            "count": len(friends)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching friends: {e}")
+        return jsonify({"error": "Failed to fetch friends"}), 500
