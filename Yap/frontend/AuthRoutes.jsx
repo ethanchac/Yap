@@ -9,6 +9,7 @@ import Messages from './components/pages/Messages.jsx';
 import Likes from './components/pages/Likes.jsx';
 import Profile from './components/pages/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
+import Feedback from './components/pages/Feedback.jsx';
 import CommentsPage from './components/pages/CommentsPage.jsx';
 
 const PrivateRoute = ({ children }) => {
@@ -90,6 +91,14 @@ function AuthRoutes() {
                 element={
                     <PrivateRoute>
                         <Settings />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/feedback"
+                element={
+                    <PrivateRoute>
+                        <Feedback />
                     </PrivateRoute>
                 }
             />

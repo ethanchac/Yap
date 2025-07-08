@@ -10,7 +10,8 @@ from posts.routes import posts_bp
 from comments.routes import comments_bp
 from messages.routes import messages_bp 
 from events.routes import events_bp
-from password_reset.routes import password_reset_bp 
+from password_reset.routes import password_reset_bp
+from feedback.routes import feedback_bp
 import os
 import sys
 
@@ -85,7 +86,8 @@ app.register_blueprint(posts_bp, url_prefix="/posts")
 app.register_blueprint(comments_bp, url_prefix="/comments")
 app.register_blueprint(messages_bp, url_prefix="/messages") 
 app.register_blueprint(events_bp, url_prefix='/events')
-app.register_blueprint(password_reset_bp, url_prefix="/password-reset") 
+app.register_blueprint(password_reset_bp, url_prefix="/password-reset")
+app.register_blueprint(feedback_bp, url_prefix="/api") 
 
 
 # ===== SOCKETIO EVENT HANDLERS =====

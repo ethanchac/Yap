@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Plus, Users, MessageCircle, Heart, User, Settings } from 'lucide-react';
+import { Home, Plus, Users, MessageCircle, Heart, User, Settings, MessageSquare } from 'lucide-react';
 
 function Sidebar() {
     const location = useLocation();
@@ -96,6 +96,18 @@ function Sidebar() {
                         <span>Settings</span>
                     </Link>
                 </li>
+                <li>
+                    <Link 
+                        to="/feedback" 
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-colors ${
+                            isActive('/feedback') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                        }`}
+                    >
+                        <MessageSquare className="w-5 h-5" />
+                        <span>Feedback</span>
+                    </Link>
+                </li>
+                
             </ul>
         </nav>
     );
