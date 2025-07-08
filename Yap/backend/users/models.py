@@ -15,6 +15,7 @@ def create_user_document(username, hashed_password):
         "profile_picture": "",
         "website": "",
         "location": "",
+        "program" : "",
         "created_at": datetime.now(),
         "updated_at": datetime.now()
     }
@@ -119,7 +120,7 @@ class User:
             if current_user_id and current_user_id != user_id:
                 is_following = Follow.check_following_status(current_user_id, user_id)
             
-            # Enhanced profile data with new fields
+            # Enhanced profile data with new fields including program
             profile = {
                 "_id": str(user["_id"]),
                 "username": user["username"],
@@ -129,6 +130,7 @@ class User:
                 "profile_picture": user.get("profile_picture", ""),
                 "website": user.get("website", ""),
                 "location": user.get("location", ""),
+                "program": user.get("program", ""),  # NEW: Add program field
                 "is_verified": user.get("is_verified", False),
                 "created_at": user["created_at"],
                 "updated_at": user.get("updated_at"),
@@ -173,8 +175,8 @@ class User:
         db = current_app.config["DB"]
         
         try:
-            # Define allowed fields for profile update
-            allowed_fields = ['full_name', 'bio', 'profile_picture', 'website', 'location']
+            # Define allowed fields for profile update - ADD 'program' here
+            allowed_fields = ['full_name', 'bio', 'profile_picture', 'website', 'location', 'program']
             
             # Build update document with only allowed fields
             update_doc = {}
@@ -234,7 +236,7 @@ class User:
             if current_user_id and current_user_id != user_id:
                 is_following = Follow.check_following_status(current_user_id, user_id)
             
-            # Enhanced profile data with liked posts count
+            # Enhanced profile data with liked posts count and program
             profile = {
                 "_id": str(user["_id"]),
                 "username": user["username"],
@@ -244,13 +246,14 @@ class User:
                 "profile_picture": user.get("profile_picture", ""),
                 "website": user.get("website", ""),
                 "location": user.get("location", ""),
+                "program": user.get("program", ""),  # NEW: Add program field
                 "is_verified": user.get("is_verified", False),
                 "created_at": user["created_at"],
                 "updated_at": user.get("updated_at"),
                 "posts_count": posts_count,
                 "followers_count": followers_count,
                 "following_count": following_count,
-                "liked_posts_count": liked_posts_count,  # NEW: Count of posts user has liked
+                "liked_posts_count": liked_posts_count,
                 "is_following": is_following,
                 "is_own_profile": str(current_user_id) == str(user_id) if current_user_id else False
             }
@@ -369,3 +372,75 @@ class Follow:
         
         following = list(db.follows.aggregate(pipeline))
         return following
+    
+    @staticmethod
+    def get_mutual_followers(user_id, limit=50):
+        """Get mutual followers (friends) for a user"""
+        db = current_app.config["DB"]
+        
+        try:
+            # MongoDB aggregation to find mutual followers
+            pipeline = [
+                # Find all users that the target user follows
+                {"$match": {"follower_id": user_id}},
+                
+                # Look up if those users also follow the target user back
+                {
+                    "$lookup": {
+                        "from": "follows",
+                        "let": {"following_user": "$following_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {
+                                        "$and": [
+                                            {"$eq": ["$follower_id", "$$following_user"]},
+                                            {"$eq": ["$following_id", user_id]}
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                        "as": "mutual_follow"
+                    }
+                },
+                
+                # Only keep relationships where the follow is mutual
+                {"$match": {"mutual_follow": {"$ne": []}}},
+                
+                # Get user information for the mutual followers
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "following_id",
+                        "foreignField": "_id",
+                        "as": "user_info"
+                    }
+                },
+                {"$unwind": "$user_info"},
+                
+                # Sort by most recent follow relationship
+                {"$sort": {"created_at": -1}},
+                
+                # Limit results
+                {"$limit": limit},
+                
+                # Project the fields we want
+                {
+                    "$project": {
+                        "_id": {"$toString": "$user_info._id"},
+                        "username": "$user_info.username",
+                        "full_name": "$user_info.full_name",
+                        "profile_picture": "$user_info.profile_picture",
+                        "is_verified": "$user_info.is_verified",
+                        "followed_at": "$created_at"
+                    }
+                }
+            ]
+            
+            friends = list(db.follows.aggregate(pipeline))
+            return friends
+            
+        except Exception as e:
+            print(f"Error getting mutual followers: {e}")
+            return []

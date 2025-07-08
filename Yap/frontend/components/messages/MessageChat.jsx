@@ -8,8 +8,31 @@ function MessageChat({ conversation, onNewMessage }) {
     const [socket, setSocket] = useState(null);
     const [isTyping, setIsTyping] = useState(false);
     const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const emojiPickerRef = useRef(null);
+    const inputRef = useRef(null);
+
+    // Common emojis for the picker
+    const emojis = [
+        '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
+        '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '☺️', '😚',
+        '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭',
+        '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄',
+        '😬', '🤥', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢',
+        '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸',
+        '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲',
+        '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱',
+        '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠',
+        '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻',
+        '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽',
+        '🙀', '😿', '😾', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤',
+        '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘',
+        '💝', '💟', '👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟',
+        '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚',
+        '🖐️', '✋', '🖖', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️'
+    ];
 
     const getCurrentUserIdentifier = () => {
         try {
@@ -42,21 +65,35 @@ function MessageChat({ conversation, onNewMessage }) {
         }
     };
 
-    // Function to get profile picture URL or default - ADDED
+    // Function to get profile picture URL or default
     const getProfilePictureUrl = (profilePic) => {
         if (profilePic) {
-            // If it's already a full URL (like from your upload system), use it directly
             if (profilePic.startsWith('http')) {
                 return profilePic;
             }
-            // If it's just a filename, construct the full URL
             return `http://localhost:5000/uploads/profile_pictures/${profilePic}`;
         }
-        // Default profile picture if none exists
         return `http://localhost:5000/static/default/default-avatar.png`;
     };
 
     const currentUserIdentifier = getCurrentUserIdentifier();
+
+    // Handle clicking outside emoji picker to close it
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+                setShowEmojiPicker(false);
+            }
+        };
+
+        if (showEmojiPicker) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showEmojiPicker]);
 
     useEffect(() => {
         if (!conversation || !conversation._id) {
@@ -153,6 +190,23 @@ function MessageChat({ conversation, onNewMessage }) {
             socket.emit('typing_stop', { conversation_id: conversation._id });
             setIsTyping(false);
         }, 2000);
+    };
+
+    const handleEmojiClick = (emoji) => {
+        const cursorPosition = inputRef.current?.selectionStart || newMessage.length;
+        const newText = newMessage.slice(0, cursorPosition) + emoji + newMessage.slice(cursorPosition);
+        setNewMessage(newText);
+        setShowEmojiPicker(false);
+        
+        // Focus back on input and set cursor position after emoji
+        setTimeout(() => {
+            inputRef.current?.focus();
+            inputRef.current?.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
+        }, 0);
+    };
+
+    const toggleEmojiPicker = () => {
+        setShowEmojiPicker(!showEmojiPicker);
     };
 
     const formatMessageTime = (dateString) => {
@@ -367,20 +421,45 @@ function MessageChat({ conversation, onNewMessage }) {
             {/* Message Input */}
             <div className="border-t border-gray-600 p-4">
                 <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
-                    <button 
-                        type="button"
-                        className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-600"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                            <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                    </button>
+                    {/* Emoji Button with Picker */}
+                    <div className="relative" ref={emojiPickerRef}>
+                        <button 
+                            type="button"
+                            onClick={toggleEmojiPicker}
+                            className={`text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-600 ${
+                                showEmojiPicker ? 'bg-gray-600 text-white' : ''
+                            }`}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                                <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                        </button>
+                        
+                        {/* Emoji Picker */}
+                        {showEmojiPicker && (
+                            <div className="absolute bottom-full left-0 mb-2 bg-gray-700 border border-gray-600 rounded-lg shadow-lg p-3 w-80 h-64 overflow-y-auto z-50">
+                                <div className="grid grid-cols-8 gap-2">
+                                    {emojis.map((emoji, index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            onClick={() => handleEmojiClick(emoji)}
+                                            className="text-xl hover:bg-gray-600 p-2 rounded transition-colors"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     
                     <div className="flex-1 relative">
                         <input
+                            ref={inputRef}
                             type="text"
                             value={newMessage}
                             onChange={handleTyping}

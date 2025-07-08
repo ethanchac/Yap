@@ -320,7 +320,6 @@ def get_enhanced_profile_by_username(current_user, username):
     except Exception as e:
         return jsonify({"error": "Failed to fetch user profile"}), 500
 
-# Helper function for validation
 def _validate_profile_data(profile_data):
     """Validate profile update data"""
     validation_rules = {
@@ -328,7 +327,8 @@ def _validate_profile_data(profile_data):
         'bio': {'max_length': 500},
         'website': {'max_length': 200},
         'location': {'max_length': 100},
-        'profile_picture': {'max_length': 500}
+        'profile_picture': {'max_length': 500},
+        'program': {'max_length': 200}  # NEW: Add program validation
     }
     
     for field, value in profile_data.items():
@@ -565,3 +565,72 @@ def start_conversation_with_user(current_user, user_id):
     except Exception as e:
         print(f"Error starting conversation with user: {e}")
         return jsonify({"error": "Failed to start conversation"}), 500
+@users_bp.route('/me/enhanced', methods=['GET'])
+@token_required
+def get_my_enhanced_profile(current_user):
+    """Get current user's own enhanced profile with optional posts"""
+    try:
+        include_posts = request.args.get('include_posts', 'false').lower() == 'true'
+        posts_limit = int(request.args.get('posts_limit', 6))
+        
+        print(f"Getting enhanced profile for current user: {current_user['_id']}")
+        print(f"Include posts: {include_posts}, Posts limit: {posts_limit}")
+        
+        if include_posts:
+            # Get profile with recent posts
+            profile = User.get_profile_with_recent_posts(
+                current_user['_id'], 
+                current_user['_id'],  # current_user_id for follow status (will be false for own profile)
+                posts_limit
+            )
+        else:
+            # Get enhanced profile without posts
+            profile = User.get_enhanced_user_profile(
+                current_user['_id'], 
+                current_user['_id']
+            )
+        
+        if not profile:
+            return jsonify({"error": "Profile not found"}), 404
+        
+        print(f"Profile retrieved successfully. Has recent_posts: {'recent_posts' in profile}")
+        if 'recent_posts' in profile:
+            print(f"Number of recent posts: {len(profile['recent_posts'])}")
+        
+        return jsonify({
+            "success": True,
+            "profile": profile
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching enhanced profile: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to fetch profile: {str(e)}"}), 500
+    
+@users_bp.route('/<user_id>/friends', methods=['GET'])
+@token_required
+def get_user_friends(current_user, user_id):
+    """Get mutual followers (friends) for a user"""
+    try:
+        # Handle 'me' endpoint
+        if user_id == 'me':
+            target_user_id = current_user['_id']
+        else:
+            target_user_id = user_id
+            # Check if target user exists
+            target_user = User.get_user_profile(target_user_id)
+            if not target_user:
+                return jsonify({"error": "User not found"}), 404
+        
+        friends = Follow.get_mutual_followers(target_user_id)
+        
+        return jsonify({
+            "success": True,
+            "friends": friends,
+            "count": len(friends)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching friends: {e}")
+        return jsonify({"error": "Failed to fetch friends"}), 500
