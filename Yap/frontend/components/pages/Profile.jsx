@@ -112,7 +112,8 @@ const Profile = () => {
       let url;
       
       if (isOwnProfile) {
-        url = `${API_BASE_URL}/users/me?include_posts=true&posts_limit=10`;
+        // Use the enhanced endpoint for own profile too to get posts
+        url = `${API_BASE_URL}/users/me/enhanced?include_posts=true&posts_limit=10`;
       } else {
         url = `${API_BASE_URL}/users/profile/${userId}/enhanced?include_posts=true&posts_limit=10`;
       }
@@ -125,21 +126,50 @@ const Profile = () => {
       });
       
       if (!response.ok) {
+        // If enhanced endpoint doesn't exist for own profile, fallback to regular endpoint
+        if (isOwnProfile && response.status === 404) {
+          console.log('Enhanced endpoint not found, trying regular endpoint with posts');
+          const fallbackResponse = await fetch(`${API_BASE_URL}/users/me?include_posts=true&posts_limit=10`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+          });
+          
+          if (!fallbackResponse.ok) {
+            const errorData = await fallbackResponse.json();
+            throw new Error(errorData.error || 'Failed to fetch profile');
+          }
+          
+          const fallbackData = await fallbackResponse.json();
+          setProfile(fallbackData.profile || fallbackData);
+          
+          // Set edit form for own profile
+          const profileData = fallbackData.profile || fallbackData;
+          setEditForm({
+            full_name: profileData.full_name || '',
+            bio: profileData.bio || '',
+            website: profileData.website || '',
+            location: profileData.location || '',
+            profile_picture: profileData.profile_picture || ''
+          });
+          return;
+        }
+        
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch profile');
       }
       
       const data = await response.json();
-      setProfile(data.profile);
+      setProfile(data.profile || data);
       
       // Only set edit form for own profile
       if (isOwnProfile) {
+        const profileData = data.profile || data;
         setEditForm({
-          full_name: data.profile.full_name || '',
-          bio: data.profile.bio || '',
-          website: data.profile.website || '',
-          location: data.profile.location || '',
-          profile_picture: data.profile.profile_picture || ''
+          full_name: profileData.full_name || '',
+          bio: profileData.bio || '',
+          website: profileData.website || '',
+          location: profileData.location || '',
+          profile_picture: profileData.profile_picture || ''
         });
       }
     } catch (err) {
@@ -166,7 +196,10 @@ const Profile = () => {
       }
       
       const data = await response.json();
-      setProfile(data.profile);
+      setProfile(prev => ({
+        ...prev,
+        ...data.profile
+      }));
       setIsEditing(false);
     } catch (err) {
       setError(err.message);
@@ -195,7 +228,10 @@ const Profile = () => {
       }
       
       const data = await response.json();
-      setProfile(data.profile);
+      setProfile(prev => ({
+        ...prev,
+        ...data.profile
+      }));
       setEditForm(prev => ({ ...prev, profile_picture: data.profile.profile_picture }));
     } catch (err) {
       setError(err.message);
@@ -221,7 +257,10 @@ const Profile = () => {
       }
       
       const data = await response.json();
-      setProfile(data.profile);
+      setProfile(prev => ({
+        ...prev,
+        ...data.profile
+      }));
       setEditForm(prev => ({ ...prev, profile_picture: pictureUrl }));
     } catch (err) {
       setError(err.message);
@@ -425,9 +464,9 @@ const Profile = () => {
 
                 {/* Stats */}
                 <div className="flex space-x-6 mb-4">
-                  <span className="text-white"><strong>{profile.posts_count}</strong> <span className="text-gray-400">posts</span></span>
-                  <span className="text-white"><strong>{profile.followers_count}</strong> <span className="text-gray-400">followers</span></span>
-                  <span className="text-white"><strong>{profile.following_count}</strong> <span className="text-gray-400">following</span></span>
+                  <span className="text-white"><strong>{profile.posts_count || 0}</strong> <span className="text-gray-400">posts</span></span>
+                  <span className="text-white"><strong>{profile.followers_count || 0}</strong> <span className="text-gray-400">followers</span></span>
+                  <span className="text-white"><strong>{profile.following_count || 0}</strong> <span className="text-gray-400">following</span></span>
                   {profile.liked_posts_count !== undefined && (
                     <span className="text-white"><strong>{profile.liked_posts_count}</strong> <span className="text-gray-400">likes</span></span>
                   )}
@@ -551,7 +590,9 @@ const Profile = () => {
           {/* Recent Posts */}
           {profile.recent_posts && profile.recent_posts.length > 0 && (
             <div>
-              <h3 className="text-white text-xl font-bold mb-4">Recent Posts ({profile.recent_posts.length})</h3>
+              <h3 className="text-white text-xl font-bold mb-4">
+                Recent Posts ({profile.recent_posts.length})
+              </h3>
               <div className="space-y-4">
                 {profile.recent_posts.map((post) => (
                   <PostItem key={post._id} post={post} />
@@ -561,7 +602,7 @@ const Profile = () => {
           )}
           
           {/* No posts message */}
-          {profile.recent_posts && profile.recent_posts.length === 0 && (
+          {(!profile.recent_posts || profile.recent_posts.length === 0) && (
             <div className="text-center py-12">
               <div className="rounded-lg p-8" style={{backgroundColor: '#1f2937'}}>
                 <p className="text-gray-400">
