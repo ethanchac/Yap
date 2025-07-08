@@ -1,9 +1,10 @@
 import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
+import Program from '../profile/Program';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3 } from 'lucide-react';
+import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap } from 'lucide-react';
 
 const Profile = () => {
   const { userId } = useParams(); // Get userId from URL
@@ -18,7 +19,8 @@ const Profile = () => {
     bio: '',
     website: '',
     location: '',
-    profile_picture: ''
+    profile_picture: '',
+    program: ''
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
@@ -149,7 +151,8 @@ const Profile = () => {
             bio: profileData.bio || '',
             website: profileData.website || '',
             location: profileData.location || '',
-            profile_picture: profileData.profile_picture || ''
+            profile_picture: profileData.profile_picture || '',
+            program: profileData.program || ''
           });
           return;
         }
@@ -169,7 +172,8 @@ const Profile = () => {
           bio: profileData.bio || '',
           website: profileData.website || '',
           location: profileData.location || '',
-          profile_picture: profileData.profile_picture || ''
+          profile_picture: profileData.profile_picture || '',
+          program: profileData.program || ''
         });
       }
     } catch (err) {
@@ -316,7 +320,8 @@ const Profile = () => {
       bio: profile.bio || '',
       website: profile.website || '',
       location: profile.location || '',
-      profile_picture: profile.profile_picture || ''
+      profile_picture: profile.profile_picture || '',
+      program: profile.program || ''
     });
   };
 
@@ -478,6 +483,12 @@ const Profile = () => {
                     {profile.bio && <p className="text-white">{profile.bio}</p>}
                     
                     <div className="flex flex-wrap gap-4 text-gray-400 text-sm">
+                      {profile.program && (
+                        <div className="flex items-center space-x-1">
+                          <GraduationCap className="w-4 h-4" />
+                          <span>{profile.program}</span>
+                        </div>
+                      )}
                       {profile.location && (
                         <div className="flex items-center space-x-1">
                           <MapPin className="w-4 h-4" />
@@ -520,6 +531,12 @@ const Profile = () => {
                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400 h-20 resize-none"
                       />
                     </div>
+
+                    {/* Program Selection */}
+                    <Program 
+                      value={editForm.program}
+                      onChange={(value) => handleInputChange('program', value)}
+                    />
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>

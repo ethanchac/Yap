@@ -15,6 +15,7 @@ def create_user_document(username, hashed_password):
         "profile_picture": "",
         "website": "",
         "location": "",
+        "program" : "",
         "created_at": datetime.now(),
         "updated_at": datetime.now()
     }
@@ -119,7 +120,7 @@ class User:
             if current_user_id and current_user_id != user_id:
                 is_following = Follow.check_following_status(current_user_id, user_id)
             
-            # Enhanced profile data with new fields
+            # Enhanced profile data with new fields including program
             profile = {
                 "_id": str(user["_id"]),
                 "username": user["username"],
@@ -129,6 +130,7 @@ class User:
                 "profile_picture": user.get("profile_picture", ""),
                 "website": user.get("website", ""),
                 "location": user.get("location", ""),
+                "program": user.get("program", ""),  # NEW: Add program field
                 "is_verified": user.get("is_verified", False),
                 "created_at": user["created_at"],
                 "updated_at": user.get("updated_at"),
@@ -173,8 +175,8 @@ class User:
         db = current_app.config["DB"]
         
         try:
-            # Define allowed fields for profile update
-            allowed_fields = ['full_name', 'bio', 'profile_picture', 'website', 'location']
+            # Define allowed fields for profile update - ADD 'program' here
+            allowed_fields = ['full_name', 'bio', 'profile_picture', 'website', 'location', 'program']
             
             # Build update document with only allowed fields
             update_doc = {}
@@ -234,7 +236,7 @@ class User:
             if current_user_id and current_user_id != user_id:
                 is_following = Follow.check_following_status(current_user_id, user_id)
             
-            # Enhanced profile data with liked posts count
+            # Enhanced profile data with liked posts count and program
             profile = {
                 "_id": str(user["_id"]),
                 "username": user["username"],
@@ -244,13 +246,14 @@ class User:
                 "profile_picture": user.get("profile_picture", ""),
                 "website": user.get("website", ""),
                 "location": user.get("location", ""),
+                "program": user.get("program", ""),  # NEW: Add program field
                 "is_verified": user.get("is_verified", False),
                 "created_at": user["created_at"],
                 "updated_at": user.get("updated_at"),
                 "posts_count": posts_count,
                 "followers_count": followers_count,
                 "following_count": following_count,
-                "liked_posts_count": liked_posts_count,  # NEW: Count of posts user has liked
+                "liked_posts_count": liked_posts_count,
                 "is_following": is_following,
                 "is_own_profile": str(current_user_id) == str(user_id) if current_user_id else False
             }

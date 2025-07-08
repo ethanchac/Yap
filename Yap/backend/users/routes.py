@@ -320,7 +320,6 @@ def get_enhanced_profile_by_username(current_user, username):
     except Exception as e:
         return jsonify({"error": "Failed to fetch user profile"}), 500
 
-# Helper function for validation
 def _validate_profile_data(profile_data):
     """Validate profile update data"""
     validation_rules = {
@@ -328,7 +327,8 @@ def _validate_profile_data(profile_data):
         'bio': {'max_length': 500},
         'website': {'max_length': 200},
         'location': {'max_length': 100},
-        'profile_picture': {'max_length': 500}
+        'profile_picture': {'max_length': 500},
+        'program': {'max_length': 200}  # NEW: Add program validation
     }
     
     for field, value in profile_data.items():
