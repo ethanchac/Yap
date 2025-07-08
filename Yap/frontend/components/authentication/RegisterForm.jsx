@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, User, Mail, Lock, UserPlus, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -12,7 +13,18 @@ export default function RegisterForm() {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: Register, 2: Verify Email
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isFormFocused, setIsFormFocused] = useState(false);
+  const [animationClass, setAnimationClass] = useState("translate-y-4 opacity-0");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Entrance animation
+    setTimeout(() => {
+      setAnimationClass("translate-y-0 opacity-100");
+    }, 100);
+  }, []);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -131,59 +143,103 @@ export default function RegisterForm() {
 
   if (step === 2) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 font-bold text-xl" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <h2 className="text-white text-2xl font-bold mb-4">Verify Your Email</h2>
-            <p className="text-white text-sm font-bold mb-2">We sent a verification code to {formData.email}</p>
-            <p className="text-white text-sm font-bold">Username: {formData.username}</p>
+      <div className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-orange-500/20 to-orange-400/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-orange-600/20 to-orange-300/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+
+        <div className={`w-full max-w-md relative z-10 transform transition-all duration-700 ease-out ${animationClass}`}>
+          
+          {/* Header */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full mb-6">
+              <Mail className="w-10 h-10 text-white" />
+            </div>
+            <h2 className="text-white text-4xl font-bold mb-3 bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">
+              Verify Your Email
+            </h2>
+            <p className="text-gray-400 text-lg mb-2">We sent a verification code to</p>
+            <p className="text-orange-400 font-semibold">{formData.email}</p>
+            <p className="text-gray-500 text-sm mt-2">Username: {formData.username}</p>
           </div>
 
-          <form onSubmit={handleVerification} className="space-y-4">
-            <div className="text-left">
-              <label className="block text-white text-sm mb-2 font-bold">
-                Verification Code
-              </label>
-              <input
-                type="text"
-                placeholder="Enter verification code"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                required
-                maxLength="6"
-                className="w-full px-3 py-3 bg-transparent border-2 border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 font-bold"
-              />
-            </div>
+          {/* Form Container with Glass Effect */}
+          <div className={`bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 shadow-2xl transition-all duration-300`}>
+            <form onSubmit={handleVerification} className="space-y-6">
+              
+              {/* Verification Code Field */}
+              <div className="space-y-2">
+                <label className="block text-white text-sm font-semibold mb-2 flex items-center">
+                  <Lock className="w-4 h-4 mr-2 text-orange-400" />
+                  Verification Code
+                </label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    required
+                    maxLength="6"
+                    className="w-full px-4 py-4 bg-white/10 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300 group-hover:border-gray-500 text-center text-2xl tracking-widest"
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                </div>
+              </div>
 
-            <div className="pt-4 text-center space-y-3">
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full px-8 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 text-white rounded font-bold"
-              >
-                {loading ? "Verifying..." : "Verify Email"}
-              </button>
+              {/* Action Buttons */}
+              <div className="pt-4 space-y-3">
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-orange-500/25 disabled:scale-100 disabled:shadow-none flex items-center justify-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Verify Email</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
 
-              <button 
-                type="button" 
-                onClick={resendVerification} 
-                disabled={loading}
-                className="w-full px-8 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white rounded font-bold"
-              >
-                Resend Code
-              </button>
+                <button 
+                  type="button" 
+                  onClick={resendVerification} 
+                  disabled={loading}
+                  className="w-full py-3 bg-white/10 hover:bg-white/20 disabled:bg-white/5 text-white rounded-xl font-semibold transition-all duration-300 border border-gray-600 hover:border-gray-500"
+                >
+                  Resend Code
+                </button>
 
-              <button 
-                type="button" 
-                onClick={() => setStep(1)}
-                className="w-full px-8 py-2 bg-transparent border-2 border-gray-600 hover:border-gray-400 text-white rounded font-bold"
-              >
-                Back to Registration
-              </button>
-            </div>
+                <button 
+                  type="button" 
+                  onClick={() => setStep(1)}
+                  className="w-full py-3 bg-transparent border-2 border-gray-600 hover:border-gray-400 text-white rounded-xl font-semibold transition-all duration-300"
+                >
+                  Back to Registration
+                </button>
+              </div>
 
-            {msg && <p className={`text-center text-sm mt-4 font-bold ${msg.includes('success') ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
-          </form>
+              {/* Success/Error Messages */}
+              {msg && (
+                <div className={`text-center text-sm mt-4 p-3 rounded-lg transition-all duration-300 ${
+                  msg.includes('success') || msg.includes('sent') || msg.includes('verified')
+                    ? 'text-green-400 bg-green-500/20 border border-green-500/30' 
+                    : 'text-red-400 bg-red-500/20 border border-red-500/30'
+                }`}>
+                  {msg}
+                </div>
+              )}
+            </form>
+          </div>
         </div>
       </div>
     );

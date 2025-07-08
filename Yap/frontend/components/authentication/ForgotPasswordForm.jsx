@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, Shield, Key } from 'lucide-react';
 
 export default function ForgotPasswordForm() {
   const [step, setStep] = useState(1); // 1: email, 2: code, 3: new password
@@ -13,7 +14,16 @@ export default function ForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [canResend, setCanResend] = useState(true);
   const [countdown, setCountdown] = useState(0);
+  const [isFormFocused, setIsFormFocused] = useState(false);
+  const [animationClass, setAnimationClass] = useState("translate-y-4 opacity-0");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Entrance animation
+    setTimeout(() => {
+      setAnimationClass("translate-y-0 opacity-100");
+    }, 100);
+  }, []);
 
   const handleInputChange = (e) => {
     setFormData({
