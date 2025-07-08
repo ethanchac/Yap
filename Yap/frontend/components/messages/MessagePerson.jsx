@@ -1,5 +1,3 @@
-import React from 'react';
-
 function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
     const { other_participant, last_message, last_message_at } = conversation || {};
     
