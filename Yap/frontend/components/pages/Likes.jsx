@@ -91,7 +91,7 @@ function Likes() {
 
                     {error && (
                         <div className="text-center py-12">
-                            <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+                            <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
                                 <p className="text-red-400 mb-4">Error: {error}</p>
                                 <button 
                                     onClick={() => fetchLikedPosts()}
@@ -105,7 +105,7 @@ function Likes() {
 
                     {!loading && !error && likedPosts.length === 0 && (
                         <div className="text-center py-12">
-                            <div className="rounded-lg p-8" style={{backgroundColor: '#1f2937'}}>
+                            <div className="rounded-lg p-8" style={{backgroundColor: '#171717'}}>
                                 <h2 className="text-white text-xl font-bold mb-2">No liked posts yet</h2>
                                 <p className="text-gray-400">Posts you like will appear here</p>
                             </div>

@@ -106,14 +106,14 @@ function Users() {
 
                     {/* Error state */}
                     {error && (
-                        <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#1f2937'}}>
+                        <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#171717'}}>
                             <p className="text-red-400">{error}</p>
                         </div>
                     )}
 
                     {/* Minimum character message */}
                     {searchQuery.length > 0 && searchQuery.length < 2 && (
-                        <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#1f2937'}}>
+                        <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#171717'}}>
                             <p className="text-gray-400">Type at least 2 characters to search</p>
                         </div>
                     )}
@@ -121,7 +121,7 @@ function Users() {
                     {/* No results */}
                     {users.length === 0 && searchQuery.length >= 2 && !loading && (
                         <div className="text-center py-8">
-                            <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                            <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
                                 <User className="w-12 h-12 text-gray-500 mx-auto mb-3" />
                                 <p className="text-gray-400">No users found for "{searchQuery}"</p>
                             </div>
@@ -138,7 +138,7 @@ function Users() {
                                         key={user._id}
                                         onClick={() => handleUserClick(user._id)}
                                         className="rounded-lg p-4 cursor-pointer hover:opacity-80 transition-opacity"
-                                        style={{backgroundColor: '#1f2937'}}
+                                        style={{backgroundColor: '#171717'}}
                                     >
                                         <div className="flex items-center space-x-4">
                                             {/* Profile Picture */}

@@ -210,7 +210,7 @@ function PostItem({ post }) {
     };
 
     return (
-        <div className="rounded-lg p-6 font-bold mb-4" style={{fontFamily: 'Albert Sans', backgroundColor: '#1f2937'}}>
+        <div className="rounded-lg p-6 font-bold mb-4" style={{fontFamily: 'Albert Sans', backgroundColor: '#171717'}}>
             <div className="flex items-start space-x-3">
                 {/* Profile Picture */}
                 <img 

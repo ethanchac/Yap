@@ -348,7 +348,7 @@ const Profile = () => {
       <div className="ml-64 p-6">
         <div className="max-w-4xl mx-auto">
           {/* Profile Header */}
-          <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+          <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
             <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-6">
               {/* Profile Picture */}
               <div className="relative">
@@ -569,7 +569,7 @@ const Profile = () => {
           {/* No posts message */}
           {(!profile.recent_posts || profile.recent_posts.length === 0) && (
             <div className="text-center py-12">
-              <div className="rounded-lg p-8" style={{backgroundColor: '#1f2937'}}>
+              <div className="rounded-lg p-8" style={{backgroundColor: '#171717'}}>
                 <p className="text-gray-400">
                   {isOwnProfile ? "You haven't posted anything yet." : `${profile.username} hasn't posted anything yet.`}
                 </p>

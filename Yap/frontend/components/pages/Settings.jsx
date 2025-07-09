@@ -33,7 +33,7 @@ function Settings() {
             <div className="ml-64 p-6">
                 <div className="max-w-4xl mx-auto">
                     {/* Settings Header */}
-                    <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+                    <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
                         <div className="flex items-center space-x-3 mb-6">
                             <SettingsIcon className="w-8 h-8 text-white" />
                             <h1 className="text-white text-3xl font-bold">Settings</h1>
@@ -47,7 +47,7 @@ function Settings() {
                     {/* Settings Sections */}
                     <div className="space-y-6">
                         {/* Account Section */}
-                        <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                        <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
                             <h2 className="text-white text-xl font-bold mb-4 flex items-center space-x-2">
                                 <Shield className="w-5 h-5" />
                                 <span>Account (not implemented)</span>
@@ -73,7 +73,7 @@ function Settings() {
                         </div>
 
                         {/* Notifications Section */}
-                        <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                        <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
                             <h2 className="text-white text-xl font-bold mb-4 flex items-center space-x-2">
                                 <Bell className="w-5 h-5" />
                                 <span>Notifications (not implemented)</span>
@@ -105,7 +105,7 @@ function Settings() {
                         </div>
 
                         {/* Appearance Section */}
-                        <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                        <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
                             <h2 className="text-white text-xl font-bold mb-4 flex items-center space-x-2">
                                 <Palette className="w-5 h-5" />
                                 <span>Appearance (not implemented)</span>
@@ -127,7 +127,7 @@ function Settings() {
 
                        
                         {/* Logout Section */}
-                        <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                        <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
                             <h2 className="text-white text-xl font-bold mb-4">Account Actions</h2>
                             
                             <div className="space-y-4">

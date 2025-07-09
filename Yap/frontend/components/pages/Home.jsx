@@ -106,7 +106,7 @@ function Home() {
                             View All Events (not implemented yet)
                         </button>
                     </div>
-                    <div className="rounded-lg p-4" style={{backgroundColor: '#1f2937'}}>
+                    <div className="rounded-lg p-4" style={{backgroundColor: '#171717'}}>
                         <EventItem />
                     </div>
                 </div>
