@@ -166,14 +166,6 @@ function Messages() {
                                     </button>
                                 </div>
                                 
-                                {/* DEBUG INFO */}
-                                <div className="text-xs text-gray-500 space-y-1">
-                                    <p className="font-bold">Debug Info:</p>
-                                    <p>Loading: {loading.toString()}</p>
-                                    <p>Conversations: {conversations.length}</p>
-                                    <p>URL Param: {searchParams.get('conversation') || 'none'}</p>
-                                    <p>Selected: {selectedConversation ? 'yes' : 'no'}</p>
-                                </div>
                             </div>
                         )}
                     </div>
