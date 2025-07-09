@@ -3,7 +3,16 @@ import MessagePerson from './MessagePerson';
 function MessagesList({ conversations, selectedConversation, onConversationSelect, loading }) {
     
     const formatTime = (dateString) => {
+        // Ensure we're parsing the UTC timestamp correctly
+        // If the server sends ISO string with 'Z' suffix, Date constructor handles it properly
+        // If not, we need to be explicit about UTC
         const date = new Date(dateString);
+        
+        // Verify the date is valid
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+        
         const now = new Date();
         const diff = now - date;
         const minutes = Math.floor(diff / 60000);
@@ -16,6 +25,15 @@ function MessagesList({ conversations, selectedConversation, onConversationSelec
         if (days < 7) return `${days}d`;
         return date.toLocaleDateString();
     };
+
+    // Sort conversations by last_message_at to ensure proper ordering
+    const sortedConversations = conversations ? [...conversations].sort((a, b) => {
+        const timeA = a.last_message_at || a.created_at;
+        const timeB = b.last_message_at || b.created_at;
+        
+        // Parse dates and sort in descending order (newest first)
+        return new Date(timeB) - new Date(timeA);
+    }) : [];
 
     if (loading) {
         return (
@@ -51,7 +69,7 @@ function MessagesList({ conversations, selectedConversation, onConversationSelec
             </div>
             
             <div className="flex-1 overflow-y-auto">
-                {conversations.map((conversation) => (
+                {sortedConversations.map((conversation) => (
                     <MessagePerson
                         key={conversation._id}
                         conversation={conversation}

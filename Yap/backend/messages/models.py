@@ -118,6 +118,11 @@ class Conversation:
             print(f"Error getting user conversations: {e}")
             return []
 
+from datetime import datetime, timezone
+from bson import ObjectId
+from flask import current_app
+import json
+
 class Message:
     @staticmethod
     def create_message(conversation_id, sender_id, content):
@@ -125,7 +130,7 @@ class Message:
         db = current_app.config["DB"]
         
         try:
-            # IMPORTANT: Use UTC timestamp to ensure consistent ordering
+            # CRITICAL: Always use UTC timestamp with explicit timezone
             utc_now = datetime.now(timezone.utc)
             
             # Create message document
@@ -133,7 +138,7 @@ class Message:
                 "conversation_id": ObjectId(conversation_id),
                 "sender_id": sender_id,
                 "content": content,
-                "created_at": utc_now,  # Always UTC
+                "created_at": utc_now,
                 "read_by": [sender_id]
             }
             
@@ -144,7 +149,7 @@ class Message:
                 {"_id": ObjectId(conversation_id)},
                 {
                     "$set": {
-                        "last_message_at": utc_now,  # Also UTC
+                        "last_message_at": utc_now,
                         "last_message": result.inserted_id
                     }
                 }
@@ -155,8 +160,8 @@ class Message:
             if sender:
                 sender["_id"] = str(sender["_id"])
             
-            # Convert UTC datetime to ISO string
-            created_at_iso = utc_now.isoformat()
+            # IMPORTANT: Ensure ISO format with 'Z' suffix for UTC
+            created_at_iso = utc_now.isoformat().replace('+00:00', 'Z')
             
             # Prepare message response
             message_response = {
@@ -184,7 +189,7 @@ class Message:
         db = current_app.config["DB"]
         
         try:
-            # Query messages and sort by created_at (UTC) for consistent ordering
+            # CRITICAL: Sort by created_at (server time) for consistent ordering
             messages = list(db.messages.find({
                 "conversation_id": ObjectId(conversation_id)
             }).sort("created_at", -1).skip(skip).limit(limit))
@@ -195,13 +200,16 @@ class Message:
                 # Get sender info
                 sender = db.users.find_one({"_id": ObjectId(msg["sender_id"])})
                 
-                # Handle both timezone-aware and naive datetime objects
+                # Normalize datetime to UTC ISO format
                 created_at = msg["created_at"]
                 if isinstance(created_at, datetime):
-                    # If it's timezone-naive, assume it's UTC
+                    # Ensure timezone awareness
                     if created_at.tzinfo is None:
                         created_at = created_at.replace(tzinfo=timezone.utc)
-                    created_at_iso = created_at.isoformat()
+                    # Convert to UTC if not already
+                    created_at_utc = created_at.astimezone(timezone.utc)
+                    # Format with 'Z' suffix
+                    created_at_iso = created_at_utc.isoformat().replace('+00:00', 'Z')
                 else:
                     created_at_iso = created_at
                 
@@ -220,7 +228,7 @@ class Message:
                 }
                 result.append(message)
             
-            # Reverse to get chronological order (oldest first)
+            # Return in chronological order (oldest first)
             return result[::-1]
             
         except Exception as e:
