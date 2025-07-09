@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import EventModal from './EventModal'; // Import your EventModal component
 
 function EventItem() {
@@ -407,8 +408,8 @@ function EventItem() {
                 )}
             </div>
 
-            {/* Event Modal with Dimmed Background */}
-            {isModalOpen && (
+            {/* Event Modal with React Portal - renders at document.body level */}
+            {isModalOpen && createPortal(
                 <div 
                     className="fixed inset-0 backdrop-blur-sm transition-all duration-300"
                     style={{ 
@@ -427,7 +428,8 @@ function EventItem() {
                         onClose={closeModal}
                         currentUser={currentUser}
                     />
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );
