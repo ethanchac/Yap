@@ -117,6 +117,98 @@ function PostItem({ post }) {
         return `http://localhost:5000/static/default/default-avatar.png`;
     };
 
+    // Function to render post images
+    const renderPostImages = () => {
+        if (!post.images || post.images.length === 0) return null;
+
+        const imageCount = post.images.length;
+
+        // Single image
+        if (imageCount === 1) {
+            return (
+                <div className="mt-3">
+                    <img 
+                        src={post.images[0]} 
+                        alt="Post image"
+                        className="w-full max-h-96 object-cover rounded-lg border border-gray-600"
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                        }}
+                    />
+                </div>
+            );
+        }
+
+        // Two images
+        if (imageCount === 2) {
+            return (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    {post.images.map((image, index) => (
+                        <img 
+                            key={index}
+                            src={image} 
+                            alt={`Post image ${index + 1}`}
+                            className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                            }}
+                        />
+                    ))}
+                </div>
+            );
+        }
+
+        // Three images - first image spans full width, other two side by side
+        if (imageCount === 3) {
+            return (
+                <div className="mt-3 space-y-2">
+                    <img 
+                        src={post.images[0]} 
+                        alt="Post image 1"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                        }}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                        {post.images.slice(1).map((image, index) => (
+                            <img 
+                                key={index + 1}
+                                src={image} 
+                                alt={`Post image ${index + 2}`}
+                                className="w-full h-32 object-cover rounded-lg border border-gray-600"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Four images - 2x2 grid
+        if (imageCount === 4) {
+            return (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    {post.images.map((image, index) => (
+                        <img 
+                            key={index}
+                            src={image} 
+                            alt={`Post image ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border border-gray-600"
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                            }}
+                        />
+                    ))}
+                </div>
+            );
+        }
+
+        return null;
+    };
+
     return (
         <div className="rounded-lg p-6 font-bold mb-4" style={{fontFamily: 'Albert Sans', backgroundColor: '#1f2937'}}>
             <div className="flex items-start space-x-3">
@@ -145,9 +237,16 @@ function PostItem({ post }) {
                         </div>
                     </div>
                     
-                    <p className="text-white mb-4 leading-relaxed">{post.content}</p>
+                    {/* Post Content */}
+                    {post.content && (
+                        <p className="text-white mb-3 leading-relaxed">{post.content}</p>
+                    )}
                     
-                    <div className="flex items-center space-x-6">
+                    {/* Post Images */}
+                    {renderPostImages()}
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-6 mt-4">
                         <button 
                             onClick={handleLike}
                             disabled={loading}

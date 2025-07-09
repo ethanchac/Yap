@@ -4,31 +4,32 @@ from flask import current_app
 
 class Post:
     @staticmethod
-    def create_post(user_id, username, content):
-        """adding the new post to database"""
+    def create_post(user_id, username, content, images=None):
+        """Create a new post with optional images"""
 
         db = current_app.config["DB"]
         
-        # created the format of the post
+        # Create the format of the post
         post_doc = {
             "user_id": user_id,
             "username": username,
             "content": content,
+            "images": images or [],  # Store image URLs
             "created_at": datetime.utcnow(),
             "likes_count": 0,
             "comments_count": 0
         }
         
-        # insert into posts collection
+        # Insert into posts collection
         result = db.posts.insert_one(post_doc)
         
-        # return the created post with its ID
+        # Return the created post with its ID
         post_doc["_id"] = str(result.inserted_id)
         return post_doc
     
     @staticmethod
     def get_all_posts(limit=50, skip=0):
-        """Get all posts with pagination and profile pictures"""
+        """Get all posts with pagination, profile pictures, and images"""
         db = current_app.config["DB"]
         
         pipeline = [
@@ -58,6 +59,7 @@ class Post:
                     "user_id": 1,
                     "username": {"$ifNull": ["$user_info.username", "$username"]},  # Fallback to original username
                     "content": 1,
+                    "images": {"$ifNull": ["$images", []]},  # Include images array
                     "created_at": 1,
                     "likes_count": 1,
                     "comments_count": 1,
@@ -74,7 +76,7 @@ class Post:
     
     @staticmethod
     def get_user_posts(user_id, limit=50, skip=0):
-        """Get posts by a specific user with profile picture - ADDED MISSING METHOD"""
+        """Get posts by a specific user with profile picture and images"""
         db = current_app.config["DB"]
         
         pipeline = [
@@ -102,6 +104,7 @@ class Post:
                     "user_id": 1,
                     "username": {"$ifNull": ["$user_info.username", "$username"]},
                     "content": 1,
+                    "images": {"$ifNull": ["$images", []]},  # Include images array
                     "created_at": 1,
                     "likes_count": 1,
                     "comments_count": 1,
@@ -118,7 +121,7 @@ class Post:
     
     @staticmethod
     def get_post_by_id(post_id):
-        """Get a single post by ID with profile picture"""
+        """Get a single post by ID with profile picture and images"""
         db = current_app.config["DB"]
         
         try:
@@ -153,6 +156,7 @@ class Post:
                             "user_id": 1,
                             "username": {"$ifNull": ["$user_info.username", "$username"]},
                             "content": 1,
+                            "images": {"$ifNull": ["$images", []]},  # Include images array
                             "created_at": 1,
                             "likes_count": 1,
                             "comments_count": 1,
@@ -196,6 +200,7 @@ class Post:
                                 "user_id": 1,
                                 "username": {"$ifNull": ["$user_info.username", "$username"]},
                                 "content": 1,
+                                "images": {"$ifNull": ["$images", []]},  # Include images array
                                 "created_at": 1,
                                 "likes_count": 1,
                                 "comments_count": 1,
@@ -224,6 +229,7 @@ class Post:
             import traceback
             traceback.print_exc()
             return None
+
     @staticmethod
     def like_post(post_id, user_id):
         """Like or unlike a post"""
@@ -305,7 +311,7 @@ class Post:
 
     @staticmethod
     def get_user_liked_posts(user_id, limit=50, skip=0):
-        """Get all posts that a user has liked with profile pictures"""
+        """Get all posts that a user has liked with profile pictures and images"""
         db = current_app.config["DB"]
         
         try:
@@ -349,6 +355,7 @@ class Post:
                         "user_id": "$post_details.user_id",
                         "username": "$user_info.username",  # Get from user_info
                         "content": "$post_details.content",
+                        "images": {"$ifNull": ["$post_details.images", []]},  # Include images
                         "created_at": "$post_details.created_at",
                         "likes_count": "$post_details.likes_count",
                         "comments_count": "$post_details.comments_count",
@@ -382,11 +389,11 @@ class Post:
 
     @staticmethod
     def get_user_liked_posts_with_like_status(user_id, current_user_id=None, limit=50, skip=0):
-        """Get user's liked posts with like status and profile pictures"""
+        """Get user's liked posts with like status, profile pictures, and images"""
         db = current_app.config["DB"]
         
         try:
-            # Get liked posts with profile pictures
+            # Get liked posts with profile pictures and images
             pipeline = [
                 # Match likes by this user for posts
                 {
@@ -441,6 +448,7 @@ class Post:
                         "user_id": "$post_details.user_id",
                         "username": {"$ifNull": ["$user_info.username", "$post_details.username"]},
                         "content": "$post_details.content",
+                        "images": {"$ifNull": ["$post_details.images", []]},  # Include images
                         "created_at": "$post_details.created_at",
                         "likes_count": "$post_details.likes_count",
                         "comments_count": "$post_details.comments_count",
