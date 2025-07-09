@@ -19,7 +19,6 @@ const Profile = () => {
     bio: '',
     website: '',
     location: '',
-    profile_picture: '',
     program: ''
   });
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -151,7 +150,6 @@ const Profile = () => {
             bio: profileData.bio || '',
             website: profileData.website || '',
             location: profileData.location || '',
-            profile_picture: profileData.profile_picture || '',
             program: profileData.program || ''
           });
           return;
@@ -172,7 +170,6 @@ const Profile = () => {
           bio: profileData.bio || '',
           website: profileData.website || '',
           location: profileData.location || '',
-          profile_picture: profileData.profile_picture || '',
           program: profileData.program || ''
         });
       }
@@ -236,38 +233,10 @@ const Profile = () => {
         ...prev,
         ...data.profile
       }));
-      setEditForm(prev => ({ ...prev, profile_picture: data.profile.profile_picture }));
     } catch (err) {
       setError(err.message);
     } finally {
       setUploadingImage(false);
-    }
-  };
-
-  // Update profile picture URL (only for own profile)
-  const updateProfilePictureUrl = async (pictureUrl) => {
-    if (!isOwnProfile) return;
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/me/picture`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ profile_picture: pictureUrl }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile picture');
-      }
-      
-      const data = await response.json();
-      setProfile(prev => ({
-        ...prev,
-        ...data.profile
-      }));
-      setEditForm(prev => ({ ...prev, profile_picture: pictureUrl }));
-    } catch (err) {
-      setError(err.message);
     }
   };
 
@@ -320,7 +289,6 @@ const Profile = () => {
       bio: profile.bio || '',
       website: profile.website || '',
       location: profile.location || '',
-      profile_picture: profile.profile_picture || '',
       program: profile.program || ''
     });
   };
@@ -560,26 +528,6 @@ const Profile = () => {
                           placeholder="City, Country"
                           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
                         />
-                      </div>
-                    </div>
-
-                    {/* Profile Picture URL */}
-                    <div>
-                      <label className="block text-white text-sm mb-1">Profile Picture URL</label>
-                      <div className="flex space-x-2">
-                        <input
-                          type="url"
-                          placeholder="Profile picture URL"
-                          value={editForm.profile_picture}
-                          onChange={(e) => handleInputChange('profile_picture', e.target.value)}
-                          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
-                        />
-                        <button 
-                          onClick={() => updateProfilePictureUrl(editForm.profile_picture)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors"
-                        >
-                          Update
-                        </button>
                       </div>
                     </div>
 
