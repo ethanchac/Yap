@@ -407,13 +407,20 @@ function EventItem() {
                 )}
             </div>
 
-            {/* Updated Dark Overlay with backdrop blur - shows background but darker */}
+            {/* Event Modal with Dimmed Background */}
             {isModalOpen && (
                 <div 
-                    className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40 transition-all duration-300"
+                    className="fixed inset-0 backdrop-blur-sm transition-all duration-300"
+                    style={{ 
+                        backgroundColor: 'rgba(18, 18, 18, 0.85)', 
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }}
                     onClick={closeModal}
                 >
-                    {/* Event Modal */}
                     <EventModal
                         event={selectedEvent}
                         isOpen={isModalOpen}

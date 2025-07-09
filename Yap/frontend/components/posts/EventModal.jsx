@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Users, Heart, Share2, UserPlus } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus } from 'lucide-react';
 
 const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [eventDetails, setEventDetails] = useState(null);
@@ -9,19 +9,15 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [attendingFriends, setAttendingFriends] = useState([]);
   const [totalAttendees, setTotalAttendees] = useState(0);
 
-  // Fetch detailed event information
   const fetchEventDetails = async () => {
     if (!event || !isOpen) return;
-    
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/events/${event._id}/details`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setEventDetails(data.event);
@@ -32,7 +28,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
       }
     } catch (error) {
       console.error('Error fetching event details:', error);
-      // Fallback to basic event data
       setEventDetails(event);
       setTotalAttendees(event.attendees_count || 0);
     } finally {
@@ -40,17 +35,13 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     }
   };
 
-  // Toggle attendance
   const toggleAttendance = async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/events/${event._id}/attend`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const data = await response.json();
         setIsAttending(data.attending);
@@ -61,17 +52,13 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     }
   };
 
-  // Toggle like
   const toggleLike = async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/events/${event._id}/like`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const data = await response.json();
         setIsLiked(data.liked);
@@ -81,31 +68,23 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     }
   };
 
-  // Get profile picture URL
   const getProfilePictureUrl = (profilePicture) => {
-    if (profilePicture && profilePicture.trim() !== '') {
-      if (profilePicture.startsWith('http')) {
-        return profilePicture;
-      }
-      return `http://localhost:5000/uploads/profile_pictures/${profilePicture}`;
+    if (profilePicture?.trim()) {
+      return profilePicture.startsWith('http')
+        ? profilePicture
+        : `http://localhost:5000/uploads/profile_pictures/${profilePicture}`;
     }
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };
 
-  // Format date and time
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     return {
-      date: date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric',
-        month: 'long', 
-        day: 'numeric' 
+      date: date.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       }),
-      time: date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
+      time: date.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true
       })
     };
   };
@@ -116,20 +95,12 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   };
 
   useEffect(() => {
-    if (isOpen && event) {
-      fetchEventDetails();
-    }
+    if (isOpen && event) fetchEventDetails();
   }, [isOpen, event]);
 
   useEffect(() => {
-    // Prevent body scroll when modal is open
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    // Cleanup
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -140,18 +111,13 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const dateTime = formatDateTime(event.event_datetime);
 
   return (
-    <div 
-      className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all duration-300 scale-100 relative z-50 mx-4"
-      onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
-      style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)'
-      }}
-    >
-        {/* Modal Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl z-10">
           <div className="flex items-center space-x-3">
             <div className="text-4xl">{getEventIcon(0)}</div>
             <div>
@@ -159,15 +125,12 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
               <p className="text-gray-600">Hosted by @{event.host_username || 'Unknown'}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
 
-        {/* Modal Content */}
+        {/* Content */}
         <div className="p-6 space-y-6">
           {loading ? (
             <div className="flex justify-center items-center py-12">
@@ -175,7 +138,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
             </div>
           ) : (
             <>
-              {/* Event Details */}
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <Calendar className="w-5 h-5 text-gray-500 mt-1" />
@@ -205,7 +167,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 </div>
               </div>
 
-              {/* Event Description */}
               {event.description && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">About this event</h3>
@@ -213,7 +174,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 </div>
               )}
 
-              {/* Friends Attending */}
               {attendingFriends.length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -243,7 +203,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="flex space-x-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={toggleAttendance}
@@ -275,7 +234,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 </button>
               </div>
 
-              {/* Event Stats */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
@@ -296,6 +254,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
           )}
         </div>
       </div>
+    </div>
   );
 };
 
