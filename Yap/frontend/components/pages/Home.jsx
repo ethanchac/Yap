@@ -3,6 +3,7 @@ import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
 import Header from '../header/Header';
 import EventItem from '../posts/EventItem';
+import HomepageActivities from '../posts/HomepageActivities';
 
 function Home() {
     const [posts, setPosts] = useState([]);
@@ -111,49 +112,60 @@ function Home() {
                     </div>
                 </div>
 
-                {/* Posts Section */}
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-white text-xl font-bold">Posts</h2>
-                    <button 
-                        onClick={refreshPosts}
-                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
-                    >
-                        Refresh
-                    </button>
+                {/* Main Content Section - Posts and Activities */}
+                <div className="flex gap-6">
+                    {/* Posts Section - 60% width */}
+                    <div className="w-3/5">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-white text-xl font-bold">Posts</h2>
+                            <button 
+                                onClick={refreshPosts}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                            >
+                                Refresh
+                            </button>
+                        </div>
+
+                        {error && (
+                            <div className="mb-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-lg">
+                                {error}
+                            </div>
+                        )}
+
+                        {posts.length === 0 ? (
+                            <div className="text-center py-12">
+                                <p className="text-gray-400">No posts yet. Be the first to create one!</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {posts.map((post) => (
+                                    <PostItem key={post._id} post={post} />
+                                ))}
+                            </div>
+                        )}
+
+                        {hasMore && !loadingMore && (
+                            <div className="text-center mt-8">
+                                <button 
+                                    onClick={loadMorePosts}
+                                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                                >
+                                    Load More Posts
+                                </button>
+                            </div>
+                        )}
+
+                        {loadingMore && (
+                            <p className="text-center text-gray-400 mt-8">Loading more posts...</p>
+                        )}
+                    </div>
+
+                    {/* Activities Section - 40% width */}
+                    <div className="w-2/5">
+                        <h2 className="text-white text-xl font-bold mb-6">Activities</h2>
+                        <HomepageActivities />
+                    </div>
                 </div>
-
-                {error && (
-                    <div className="mb-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-lg">
-                        {error}
-                    </div>
-                )}
-
-                {posts.length === 0 ? (
-                    <div className="text-center py-12">
-                        <p className="text-gray-400">No posts yet. Be the first to create one!</p>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {posts.map((post) => (
-                            <PostItem key={post._id} post={post} />
-                        ))}
-                    </div>
-                )}
-
-                {hasMore && !loadingMore && (
-                    <div className="text-center mt-8">
-                        <button 
-                            onClick={loadMorePosts}
-                            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
-                        >
-                            Load More Posts
-                        </button>
-                    </div>
-                )}
-
-                {loadingMore && (
-                    <p className="text-center text-gray-400 mt-8">Loading more posts...</p>
-                )}
             </div>
         </div>
     );
