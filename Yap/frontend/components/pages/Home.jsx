@@ -103,7 +103,7 @@ function Home() {
             <Sidebar />
             <div 
                 ref={mainContentRef}
-                className="ml-64 h-full overflow-y-auto p-6"
+                className="ml-64 h-full overflow-y-auto p-6 scrollbar-custom"
             >
                 <h1 className="text-white text-2xl font-bold mb-6">Home Feed</h1>
                 

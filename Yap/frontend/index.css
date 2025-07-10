@@ -1,1 +1,101 @@
 @import "tailwindcss";
+
+
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 0.25rem;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:active {
+  background: #9ca3af;
+}
+
+.scrollbar-custom::-webkit-scrollbar-button {
+  display: none;
+}
+
+.scrollbar-custom::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Thin version */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #6b7280 transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 0.125rem;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.scrollbar-thin::-webkit-scrollbar-button {
+  display: none;
+}
+
+.scrollbar-thin::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Orange theme version */
+.scrollbar-orange {
+  scrollbar-width: thin;
+  scrollbar-color: #f97316 transparent;
+}
+
+.scrollbar-orange::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-orange::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-orange::-webkit-scrollbar-thumb {
+  background: #f97316;
+  border-radius: 0.25rem;
+}
+
+.scrollbar-orange::-webkit-scrollbar-thumb:hover {
+  background: #fb923c;
+}
+
+.scrollbar-orange::-webkit-scrollbar-button {
+  display: none;
+}
+
+.scrollbar-orange::-webkit-scrollbar-corner {
+  background: transparent;
+}
