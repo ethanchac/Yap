@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from "../sidebar/Sidebar";
 import Header from "../header/Header";
@@ -7,6 +7,7 @@ import { LogOut, Settings as SettingsIcon, Shield, Bell, Palette, HelpCircle } f
 function Settings() {
     const navigate = useNavigate();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const mainContentRef = useRef(null);
 
     const handleLogout = async () => {
         try {
@@ -27,10 +28,13 @@ function Settings() {
     };
 
     return (
-        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Header />
             <Sidebar />
-            <div className="ml-64 p-6">
+            <div 
+                ref={mainContentRef}
+                className="ml-64 h-full overflow-y-auto p-6"
+            >
                 <div className="max-w-4xl mx-auto">
                     {/* Settings Header */}
                     <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>

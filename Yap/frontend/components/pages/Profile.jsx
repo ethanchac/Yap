@@ -23,6 +23,7 @@ const Profile = () => {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
+  const mainContentRef = useRef(null);
 
   const API_BASE_URL = 'http://localhost:5000';
   const isOwnProfile = !userId; // if no userId in URL, it's own profile
@@ -304,20 +305,20 @@ const Profile = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div className="ml-64 p-6">
+      <div className="ml-64 h-full overflow-y-auto p-6">
         <p className="text-white">Loading...</p>
       </div>
     </div>
   );
   
   if (error) return (
-    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div className="ml-64 p-6">
+      <div className="ml-64 h-full overflow-y-auto p-6">
         <div className="text-center py-12">
           <p className="text-red-400 mb-4">Error: {error}</p>
           <button 
@@ -332,20 +333,23 @@ const Profile = () => {
   );
   
   if (!profile) return (
-    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div className="ml-64 p-6">
+      <div className="ml-64 h-full overflow-y-auto p-6">
         <p className="text-white">Profile not found</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div className="ml-64 p-6">
+      <div 
+        ref={mainContentRef}
+        className="ml-64 h-full overflow-y-auto p-6"
+      >
         <div className="max-w-4xl mx-auto">
           {/* Profile Header */}
           <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>

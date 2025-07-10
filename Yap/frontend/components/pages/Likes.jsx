@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
@@ -11,6 +11,7 @@ function Likes() {
     const [hasMore, setHasMore] = useState(false);
     const [totalLiked, setTotalLiked] = useState(0);
     const [loadingMore, setLoadingMore] = useState(false);
+    const mainContentRef = useRef(null);
 
     // Get token from localStorage or your auth context
     const getToken = () => {
@@ -71,10 +72,13 @@ function Likes() {
     }, []);
 
     return (
-        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Header />
             <Sidebar />
-            <div className="ml-64 p-6">
+            <div 
+                ref={mainContentRef}
+                className="ml-64 h-full overflow-y-auto p-6"
+            >
                 <div className="max-w-2xl mx-auto">
                     <div className="mb-6">
                         <h1 className="text-white text-2xl font-bold mb-2">Posts You've Liked</h1>

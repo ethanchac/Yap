@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from '../posts/PostItem';
 import Header from '../header/Header';
@@ -12,6 +12,7 @@ function Home() {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const mainContentRef = useRef(null);
 
     const fetchPosts = async (pageNum = 1, reset = false) => {
         try {
@@ -44,13 +45,14 @@ function Home() {
         }
     };
 
-    // infinite scroll handler (completely AI ts no clue how it works)
+    // Updated scroll handler to use main content container instead of document
     const handleScroll = useCallback(() => {
-        if (loadingMore || !hasMore) return;
+        if (loadingMore || !hasMore || !mainContentRef.current) return;
 
-        const scrollTop = document.documentElement.scrollTop;
-        const scrollHeight = document.documentElement.scrollHeight;
-        const clientHeight = document.documentElement.clientHeight;
+        const container = mainContentRef.current;
+        const scrollTop = container.scrollTop;
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
 
         if (scrollTop + clientHeight >= scrollHeight - 1000) {
             const nextPage = page + 1;
@@ -64,8 +66,11 @@ function Home() {
     }, []);
 
     useEffect(() => {
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        const container = mainContentRef.current;
+        if (container) {
+            container.addEventListener('scroll', handleScroll);
+            return () => container.removeEventListener('scroll', handleScroll);
+        }
     }, [handleScroll]);
 
     const loadMorePosts = () => {
@@ -82,10 +87,10 @@ function Home() {
 
     if (loading && posts.length === 0) {
         return (
-            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+            <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
                 <Header />
                 <Sidebar />
-                <div className="ml-64 p-6">
+                <div className="ml-64 h-full overflow-y-auto p-6">
                     <p className="text-white">Loading posts...</p>
                 </div>
             </div>
@@ -93,10 +98,13 @@ function Home() {
     }
 
     return (
-        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             <Header />
             <Sidebar />
-            <div className="ml-64 p-6">
+            <div 
+                ref={mainContentRef}
+                className="ml-64 h-full overflow-y-auto p-6"
+            >
                 <h1 className="text-white text-2xl font-bold mb-6">Home Feed</h1>
                 
                 {/* Events Section */}
