@@ -225,7 +225,7 @@ function CommentsPage() {
                 {post && <PostItem post={post} />}
 
                 {/* comment form */}
-                <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#1f2937'}}>
+                <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
                     <h3 className="text-white text-lg font-bold mb-4">Add a Comment</h3>
                     <form onSubmit={handleSubmitComment} className="space-y-4">
                         <textarea
@@ -257,7 +257,7 @@ function CommentsPage() {
                 </div>
 
                 {/* Comments List with profile pictures */}
-                <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
                     <h3 className="text-white text-lg font-bold mb-4">Comments ({comments.length})</h3>
                     
                     {comments.length === 0 ? (

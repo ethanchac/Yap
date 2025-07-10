@@ -268,7 +268,7 @@ function Create() {
                     </h1>
                     
                     {/* Tab Navigation */}
-                    <div className="flex mb-6 rounded-lg overflow-hidden" style={{backgroundColor: '#1f2937'}}>
+                    <div className="flex mb-6 rounded-lg overflow-hidden" style={{backgroundColor: '#171717'}}>
                         <button
                             onClick={() => handleTabChange('post')}
                             className={`flex-1 py-3 px-4 text-center font-semibold transition-colors ${
@@ -291,7 +291,7 @@ function Create() {
                         </button>
                     </div>
                     
-                    <div className="rounded-lg p-6" style={{backgroundColor: '#1f2937'}}>
+                    <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
                         {activeTab === 'post' ? (
                             /* Post Creation Form with Image Upload */
                             <form onSubmit={handlePostSubmit} className="space-y-4">
