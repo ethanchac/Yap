@@ -130,7 +130,7 @@ function PostItem({ post }) {
                     <img 
                         src={post.images[0]} 
                         alt="Post image"
-                        className="w-full max-h-96 object-cover rounded-lg border border-gray-600"
+                        className="max-w-full max-h-96 object-contain rounded-lg border border-gray-600"
                         onError={(e) => {
                             e.target.style.display = 'none';
                         }}
@@ -148,7 +148,7 @@ function PostItem({ post }) {
                             key={index}
                             src={image} 
                             alt={`Post image ${index + 1}`}
-                            className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                            className="max-w-full max-h-48 object-contain rounded-lg border border-gray-600"
                             onError={(e) => {
                                 e.target.style.display = 'none';
                             }}
@@ -165,7 +165,7 @@ function PostItem({ post }) {
                     <img 
                         src={post.images[0]} 
                         alt="Post image 1"
-                        className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                        className="max-w-full max-h-48 object-contain rounded-lg border border-gray-600"
                         onError={(e) => {
                             e.target.style.display = 'none';
                         }}
@@ -176,7 +176,7 @@ function PostItem({ post }) {
                                 key={index + 1}
                                 src={image} 
                                 alt={`Post image ${index + 2}`}
-                                className="w-full h-32 object-cover rounded-lg border border-gray-600"
+                                className="max-w-full max-h-32 object-contain rounded-lg border border-gray-600"
                                 onError={(e) => {
                                     e.target.style.display = 'none';
                                 }}
@@ -196,7 +196,7 @@ function PostItem({ post }) {
                             key={index}
                             src={image} 
                             alt={`Post image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-gray-600"
+                            className="max-w-full max-h-32 object-contain rounded-lg border border-gray-600"
                             onError={(e) => {
                                 e.target.style.display = 'none';
                             }}
