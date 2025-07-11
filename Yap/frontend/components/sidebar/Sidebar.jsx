@@ -11,7 +11,7 @@ function Sidebar() {
 
     return (
         <nav 
-            className="fixed left-0 top-0 h-screen w-64 p-6 font-bold z-50 overflow-y-auto" 
+            className="fixed left-0 top-0 h-screen w-64 p-6 font-bold z-50 overflow-y-auto flex flex-col" 
             style={{
                 backgroundColor: '#121212', 
                 fontFamily: 'Albert Sans',
@@ -25,113 +25,111 @@ function Sidebar() {
                 </Link>
             </div>
 
-            <ul className="space-y-4">
+            {/* Main Navigation - grows to fill space */}
+            <ul className="space-y-6 flex-1">
                 <li>
                     <Link 
                         to="/home" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/home') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
                                 : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
-                        <Home className="w-5 h-5" />
+                        <Home className="w-6 h-6" />
                         <span>Home</span>
                     </Link>
                 </li>
                 <li>
                     <Link 
-                        to="/create" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
-                            isActive('/create') 
-                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
-                        }`}
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>Create</span>
-                    </Link>
-                </li>
-                <li>
-                    <Link 
                         to="/users" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/users') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
                                 : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
-                        <Users className="w-5 h-5" />
+                        <Users className="w-6 h-6" />
                         <span>Users</span>
                     </Link>
                 </li>
                 <li>
                     <Link 
                         to="/messages" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/messages') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
                                 : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
-                        <MessageCircle className="w-5 h-5" />
+                        <MessageCircle className="w-6 h-6" />
                         <span>Message</span>
                     </Link>
                 </li>
                 <li>
                     <Link 
                         to="/likes" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/likes') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
                                 : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
-                        <Heart className="w-5 h-5" />
+                        <Heart className="w-6 h-6" />
                         <span>Likes</span>
                     </Link>
                 </li>
                 <li>
                     <Link 
                         to="/profile" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/profile') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
                                 : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
-                        <User className="w-5 h-5" />
+                        <User className="w-6 h-6" />
                         <span>Profile</span>
                     </Link>
                 </li>
                 <li>
                     <Link 
                         to="/settings" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/settings') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
                                 : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
-                        <Settings className="w-5 h-5" />
+                        <Settings className="w-6 h-6" />
                         <span>Settings</span>
                     </Link>
                 </li>
                 <li>
                     <Link 
                         to="/feedback" 
-                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/feedback') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
                                 : 'hover:bg-gray-700 hover:shadow-md'
                         }`}
                     >
-                        <MessageSquare className="w-5 h-5" />
+                        <MessageSquare className="w-6 h-6" />
                         <span>Feedback</span>
                     </Link>
                 </li>
-                
             </ul>
+
+            {/* Create Button - positioned at bottom like Twitter */}
+            <div className="mt-6 pt-6 border-t border-gray-700">
+                <Link 
+                    to="/create" 
+                    className="flex items-center space-x-4 w-full px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white text-lg rounded-full font-bold transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+                >
+                    <Plus className="w-6 h-6" />
+                    <span>Create</span>
+                </Link>
+            </div>
         </nav>
     );
 }
