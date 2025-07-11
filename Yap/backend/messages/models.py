@@ -1,7 +1,181 @@
-from datetime import datetime, timezone
+# messages/models.py - FIXED Eastern Time implementation
+
+from datetime import datetime
+import pytz
 from bson import ObjectId
 from flask import current_app
-import json
+
+# Define Eastern Time timezone with automatic DST handling
+EASTERN_TZ = pytz.timezone('US/Eastern')
+
+def get_eastern_now():
+    """Get current time in Eastern timezone (automatically handles DST)"""
+    # Get UTC time first, then convert to Eastern
+    utc_now = datetime.now(pytz.UTC)
+    et_now = utc_now.astimezone(EASTERN_TZ)
+    
+    print(f"🕐 UTC now: {utc_now}")
+    print(f"🕐 Eastern Time now: {et_now}")
+    print(f"🕐 Eastern Time ISO: {et_now.isoformat()}")
+    return et_now
+
+def format_eastern_timestamp(dt):
+    """Format datetime as ISO string in Eastern timezone"""
+    if dt is None:
+        return None
+        
+    if isinstance(dt, datetime):
+        # If no timezone info, assume UTC
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=pytz.UTC)
+        
+        # Convert to Eastern time
+        eastern_dt = dt.astimezone(EASTERN_TZ)
+        iso_string = eastern_dt.isoformat()
+        print(f"📅 Original: {dt}, Eastern: {eastern_dt}, ISO: {iso_string}")
+        return iso_string
+    
+    return dt
+
+class Message:
+    @staticmethod
+    def create_message(conversation_id, sender_id, content):
+        """Create a new message with Eastern Time timestamp"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Get current Eastern Time
+            et_now = get_eastern_now()
+            print(f"🔥 Creating message with Eastern Time: {et_now}")
+            print(f"🔥 Hour in Eastern Time: {et_now.hour}:{et_now.minute}:{et_now.second}")
+            
+            # Create message document
+            message_doc = {
+                "conversation_id": ObjectId(conversation_id),
+                "sender_id": sender_id,
+                "content": content,
+                "created_at": et_now,  # Store as Eastern Time
+                "read_by": [sender_id]
+            }
+            
+            result = db.messages.insert_one(message_doc)
+            print(f"✅ Message inserted with ID: {result.inserted_id}")
+            
+            # Update conversation's last message timestamp
+            db.conversations.update_one(
+                {"_id": ObjectId(conversation_id)},
+                {
+                    "$set": {
+                        "last_message_at": et_now,
+                        "last_message": result.inserted_id
+                    }
+                }
+            )
+            
+            # Get sender info for the response
+            sender = db.users.find_one({"_id": ObjectId(sender_id)})
+            if sender:
+                sender["_id"] = str(sender["_id"])
+            
+            # Return Eastern Time timestamp in ISO format
+            created_at_iso = et_now.isoformat()
+            print(f"🚀 Sending response with timestamp: {created_at_iso}")
+            print(f"🚀 This should show Eastern Time: {et_now.strftime('%I:%M:%S %p %Z')}")
+            
+            # Prepare message response
+            message_response = {
+                "_id": str(result.inserted_id),
+                "conversation_id": conversation_id,
+                "sender_id": sender_id,
+                "content": content,
+                "created_at": created_at_iso,
+                "sender": {
+                    "_id": sender["_id"] if sender else sender_id,
+                    "username": sender["username"] if sender else "Unknown",
+                    "profile_picture": sender.get("profile_picture", "") if sender else ""
+                }
+            }
+            
+            return message_response
+            
+        except Exception as e:
+            print(f"❌ Error creating message: {e}")
+            return None
+    
+    @staticmethod
+    def get_conversation_messages(conversation_id, limit=50, skip=0):
+        """Get messages for a conversation with proper Eastern Time handling"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Sort by created_at (server time) for consistent ordering
+            messages = list(db.messages.find({
+                "conversation_id": ObjectId(conversation_id)
+            }).sort("created_at", -1).skip(skip).limit(limit))
+            
+            result = []
+            
+            for msg in messages:
+                # Get sender info
+                sender = db.users.find_one({"_id": ObjectId(msg["sender_id"])})
+                
+                # Get the stored timestamp and ensure it's in Eastern Time
+                stored_time = msg["created_at"]
+                if isinstance(stored_time, datetime):
+                    if stored_time.tzinfo is None:
+                        # If no timezone, assume it was stored as UTC and convert
+                        stored_time = stored_time.replace(tzinfo=pytz.UTC)
+                    # Convert to Eastern Time
+                    eastern_time = stored_time.astimezone(EASTERN_TZ)
+                    created_at_iso = eastern_time.isoformat()
+                else:
+                    created_at_iso = stored_time
+                
+                print(f"📨 Message timestamp: {created_at_iso}")
+                
+                message = {
+                    "_id": str(msg["_id"]),
+                    "conversation_id": str(msg["conversation_id"]),
+                    "sender_id": msg["sender_id"],
+                    "content": msg["content"],
+                    "created_at": created_at_iso,
+                    "read_by": msg.get("read_by", []),
+                    "sender": {
+                        "_id": str(sender["_id"]) if sender else msg["sender_id"],
+                        "username": sender["username"] if sender else "Unknown",
+                        "profile_picture": sender.get("profile_picture", "") if sender else ""
+                    }
+                }
+                result.append(message)
+            
+            # Return in chronological order (oldest first)
+            return result[::-1]
+            
+        except Exception as e:
+            print(f"❌ Error getting conversation messages: {e}")
+            return []
+    
+    @staticmethod
+    def mark_messages_as_read(conversation_id, user_id):
+        """Mark all messages in a conversation as read by user"""
+        db = current_app.config["DB"]
+        
+        try:
+            result = db.messages.update_many(
+                {
+                    "conversation_id": ObjectId(conversation_id),
+                    "read_by": {"$ne": user_id}
+                },
+                {
+                    "$addToSet": {"read_by": user_id}
+                }
+            )
+            
+            return result.modified_count
+            
+        except Exception as e:
+            print(f"❌ Error marking messages as read: {e}")
+            return 0
 
 class Conversation:
     @staticmethod
@@ -17,12 +191,12 @@ class Conversation:
             return None
             
         except Exception as e:
-            print(f"Error getting conversation: {e}")
+            print(f"❌ Error getting conversation: {e}")
             return None
 
     @staticmethod
     def create_conversation(participant_ids):
-        """Create a new conversation with UTC timestamps"""
+        """Create a new conversation with Eastern Time timestamps"""
         db = current_app.config["DB"]
         
         try:
@@ -36,13 +210,13 @@ class Conversation:
                 existing["_id"] = str(existing["_id"])
                 return existing
             
-            # Use UTC timestamp
-            utc_now = datetime.now(timezone.utc)
+            # Use Eastern Time for consistency
+            et_now = get_eastern_now()
             
             conversation_doc = {
                 "participants": participant_ids,
-                "created_at": utc_now,
-                "last_message_at": utc_now,
+                "created_at": et_now,
+                "last_message_at": et_now,
                 "last_message": None
             }
             
@@ -52,12 +226,12 @@ class Conversation:
             return conversation_doc
             
         except Exception as e:
-            print(f"Error creating conversation: {e}")
+            print(f"❌ Error creating conversation: {e}")
             return None
     
     @staticmethod
     def get_user_conversations(user_id, limit=20, skip=0):
-        """Get conversations with proper UTC timestamp handling"""
+        """Get conversations with proper Eastern Time handling"""
         db = current_app.config["DB"]
         
         try:
@@ -93,13 +267,15 @@ class Conversation:
                 if conv.get("last_message"):
                     last_msg = db.messages.find_one({"_id": conv["last_message"]})
                     if last_msg:
-                        created_at = last_msg["created_at"]
-                        if isinstance(created_at, datetime):
-                            if created_at.tzinfo is None:
-                                created_at = created_at.replace(tzinfo=timezone.utc)
-                            created_at_iso = created_at.isoformat()
+                        # Ensure proper Eastern Time formatting
+                        stored_time = last_msg["created_at"]
+                        if isinstance(stored_time, datetime):
+                            if stored_time.tzinfo is None:
+                                stored_time = stored_time.replace(tzinfo=pytz.UTC)
+                            eastern_time = stored_time.astimezone(EASTERN_TZ)
+                            created_at_iso = eastern_time.isoformat()
                         else:
-                            created_at_iso = created_at
+                            created_at_iso = stored_time
                             
                         last_message = {
                             "_id": str(last_msg["_id"]),
@@ -108,6 +284,10 @@ class Conversation:
                             "created_at": created_at_iso
                         }
                 
+                # Convert conversation timestamps to Eastern Time
+                conv["last_message_at"] = format_eastern_timestamp(conv.get("last_message_at"))
+                conv["created_at"] = format_eastern_timestamp(conv.get("created_at"))
+                
                 conv["other_participant"] = other_participant
                 conv["last_message"] = last_message
                 result.append(conv)
@@ -115,144 +295,5 @@ class Conversation:
             return result
             
         except Exception as e:
-            print(f"Error getting user conversations: {e}")
+            print(f"❌ Error getting user conversations: {e}")
             return []
-
-from datetime import datetime, timezone
-from bson import ObjectId
-from flask import current_app
-import json
-
-class Message:
-    @staticmethod
-    def create_message(conversation_id, sender_id, content):
-        """Create a new message with UTC timestamp"""
-        db = current_app.config["DB"]
-        
-        try:
-            # CRITICAL: Always use UTC timestamp with explicit timezone
-            utc_now = datetime.now(timezone.utc)
-            
-            # Create message document
-            message_doc = {
-                "conversation_id": ObjectId(conversation_id),
-                "sender_id": sender_id,
-                "content": content,
-                "created_at": utc_now,
-                "read_by": [sender_id]
-            }
-            
-            result = db.messages.insert_one(message_doc)
-            
-            # Update conversation's last message timestamp
-            db.conversations.update_one(
-                {"_id": ObjectId(conversation_id)},
-                {
-                    "$set": {
-                        "last_message_at": utc_now,
-                        "last_message": result.inserted_id
-                    }
-                }
-            )
-            
-            # Get sender info for the response
-            sender = db.users.find_one({"_id": ObjectId(sender_id)})
-            if sender:
-                sender["_id"] = str(sender["_id"])
-            
-            # IMPORTANT: Ensure ISO format with 'Z' suffix for UTC
-            created_at_iso = utc_now.isoformat().replace('+00:00', 'Z')
-            
-            # Prepare message response
-            message_response = {
-                "_id": str(result.inserted_id),
-                "conversation_id": conversation_id,
-                "sender_id": sender_id,
-                "content": content,
-                "created_at": created_at_iso,
-                "sender": {
-                    "_id": sender["_id"] if sender else sender_id,
-                    "username": sender["username"] if sender else "Unknown",
-                    "profile_picture": sender.get("profile_picture", "") if sender else ""
-                }
-            }
-            
-            return message_response
-            
-        except Exception as e:
-            print(f"Error creating message: {e}")
-            return None
-    
-    @staticmethod
-    def get_conversation_messages(conversation_id, limit=50, skip=0):
-        """Get messages for a conversation with proper UTC handling"""
-        db = current_app.config["DB"]
-        
-        try:
-            # CRITICAL: Sort by created_at (server time) for consistent ordering
-            messages = list(db.messages.find({
-                "conversation_id": ObjectId(conversation_id)
-            }).sort("created_at", -1).skip(skip).limit(limit))
-            
-            result = []
-            
-            for msg in messages:
-                # Get sender info
-                sender = db.users.find_one({"_id": ObjectId(msg["sender_id"])})
-                
-                # Normalize datetime to UTC ISO format
-                created_at = msg["created_at"]
-                if isinstance(created_at, datetime):
-                    # Ensure timezone awareness
-                    if created_at.tzinfo is None:
-                        created_at = created_at.replace(tzinfo=timezone.utc)
-                    # Convert to UTC if not already
-                    created_at_utc = created_at.astimezone(timezone.utc)
-                    # Format with 'Z' suffix
-                    created_at_iso = created_at_utc.isoformat().replace('+00:00', 'Z')
-                else:
-                    created_at_iso = created_at
-                
-                message = {
-                    "_id": str(msg["_id"]),
-                    "conversation_id": str(msg["conversation_id"]),
-                    "sender_id": msg["sender_id"],
-                    "content": msg["content"],
-                    "created_at": created_at_iso,
-                    "read_by": msg.get("read_by", []),
-                    "sender": {
-                        "_id": str(sender["_id"]) if sender else msg["sender_id"],
-                        "username": sender["username"] if sender else "Unknown",
-                        "profile_picture": sender.get("profile_picture", "") if sender else ""
-                    }
-                }
-                result.append(message)
-            
-            # Return in chronological order (oldest first)
-            return result[::-1]
-            
-        except Exception as e:
-            print(f"Error getting conversation messages: {e}")
-            return []
-    
-    @staticmethod
-    def mark_messages_as_read(conversation_id, user_id):
-        """Mark all messages in a conversation as read by user"""
-        db = current_app.config["DB"]
-        
-        try:
-            result = db.messages.update_many(
-                {
-                    "conversation_id": ObjectId(conversation_id),
-                    "read_by": {"$ne": user_id}
-                },
-                {
-                    "$addToSet": {"read_by": user_id}
-                }
-            )
-            
-            return result.modified_count
-            
-        except Exception as e:
-            print(f"Error marking messages as read: {e}")
-            return 0

@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
+import { 
+    formatMessageTime, 
+    formatDateSeparator, 
+    sortMessagesByTime, 
+    shouldShowDateSeparator 
+} from './utils/easternTimeUtils';
 
 function MessageChat({ conversation, onNewMessage }) {
     const [messages, setMessages] = useState([]);
@@ -76,6 +82,19 @@ function MessageChat({ conversation, onNewMessage }) {
         return `http://localhost:5000/static/default/default-avatar.png`;
     };
 
+    // Utility functions for timestamp handling (Eastern Time consistent)
+    const sortMessagesByTime = (messages) => {
+        if (!messages || !Array.isArray(messages)) return [];
+        
+        return [...messages].sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            
+            // Sort in ascending order (oldest first for chat)
+            return dateA - dateB;
+        });
+    };
+
     const currentUserIdentifier = getCurrentUserIdentifier();
 
     // Handle clicking outside emoji picker to close it
@@ -111,7 +130,11 @@ function MessageChat({ conversation, onNewMessage }) {
         });
 
         newSocket.on('new_message', (message) => {
-            setMessages(prev => [...prev, message]);
+            // Insert new message and maintain chronological order
+            setMessages(prev => {
+                const updated = [...prev, message];
+                return sortMessagesByTime(updated);
+            });
             if (onNewMessage) onNewMessage(conversation._id, message);
         });
 
@@ -150,7 +173,9 @@ function MessageChat({ conversation, onNewMessage }) {
 
             if (response.ok) {
                 const data = await response.json();
-                setMessages(data.messages || []);
+                // Sort messages to ensure proper chronological order
+                const sortedMessages = sortMessagesByTime(data.messages || []);
+                setMessages(sortedMessages);
             }
         } catch {
         } finally {
@@ -209,32 +234,10 @@ function MessageChat({ conversation, onNewMessage }) {
         setShowEmojiPicker(!showEmojiPicker);
     };
 
-    const formatMessageTime = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
-
-    const formatMessageDate = (dateString) => {
-        const date = new Date(dateString);
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        if (date.toDateString() === today.toDateString()) {
-            return 'Today';
-        } else if (date.toDateString() === yesterday.toDateString()) {
-            return 'Yesterday';
-        } else {
-            return date.toLocaleDateString();
-        }
-    };
-
-    const shouldShowDateSeparator = (currentMessage, previousMessage) => {
-        if (!previousMessage) return true;
-        const currentDate = new Date(currentMessage.created_at).toDateString();
-        const previousDate = new Date(previousMessage.created_at).toDateString();
-        return currentDate !== previousDate;
-    };
+    // Use the Eastern Time utilities directly
+    const formatTime = formatMessageTime;
+    const formatDateSep = formatDateSeparator;
+    const shouldShowDate = shouldShowDateSeparator;
 
     const isMyMessage = (message) => {
         if (!currentUserIdentifier) return false;
@@ -319,17 +322,16 @@ function MessageChat({ conversation, onNewMessage }) {
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                
                 {messages.map((message, index) => {
                     const myMessage = isMyMessage(message);
                     
                     return (
                         <div key={message._id}>
                             {/* Date separator */}
-                            {shouldShowDateSeparator(message, messages[index - 1]) && (
+                            {shouldShowDate(message, messages[index - 1]) && (
                                 <div className="flex items-center justify-center my-4">
                                     <div className="bg-gray-600 text-gray-300 px-3 py-1 rounded-full text-xs">
-                                        {formatMessageDate(message.created_at)}
+                                        {formatDateSep(message.created_at)}
                                     </div>
                                 </div>
                             )}
@@ -370,11 +372,11 @@ function MessageChat({ conversation, onNewMessage }) {
                                         <p className="break-words">{message.content}</p>
                                     </div>
                                     
-                                    {/* Timestamp */}
+                                    {/* Timestamp - Using Eastern Time */}
                                     <div className={`text-xs text-gray-400 mt-1 px-1 ${
                                         myMessage ? 'text-right' : 'text-left'
                                     }`}>
-                                        {formatMessageTime(message.created_at)}
+                                        {formatTime(message.created_at)}
                                     </div>
                                 </div>
 
