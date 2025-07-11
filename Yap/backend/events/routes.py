@@ -398,3 +398,72 @@ def cancel_event(current_user, event_id):
     except Exception as e:
         print(f"Error cancelling event: {e}")
         return jsonify({"error": "Failed to cancel event"}), 500
+
+@events_bp.route('/<event_id>/details', methods=['GET'])
+@token_required
+def get_event_details(current_user, event_id):
+    """Get detailed event information including user's interaction status"""
+    try:
+        # Get the basic event info
+        event = Event.get_event_by_id(event_id)
+        
+        if not event:
+            return jsonify({"error": "Event not found"}), 404
+        
+        # Check if user is attending
+        is_attending = Event.check_user_attending_event(event_id, current_user['_id'])
+        
+        # Check if user has liked the event
+        is_liked = Event.check_user_liked_event(event_id, current_user['_id'])
+        
+        # Get attending friends (users the current user follows who are attending)
+        db = current_app.config["DB"]
+        
+        # Get current user's following list
+        following_pipeline = [
+            {"$match": {"follower_id": current_user['_id']}},
+            {"$project": {"following_id": 1}}
+        ]
+        following = list(db.follows.aggregate(following_pipeline))
+        following_ids = [f["following_id"] for f in following]
+        
+        # Get attendees who are in the following list
+        attending_friends_pipeline = [
+            {"$match": {"event_id": event_id, "user_id": {"$in": following_ids}}},
+            {
+                "$lookup": {
+                    "from": "users",
+                    "let": {"user_id": {"$toObjectId": "$user_id"}},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
+                    ],
+                    "as": "user_info"
+                }
+            },
+            {"$unwind": "$user_info"},
+            {
+                "$project": {
+                    "_id": "$user_info._id",
+                    "username": "$user_info.username",
+                    "full_name": "$user_info.full_name",
+                    "profile_picture": "$user_info.profile_picture"
+                }
+            }
+        ]
+        
+        attending_friends = list(db.attendances.aggregate(attending_friends_pipeline))
+        
+        # Get total attendees count
+        total_attendees = db.attendances.count_documents({"event_id": event_id})
+        
+        return jsonify({
+            "event": event,
+            "is_attending": is_attending,
+            "is_liked": is_liked,
+            "attending_friends": attending_friends,
+            "total_attendees": total_attendees
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching event details: {e}")
+        return jsonify({"error": "Failed to fetch event details"}), 500

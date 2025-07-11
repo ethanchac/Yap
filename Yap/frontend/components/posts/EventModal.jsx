@@ -10,7 +10,8 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [totalAttendees, setTotalAttendees] = useState(0);
 
   const fetchEventDetails = async () => {
-    if (!event || !isOpen) return;
+    if (!event || !isOpen || !currentUser) return;
+    
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -24,14 +25,61 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
         setIsAttending(data.is_attending || false);
         setIsLiked(data.is_liked || false);
         setAttendingFriends(data.attending_friends || []);
-        setTotalAttendees(data.total_attendees || event.attendees_count || 0);
+        setTotalAttendees(data.total_attendees || 0);
+      } else {
+        // Fallback to basic event data if details endpoint fails
+        setEventDetails(event);
+        setTotalAttendees(event.attendees_count || 0);
+        
+        // Fetch attendance and like status separately
+        await Promise.all([
+          fetchAttendanceStatus(),
+          fetchLikeStatus()
+        ]);
       }
     } catch (error) {
       console.error('Error fetching event details:', error);
+      // Fallback to basic event data
       setEventDetails(event);
       setTotalAttendees(event.attendees_count || 0);
+      
+      // Try to fetch attendance and like status separately
+      await Promise.all([
+        fetchAttendanceStatus(),
+        fetchLikeStatus()
+      ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAttendanceStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/events/${event._id}/attend-status`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIsAttending(data.attending || false);
+      }
+    } catch (error) {
+      console.error('Error fetching attendance status:', error);
+    }
+  };
+
+  const fetchLikeStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/events/${event._id}/like-status`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIsLiked(data.liked || false);
+      }
+    } catch (error) {
+      console.error('Error fetching like status:', error);
     }
   };
 
@@ -94,13 +142,27 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     return icons[index % icons.length];
   };
 
+  // Reset state when modal opens with a new event
   useEffect(() => {
-    if (isOpen && event) fetchEventDetails();
-  }, [isOpen, event]);
+    if (isOpen && event) {
+      // Reset state for new event
+      setEventDetails(null);
+      setIsAttending(false);
+      setIsLiked(false);
+      setAttendingFriends([]);
+      setTotalAttendees(0);
+      
+      // Fetch new data
+      fetchEventDetails();
+    }
+  }, [isOpen, event?._id]); // Include event._id as dependency
 
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = 'unset';
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -122,7 +184,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
             <div className="text-4xl">{getEventIcon(0)}</div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{event.title}</h2>
-              <p className="text-gray-600">Hosted by @{event.host_username || 'Unknown'}</p>
+              <p className="text-gray-600">Hosted by @{event.host_username || event.username || 'Unknown'}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
@@ -203,36 +265,41 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 </div>
               )}
 
-              <div className="flex space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={toggleAttendance}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors ${
-                    isAttending
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  <UserPlus className="w-5 h-5" />
-                  <span>{isAttending ? 'Attending' : 'Join Event'}</span>
-                </button>
+              {/* Action buttons - only show if user is logged in */}
+              {currentUser && (
+                <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={toggleAttendance}
+                    disabled={loading}
+                    className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                      isAttending
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    <UserPlus className="w-5 h-5" />
+                    <span>{isAttending ? 'Attending' : 'Join Event'}</span>
+                  </button>
 
-                <button
-                  onClick={toggleLike}
-                  className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors ${
-                    isLiked
-                      ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                  <span>{event.likes_count || 0}</span>
-                </button>
+                  <button
+                    onClick={toggleLike}
+                    disabled={loading}
+                    className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                      isLiked
+                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                    <span>{event.likes_count || 0}</span>
+                  </button>
 
-                <button className="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
-                  <Share2 className="w-5 h-5" />
-                  <span>Share</span>
-                </button>
-              </div>
+                  <button className="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
+                    <Share2 className="w-5 h-5" />
+                    <span>Share</span>
+                  </button>
+                </div>
+              )}
 
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
