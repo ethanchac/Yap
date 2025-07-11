@@ -1,5 +1,3 @@
-# messages/models.py - FIXED Eastern Time implementation
-
 from datetime import datetime
 import pytz
 from bson import ObjectId
@@ -10,13 +8,8 @@ EASTERN_TZ = pytz.timezone('US/Eastern')
 
 def get_eastern_now():
     """Get current time in Eastern timezone (automatically handles DST)"""
-    # Get UTC time first, then convert to Eastern
     utc_now = datetime.now(pytz.UTC)
     et_now = utc_now.astimezone(EASTERN_TZ)
-    
-    print(f"🕐 UTC now: {utc_now}")
-    print(f"🕐 Eastern Time now: {et_now}")
-    print(f"🕐 Eastern Time ISO: {et_now.isoformat()}")
     return et_now
 
 def format_eastern_timestamp(dt):
@@ -32,7 +25,6 @@ def format_eastern_timestamp(dt):
         # Convert to Eastern time
         eastern_dt = dt.astimezone(EASTERN_TZ)
         iso_string = eastern_dt.isoformat()
-        print(f"📅 Original: {dt}, Eastern: {eastern_dt}, ISO: {iso_string}")
         return iso_string
     
     return dt
@@ -46,20 +38,17 @@ class Message:
         try:
             # Get current Eastern Time
             et_now = get_eastern_now()
-            print(f"🔥 Creating message with Eastern Time: {et_now}")
-            print(f"🔥 Hour in Eastern Time: {et_now.hour}:{et_now.minute}:{et_now.second}")
             
             # Create message document
             message_doc = {
                 "conversation_id": ObjectId(conversation_id),
                 "sender_id": sender_id,
                 "content": content,
-                "created_at": et_now,  # Store as Eastern Time
+                "created_at": et_now,
                 "read_by": [sender_id]
             }
             
             result = db.messages.insert_one(message_doc)
-            print(f"✅ Message inserted with ID: {result.inserted_id}")
             
             # Update conversation's last message timestamp
             db.conversations.update_one(
@@ -79,8 +68,6 @@ class Message:
             
             # Return Eastern Time timestamp in ISO format
             created_at_iso = et_now.isoformat()
-            print(f"🚀 Sending response with timestamp: {created_at_iso}")
-            print(f"🚀 This should show Eastern Time: {et_now.strftime('%I:%M:%S %p %Z')}")
             
             # Prepare message response
             message_response = {
@@ -99,7 +86,6 @@ class Message:
             return message_response
             
         except Exception as e:
-            print(f"❌ Error creating message: {e}")
             return None
     
     @staticmethod
@@ -131,8 +117,6 @@ class Message:
                 else:
                     created_at_iso = stored_time
                 
-                print(f"📨 Message timestamp: {created_at_iso}")
-                
                 message = {
                     "_id": str(msg["_id"]),
                     "conversation_id": str(msg["conversation_id"]),
@@ -152,7 +136,6 @@ class Message:
             return result[::-1]
             
         except Exception as e:
-            print(f"❌ Error getting conversation messages: {e}")
             return []
     
     @staticmethod
@@ -174,7 +157,6 @@ class Message:
             return result.modified_count
             
         except Exception as e:
-            print(f"❌ Error marking messages as read: {e}")
             return 0
 
 class Conversation:
@@ -191,7 +173,6 @@ class Conversation:
             return None
             
         except Exception as e:
-            print(f"❌ Error getting conversation: {e}")
             return None
 
     @staticmethod
@@ -226,7 +207,6 @@ class Conversation:
             return conversation_doc
             
         except Exception as e:
-            print(f"❌ Error creating conversation: {e}")
             return None
     
     @staticmethod
@@ -295,5 +275,4 @@ class Conversation:
             return result
             
         except Exception as e:
-            print(f"❌ Error getting user conversations: {e}")
             return []

@@ -1,7 +1,7 @@
-// utils/easternTimeUtils.js - Simplified Eastern Time handling
+// utils/easternTimeUtils.js - Clean version without debug logs
 
 /**
- * Format timestamp to Eastern Time (handles all timezone conversions)
+ * Format timestamp to Eastern Time
  * @param {string|Date} timestamp - Timestamp to format
  * @returns {string} - Formatted time string in Eastern Time
  */
@@ -9,15 +9,12 @@ export const formatMessageTime = (timestamp) => {
     if (!timestamp) return '';
     
     try {
-        console.log('🕐 Original timestamp:', timestamp);
-        
         const date = new Date(timestamp);
         if (isNaN(date.getTime())) {
-            console.log('❌ Invalid date');
             return '';
         }
         
-        // Force format in Eastern Time regardless of what the browser thinks
+        // Force format in Eastern Time
         const easternTime = date.toLocaleTimeString('en-US', {
             timeZone: 'America/New_York',
             hour: '2-digit',
@@ -25,10 +22,8 @@ export const formatMessageTime = (timestamp) => {
             hour12: true
         });
         
-        console.log('✅ Formatted Eastern Time:', easternTime);
         return easternTime;
     } catch (error) {
-        console.error('❌ Error formatting time:', error);
         return '';
     }
 };
@@ -77,7 +72,6 @@ export const formatDateSeparator = (timestamp) => {
             });
         }
     } catch (error) {
-        console.error('❌ Error formatting date:', error);
         return '';
     }
 };
@@ -105,7 +99,6 @@ export const shouldShowDateSeparator = (currentMessage, previousMessage) => {
         
         return currentEastern !== previousEastern;
     } catch (error) {
-        console.error('❌ Error comparing dates:', error);
         return false;
     }
 };
@@ -163,7 +156,6 @@ export const formatConversationTime = (timestamp) => {
             day: 'numeric'
         });
     } catch (error) {
-        console.error('❌ Error formatting conversation time:', error);
         return 'Invalid date';
     }
 };
