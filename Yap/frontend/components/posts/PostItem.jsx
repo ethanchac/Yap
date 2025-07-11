@@ -1,12 +1,46 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart, MessageCircle, Trash2, MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-function PostItem({ post }) {
+function PostItem({ post, onPostDeleted }) {
     const [liked, setLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(post.likes_count);
     const [loading, setLoading] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
     const navigate = useNavigate();
+
+    // Get current user info on component mount
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            // Decode token to get current user info (you might have this logic elsewhere)
+            // For now, we'll make a request to get current user
+            fetchCurrentUser();
+        }
+    }, []);
+
+    const fetchCurrentUser = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const response = await fetch('http://localhost:5000/users/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setCurrentUser(data.profile || data);
+            }
+        } catch (error) {
+            console.error('Error fetching current user:', error);
+        }
+    };
 
     // Check if user has liked this post when component mounts
     useEffect(() => {
@@ -41,12 +75,6 @@ function PostItem({ post }) {
             return;
         }
 
-        // Debug logs
-        console.log('Attempting to like post:');
-        console.log('Post ID:', post._id);
-        console.log('Post object:', post);
-        console.log('URL:', `http://localhost:5000/posts/${post._id}/like`);
-
         setLoading(true);
 
         try {
@@ -57,10 +85,7 @@ function PostItem({ post }) {
                 }
             });
 
-            console.log('Response status:', response.status);
-
             const data = await response.json();
-            console.log('Response data:', data);
 
             if (response.ok) {
                 setLiked(data.liked);
@@ -76,24 +101,56 @@ function PostItem({ post }) {
         }
     };
 
-    const handleCommentClick = () => {
-        // Debug: Log the post ID and navigation path
-        console.log('Navigating to comments for post ID:', post._id);
-        console.log('Navigation path:', `/post/${post._id}/comments`);
+    const handleDelete = async () => {
+        const token = localStorage.getItem('token');
         
-        // Navigate to comments page
+        if (!token) {
+            alert('Please login to delete posts');
+            return;
+        }
+
+        setDeleting(true);
+
+        try {
+            const response = await fetch(`http://localhost:5000/posts/${post._id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Call the parent component's callback to remove this post from the list
+                if (onPostDeleted) {
+                    onPostDeleted(post._id);
+                }
+                alert('Post deleted successfully');
+            } else {
+                alert(data.error || 'Failed to delete post');
+            }
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            alert('Network error. Please try again.');
+        } finally {
+            setDeleting(false);
+            setShowDeleteConfirm(false);
+            setShowMenu(false);
+        }
+    };
+
+    const handleCommentClick = () => {
         navigate(`/post/${post._id}/comments`);
     };
 
     const handleUsernameClick = (e) => {
-        e.stopPropagation(); // Prevent event bubbling
-        // Navigate to user's profile
+        e.stopPropagation();
         navigate(`/profile/${post.user_id}`);
     };
 
     const handleProfilePhotoClick = (e) => {
-        e.stopPropagation(); // Prevent event bubbling
-        // Navigate to user's profile
+        e.stopPropagation();
         navigate(`/profile/${post.user_id}`);
     };
 
@@ -102,28 +159,21 @@ function PostItem({ post }) {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     };
 
-    // Function to get profile picture URL or default
     const getProfilePictureUrl = () => {
         if (post.profile_picture) {
-            // If it's already a full URL (like from your upload system), use it directly
             if (post.profile_picture.startsWith('http')) {
                 return post.profile_picture;
             }
-            // If it's just a filename, this shouldn't happen with your current system
-            // but keeping it as fallback
             return `http://localhost:5000/uploads/profile_pictures/${post.profile_picture}`;
         }
-        // Default profile picture if none exists
         return `http://localhost:5000/static/default/default-avatar.png`;
     };
 
-    // Function to render post images
     const renderPostImages = () => {
         if (!post.images || post.images.length === 0) return null;
 
         const imageCount = post.images.length;
 
-        // Single image
         if (imageCount === 1) {
             return (
                 <div className="mt-3">
@@ -139,7 +189,6 @@ function PostItem({ post }) {
             );
         }
 
-        // Two images
         if (imageCount === 2) {
             return (
                 <div className="mt-3 grid grid-cols-2 gap-2">
@@ -158,7 +207,6 @@ function PostItem({ post }) {
             );
         }
 
-        // Three images - first image spans full width, other two side by side
         if (imageCount === 3) {
             return (
                 <div className="mt-3 space-y-2">
@@ -187,7 +235,6 @@ function PostItem({ post }) {
             );
         }
 
-        // Four images - 2x2 grid
         if (imageCount === 4) {
             return (
                 <div className="mt-3 grid grid-cols-2 gap-2">
@@ -209,8 +256,11 @@ function PostItem({ post }) {
         return null;
     };
 
+    // Check if current user owns this post
+    const isOwnPost = currentUser && currentUser._id === post.user_id;
+
     return (
-        <div className="rounded-lg p-6 font-bold mb-4 transition-all duration-200 hover:bg-zinc-800 hover:shadow-sm hover:scale-101 cursor-pointer" style={{fontFamily: 'Albert Sans', backgroundColor: '#171717'}}>
+        <div className="rounded-lg p-6 font-bold mb-4 transition-all duration-200 hover:bg-zinc-800 hover:shadow-sm hover:scale-101 cursor-pointer relative" style={{fontFamily: 'Albert Sans', backgroundColor: '#171717'}}>
             <div className="flex items-start space-x-3">
                 {/* Profile Picture */}
                 <img 
@@ -218,23 +268,56 @@ function PostItem({ post }) {
                     alt={`${post.username}'s profile`}
                     onClick={handleProfilePhotoClick}
                     onError={(e) => {
-                        // Fallback to default avatar if image fails to load
                         e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
                     }}
                     className='w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity object-cover'
                 />
                 
                 <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                        <strong 
-                            onClick={handleUsernameClick}
-                            className="text-white hover:text-gray-300 cursor-pointer transition-colors"
-                        >
-                            @{post.username}
-                        </strong>
-                        <div className="text-gray-400 text-sm">
-                            {formatDate(post.created_at)}
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                            <strong 
+                                onClick={handleUsernameClick}
+                                className="text-white hover:text-gray-300 cursor-pointer transition-colors"
+                            >
+                                @{post.username}
+                            </strong>
+                            <div className="text-gray-400 text-sm">
+                                {formatDate(post.created_at)}
+                            </div>
                         </div>
+                        
+                        {/* More options menu (only for own posts) */}
+                        {isOwnPost && (
+                            <div className="relative">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowMenu(!showMenu);
+                                    }}
+                                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-colors"
+                                >
+                                    <MoreHorizontal className="w-4 h-4" />
+                                </button>
+                                
+                                {/* Dropdown menu */}
+                                {showMenu && (
+                                    <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 min-w-[120px]">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setShowDeleteConfirm(true);
+                                                setShowMenu(false);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 flex items-center space-x-2 rounded-lg"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span>Delete</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     
                     {/* Post Content */}
@@ -268,6 +351,40 @@ function PostItem({ post }) {
                     </div>
                 </div>
             </div>
+            
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-sm mx-4">
+                        <h3 className="text-white text-lg font-bold mb-4">Delete Post?</h3>
+                        <p className="text-gray-300 mb-6">This action cannot be undone. Are you sure you want to delete this post?</p>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-700 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                            >
+                                {deleting ? 'Deleting...' : 'Delete'}
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={deleting}
+                                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Click outside to close menu */}
+            {showMenu && (
+                <div 
+                    className="fixed inset-0 z-5"
+                    onClick={() => setShowMenu(false)}
+                />
+            )}
         </div>
     );
 }

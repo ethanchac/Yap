@@ -336,3 +336,20 @@ def get_user_liked_posts_public_route(user_id):
     except Exception as e:
         print(f"Error fetching user liked posts: {e}")
         return jsonify({"error": "Failed to fetch user liked posts"}), 500
+    
+@posts_bp.route('/<post_id>', methods=['DELETE'])
+@token_required
+def delete_post_route(current_user, post_id):
+    """Delete a post (only if user owns it)"""
+    try:
+        result = Post.delete_post(post_id, current_user['_id'])
+        
+        if "error" in result:
+            status_code = 404 if "not found" in result["error"].lower() else 403
+            return jsonify({"error": result["error"]}), status_code
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"Error in delete post route: {e}")
+        return jsonify({"error": "Failed to delete post"}), 500

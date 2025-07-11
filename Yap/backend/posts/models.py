@@ -487,3 +487,48 @@ class Post:
             import traceback
             traceback.print_exc()
             return []
+    @staticmethod
+    def delete_post(post_id, user_id):
+        """Delete a post if the user owns it"""
+        db = current_app.config["DB"]
+        
+        try:
+            # First, get the post to verify ownership
+            post = Post.get_post_by_id(post_id)
+            if not post:
+                return {"error": "Post not found"}
+            
+            # Check if the user owns this post
+            if post["user_id"] != user_id:
+                return {"error": "You can only delete your own posts"}
+            
+            # Delete all likes associated with this post
+            db.likes.delete_many({
+                "post_id": post_id,
+                "type": "post"
+            })
+            
+            # Delete all comments associated with this post (if you have comments)
+            # db.comments.delete_many({"post_id": post_id})
+            
+            # Delete the post itself - try both ObjectId and string formats
+            deleted = False
+            try:
+                result = db.posts.delete_one({"_id": ObjectId(post_id)})
+                if result.deleted_count > 0:
+                    deleted = True
+            except:
+                result = db.posts.delete_one({"_id": post_id})
+                if result.deleted_count > 0:
+                    deleted = True
+            
+            if deleted:
+                return {"success": True, "message": "Post deleted successfully"}
+            else:
+                return {"error": "Failed to delete post"}
+                
+        except Exception as e:
+            print(f"Error deleting post: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e)}
