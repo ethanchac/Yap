@@ -25,11 +25,16 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# ADD SOCKETIO CONFIGURATION
+# ENHANCED SOCKETIO CONFIGURATION
 socketio = SocketIO(
     app, 
-    cors_allowed_origins="http://localhost:5173",
-    async_mode='threading'
+    cors_allowed_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    async_mode='threading',
+    logger=True,  # Enable logging
+    engineio_logger=True,  # Enable engine.io logging
+    ping_timeout=60,
+    ping_interval=25,
+    transports=['websocket', 'polling']
 )
 
 # configuring file upload
@@ -39,7 +44,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
 # create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Manual CORS handling
+# Enhanced CORS handling
 @app.after_request
 def after_request(response):
     """Handle CORS manually"""
@@ -90,49 +95,66 @@ app.register_blueprint(password_reset_bp, url_prefix="/password-reset")
 app.register_blueprint(feedback_bp, url_prefix="/api") 
 
 
-# ===== SOCKETIO EVENT HANDLERS =====
+# ===== SOCKETIO EVENT HANDLERS WITH DEBUG =====
 
 @socketio.on('connect')
 def handle_connect(auth):
     """Handle client connection"""
+    print(f"🔌 New connection attempt from {request.sid}")
     from messages.services import handle_connect
     handle_connect(socketio, auth)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handle client disconnection"""
+    print(f"🔌 Disconnection from {request.sid}")
     from messages.services import handle_disconnect
     handle_disconnect()
 
 @socketio.on('join_conversation')
 def handle_join_conversation(data):
     """Join a conversation room"""
+    print(f"🚪 Join conversation request: {data}")
     from messages.services import handle_join_conversation
     handle_join_conversation(socketio, data)
 
 @socketio.on('leave_conversation')
 def handle_leave_conversation(data):
     """Leave a conversation room"""
+    print(f"🚪 Leave conversation request: {data}")
     from messages.services import handle_leave_conversation
     handle_leave_conversation(data)
 
 @socketio.on('send_message')
 def handle_send_message(data):
     """Handle sending a message"""
+    print(f"📨 Send message request: {data}")
     from messages.services import handle_send_message
     handle_send_message(socketio, data)
 
 @socketio.on('typing_start')
 def handle_typing_start(data):
     """Handle typing indicator start"""
+    print(f"⌨️ Typing start: {data}")
     from messages.services import handle_typing_start
     handle_typing_start(socketio, data)
 
 @socketio.on('typing_stop')
 def handle_typing_stop(data):
     """Handle typing indicator stop"""
+    print(f"⌨️ Typing stop: {data}")
     from messages.services import handle_typing_stop
     handle_typing_stop(socketio, data)
+
+# Debug endpoint to check WebSocket status
+@app.route('/debug/websocket-status')
+def websocket_status():
+    """Debug endpoint to check WebSocket connections"""
+    from messages.services import connected_users
+    return jsonify({
+        "connected_users": len(connected_users),
+        "user_sessions": list(connected_users.keys())
+    })
 
 # route to serve uploaded profile pictures
 @app.route('/uploads/profile_pictures/<user_id>/<filename>')
@@ -157,5 +179,16 @@ def too_large(e):
     return jsonify({"error": "File too large. Maximum size is 5MB"}), 413
 
 if __name__ == "__main__":
+    print("🚀 Starting server with WebSocket support...")
+    print(f"🔗 CORS allowed origins: http://localhost:5173")
+    print(f"🔌 WebSocket transports: websocket, polling")
+    
     # Use socketio.run instead of app.run for WebSocket support
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    socketio.run(
+        app, 
+        debug=True, 
+        host='0.0.0.0', 
+        port=5000,
+        use_reloader=True,
+        log_output=True
+    )

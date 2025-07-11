@@ -120,42 +120,85 @@ function MessageChat({ conversation, onNewMessage }) {
             return;
         }
 
+        console.log('🔌 Setting up WebSocket connection for conversation:', conversation._id);
         const token = localStorage.getItem('token');
+        
         const newSocket = io('http://localhost:5000', {
-            auth: { token: token }
+            auth: { token: token },
+            transports: ['websocket', 'polling'] // Ensure multiple transports
         });
 
+        // Connection events
         newSocket.on('connect', () => {
+            console.log('✅ WebSocket connected with ID:', newSocket.id);
             newSocket.emit('join_conversation', { conversation_id: conversation._id });
         });
 
-        newSocket.on('new_message', (message) => {
-            // Insert new message and maintain chronological order
-            setMessages(prev => {
-                const updated = [...prev, message];
-                return sortMessagesByTime(updated);
-            });
-            if (onNewMessage) onNewMessage(conversation._id, message);
+        newSocket.on('disconnect', (reason) => {
+            console.log('❌ WebSocket disconnected:', reason);
         });
 
+        newSocket.on('connect_error', (error) => {
+            console.error('❌ WebSocket connection error:', error);
+        });
+
+        // Room events
+        newSocket.on('joined_conversation', (data) => {
+            console.log('✅ Joined conversation room:', data.conversation_id);
+        });
+
+        newSocket.on('left_conversation', (data) => {
+            console.log('🚪 Left conversation room:', data.conversation_id);
+        });
+
+        // Message events
+        newSocket.on('new_message', (message) => {
+            console.log('📨 Received new message:', message);
+            console.log('📨 Message conversation ID:', message.conversation_id);
+            console.log('📨 Current conversation ID:', conversation._id);
+            
+            // Only add message if it's for this conversation
+            if (message.conversation_id === conversation._id) {
+                setMessages(prev => {
+                    console.log('📨 Adding message to conversation');
+                    const updated = [...prev, message];
+                    return sortMessagesByTime(updated);
+                });
+                
+                if (onNewMessage) {
+                    onNewMessage(conversation._id, message);
+                }
+            }
+        });
+
+        newSocket.on('message_sent', (data) => {
+            console.log('✅ Message sent confirmation:', data);
+        });
+
+        // Typing events
         newSocket.on('user_typing', (data) => {
+            console.log('⌨️ Typing indicator:', data);
             if (data.conversation_id === conversation._id && data.user_id !== currentUserIdentifier) {
                 setOtherUserTyping(data.typing);
             }
         });
 
-        newSocket.on('error', () => {});
+        // Error events
+        newSocket.on('error', (error) => {
+            console.error('❌ WebSocket error:', error);
+        });
 
         setSocket(newSocket);
         fetchMessages();
 
         return () => {
+            console.log('🔌 Cleaning up WebSocket connection');
             if (newSocket) {
                 newSocket.emit('leave_conversation', { conversation_id: conversation._id });
                 newSocket.disconnect();
             }
         };
-    }, [conversation._id]);
+    }, [conversation._id, currentUserIdentifier]);
 
     useEffect(() => {
         scrollToBottom();
@@ -189,12 +232,22 @@ function MessageChat({ conversation, onNewMessage }) {
 
     const handleSendMessage = (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !socket) return;
+        if (!newMessage.trim() || !socket) {
+            console.log('❌ Cannot send message: empty content or no socket');
+            return;
+        }
+
+        console.log('📤 Sending message:', newMessage.trim());
+        console.log('📤 Socket connected:', socket.connected);
+        console.log('📤 Conversation ID:', conversation._id);
+
         socket.emit('send_message', {
             conversation_id: conversation._id,
             content: newMessage.trim()
         });
+
         setNewMessage('');
+        
         if (isTyping) {
             socket.emit('typing_stop', { conversation_id: conversation._id });
             setIsTyping(false);
