@@ -12,6 +12,7 @@ from messages.routes import messages_bp
 from events.routes import events_bp
 from password_reset.routes import password_reset_bp
 from feedback.routes import feedback_bp
+from activities.routes import activities_bp  # Add this import for the new feature
 import os
 import sys
 
@@ -91,6 +92,7 @@ app.register_blueprint(messages_bp, url_prefix="/messages")
 app.register_blueprint(events_bp, url_prefix='/events')
 app.register_blueprint(password_reset_bp, url_prefix="/password-reset")
 app.register_blueprint(feedback_bp, url_prefix="/api") 
+app.register_blueprint(activities_bp, url_prefix='/api/activities')  # Register blueprint
 
 # ===== SOCKETIO EVENT HANDLERS =====
 
