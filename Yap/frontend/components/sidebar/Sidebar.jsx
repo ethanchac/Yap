@@ -10,14 +10,7 @@ function Sidebar() {
     };
 
     return (
-        <nav 
-            className="fixed left-0 top-0 h-screen w-64 p-6 font-bold z-50 overflow-y-auto" 
-            style={{
-                backgroundColor: '#121212', 
-                fontFamily: 'Albert Sans',
-                position: 'fixed' // Ensure it's truly fixed
-            }}
-        >
+        <nav className="fixed left-0 top-0 h-screen w-64 p-6 font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
             {/* Yapp Logo Section */}
             <div className="mb-8 pb-6 border-b border-gray-700">
                 <Link to="/home" className="flex items-center justify-center">
