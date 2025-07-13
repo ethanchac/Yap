@@ -136,3 +136,57 @@ def vote_would_you_rather():
     
     print(f"🔍 DEBUG: Updated question: {wyr}")
     return jsonify(wyr)
+
+@activities_bp.route('/wouldyourather/<question_id>', methods=['DELETE'])
+def delete_would_you_rather(question_id):
+    """Delete a Would You Rather question"""
+    print(f"🔍 DEBUG: delete_would_you_rather route called for ID: {question_id}")
+    try:
+        db = current_app.config["DB"]
+        
+        # Validate ObjectId format
+        try:
+            obj_id = ObjectId(question_id)
+        except:
+            return jsonify({'error': 'Invalid question ID format'}), 400
+        
+        # Check if question exists
+        question = db['would_you_rather'].find_one({'_id': obj_id})
+        if not question:
+            return jsonify({'error': 'Question not found'}), 404
+        
+        # TODO: Add user authentication check here
+        # For now, we'll allow anyone to delete (you can add user ownership check later)
+        # if question.get('created_by') != current_user_id:
+        #     return jsonify({'error': 'Not authorized to delete this question'}), 403
+        
+        # Delete the question
+        result = db['would_you_rather'].delete_one({'_id': obj_id})
+        
+        if result.deleted_count == 0:
+            return jsonify({'error': 'Failed to delete question'}), 500
+        
+        print(f"🔍 DEBUG: Question {question_id} deleted successfully")
+        return jsonify({'message': 'Question deleted successfully'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error deleting Would You Rather question: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to delete question'}), 500
+class WouldYouRather:
+    def __init__(self, question, option_a, option_b, votes_a=0, votes_b=0):
+        self.question = question
+        self.option_a = option_a
+        self.option_b = option_b
+        self.votes_a = votes_a
+        self.votes_b = votes_b
+
+    def to_dict(self):
+        return {
+            'question': self.question,
+            'option_a': self.option_a,
+            'option_b': self.option_b,
+            'votes_a': self.votes_a,
+            'votes_b': self.votes_b
+        }

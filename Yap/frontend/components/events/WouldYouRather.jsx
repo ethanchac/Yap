@@ -9,6 +9,7 @@ export default function WouldYouRather() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [voting, setVoting] = useState(false);
+  const [deleting, setDeleting] = useState(null); // Track which question is being deleted
   
   // Create question state
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -19,6 +20,7 @@ export default function WouldYouRather() {
   });
   const [creating, setCreating] = useState(false);
   const [forceRender, setForceRender] = useState(0); // Force re-render
+  const [userCreatedQuestions, setUserCreatedQuestions] = useState(new Set()); // Track questions created by user
 
   useEffect(() => {
     fetchQuestions();
@@ -148,6 +150,9 @@ export default function WouldYouRather() {
       // Add the new question to the list
       setQuestions(prev => [...prev, createdQuestion]);
       
+      // Track that this user created this question
+      setUserCreatedQuestions(prev => new Set([...prev, createdQuestion._id]));
+      
       // Reset form
       setNewQuestion({ question: '', option_a: '', option_b: '' });
       setShowCreateForm(false);
@@ -167,6 +172,50 @@ export default function WouldYouRather() {
     setNewQuestion({ question: '', option_a: '', option_b: '' });
     setShowCreateForm(false);
     setError('');
+  };
+
+  const handleDeleteQuestion = async (questionId) => {
+    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(questionId);
+
+    try {
+      const response = await fetch(`${API_URL}/${questionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete question');
+      }
+
+      // Remove the question from the list
+      setQuestions(prev => prev.filter(q => q._id !== questionId));
+      
+      // Adjust current index if necessary
+      if (questions.length === 1) {
+        // If this was the last question, we'll show the empty state
+        setCurrentIdx(0);
+      } else if (currentIdx >= questions.length - 1) {
+        // If we deleted the last question, go to the previous one
+        setCurrentIdx(Math.max(0, currentIdx - 1));
+      }
+      
+      // Remove user vote for this question
+      setUserVotes(prev => {
+        const newVotes = { ...prev };
+        delete newVotes[questionId];
+        return newVotes;
+      });
+
+    } catch (err) {
+      console.error('Error deleting question:', err);
+      setError('Failed to delete question. Please try again.');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   // Debug: Let's see what conditions are being met
@@ -376,6 +425,17 @@ export default function WouldYouRather() {
           >
             + Create
           </button>
+          {/* Delete button - only show for questions created by current user */}
+          {userCreatedQuestions.has(question?._id) && (
+            <button
+              onClick={() => handleDeleteQuestion(question._id)}
+              disabled={deleting === question._id}
+              className="px-3 py-1 bg-red-600 hover:bg-red-500 disabled:bg-red-400 text-white text-sm rounded-lg font-medium transition-colors"
+              title="Delete this question"
+            >
+              {deleting === question._id ? '...' : '🗑️'}
+            </button>
+          )}
         </div>
       </div>
       
