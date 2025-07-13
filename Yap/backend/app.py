@@ -12,7 +12,7 @@ from messages.routes import messages_bp
 from events.routes import events_bp
 from password_reset.routes import password_reset_bp
 from feedback.routes import feedback_bp
-from activities.routes import activities_bp  # Add this import for the new feature
+from activities.routes import activities_bp
 import os
 import sys
 
