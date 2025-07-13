@@ -11,13 +11,11 @@ def handle_connect(socketio, auth):
     """Handle client connection"""
     try:
         if not auth or 'token' not in auth:
-            print("Connection rejected: No token provided")
             disconnect()
             return
         
         token_data = verify_token(auth['token'])
         if not token_data:
-            print("Connection rejected: Invalid token")
             disconnect()
             return
         
@@ -25,7 +23,6 @@ def handle_connect(socketio, auth):
         username = token_data.get('username')
         user = User.get_user_by_username(username)
         if not user:
-            print("Connection rejected: User not found")
             disconnect()
             return
         
@@ -40,13 +37,10 @@ def handle_connect(socketio, auth):
         # Join user to their personal room for notifications
         join_room(f"user_{user_id}")
         
-        print(f"✅ User {username} ({user_id}) connected with session {request.sid}")
-        
         # Notify user of successful connection
         emit('connection_status', {'status': 'connected', 'user_id': user_id})
         
     except Exception as e:
-        print(f"Error in connect handler: {e}")
         disconnect()
 
 def handle_disconnect():
@@ -55,7 +49,6 @@ def handle_disconnect():
         if request.sid in connected_users:
             user_info = connected_users[request.sid]
             user_id = user_info['user_id']
-            username = user_info['username']
             
             # Leave personal room
             leave_room(f"user_{user_id}")
@@ -63,10 +56,8 @@ def handle_disconnect():
             # Remove from connected users
             del connected_users[request.sid]
             
-            print(f"❌ User {username} ({user_id}) disconnected")
-            
     except Exception as e:
-        print(f"Error in disconnect handler: {e}")
+        pass
 
 def handle_join_conversation(socketio, data):
     """Join a conversation room"""
@@ -92,12 +83,9 @@ def handle_join_conversation(socketio, data):
         
         # Join the conversation room
         join_room(f"conversation_{conversation_id}")
-        
-        print(f"User {user_id} joined conversation {conversation_id}")
         emit('joined_conversation', {'conversation_id': conversation_id})
         
     except Exception as e:
-        print(f"Error joining conversation: {e}")
         emit('error', {'message': 'Failed to join conversation'})
 
 def handle_leave_conversation(data):
@@ -109,7 +97,7 @@ def handle_leave_conversation(data):
             emit('left_conversation', {'conversation_id': conversation_id})
             
     except Exception as e:
-        print(f"Error leaving conversation: {e}")
+        pass
 
 def handle_send_message(socketio, data):
     """Handle sending a message"""
@@ -124,6 +112,13 @@ def handle_send_message(socketio, data):
         
         if not conversation_id or not content:
             emit('error', {'message': 'Conversation ID and content required'})
+            return
+        
+        # Verify user is part of conversation
+        from messages.models import Conversation
+        conversation = Conversation.get_conversation(conversation_id)
+        if not conversation or user_id not in conversation['participants']:
+            emit('error', {'message': 'Access denied to conversation'})
             return
         
         # Create message using the Message model
@@ -141,13 +136,16 @@ def handle_send_message(socketio, data):
                 room=f"conversation_{conversation_id}"
             )
             
-            print(f"Message sent in conversation {conversation_id}")
+            # Confirm to sender
+            emit('message_sent', {
+                'success': True,
+                'message_id': message['_id']
+            })
             
         else:
             emit('error', {'message': 'Failed to send message'})
             
     except Exception as e:
-        print(f"Error sending message: {e}")
         emit('error', {'message': 'Failed to send message'})
 
 def handle_typing_start(socketio, data):
@@ -173,7 +171,7 @@ def handle_typing_start(socketio, data):
             )
             
     except Exception as e:
-        print(f"Error in typing start: {e}")
+        pass
 
 def handle_typing_stop(socketio, data):
     """Handle typing indicator stop"""
@@ -198,4 +196,4 @@ def handle_typing_stop(socketio, data):
             )
             
     except Exception as e:
-        print(f"Error in typing stop: {e}")
+        pass

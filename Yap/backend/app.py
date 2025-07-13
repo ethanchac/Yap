@@ -25,11 +25,14 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# ADD SOCKETIO CONFIGURATION
+# SOCKETIO CONFIGURATION
 socketio = SocketIO(
     app, 
-    cors_allowed_origins="http://localhost:5173",
-    async_mode='threading'
+    cors_allowed_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    async_mode='threading',
+    ping_timeout=60,
+    ping_interval=25,
+    transports=['websocket', 'polling']
 )
 
 # configuring file upload
@@ -89,7 +92,6 @@ app.register_blueprint(events_bp, url_prefix='/events')
 app.register_blueprint(password_reset_bp, url_prefix="/password-reset")
 app.register_blueprint(feedback_bp, url_prefix="/api") 
 
-
 # ===== SOCKETIO EVENT HANDLERS =====
 
 @socketio.on('connect')
@@ -148,7 +150,6 @@ def uploaded_file(user_id, filename):
         else:
             return jsonify({"error": "File not found"}), 404
     except Exception as e:
-        print(f"Error serving file: {e}")
         return jsonify({"error": "Failed to serve file"}), 500
 
 # when file size is too big

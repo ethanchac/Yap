@@ -399,6 +399,10 @@ const Profile = () => {
                     {profile.full_name && (
                       <p className="text-gray-300 text-lg">{profile.full_name}</p>
                     )}
+                    {/* Always show email if available */}
+                    {profile.email && (
+                      <p className="text-gray-400 text-sm">{profile.email}</p>
+                    )}
                   </div>
 
                   {/* Action buttons for other users */}

@@ -22,7 +22,7 @@ const PageTransition = ({ children }) => {
       className={`transition-all duration-600 ${
         isVisible 
           ? 'opacity-100 blur-0' 
-          : 'opacity-0 blur-md'
+          : 'opacity-0 blur-sm'
       }`}
       style={{
         minHeight: '100vh',
