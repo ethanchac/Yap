@@ -1,4 +1,4 @@
-import WouldYouRather from './WouldYouRather';
+import WouldYouRather from "../events/WouldYouRather";
 
 function HomepageActivities(){
     return (

@@ -92,7 +92,7 @@ app.register_blueprint(messages_bp, url_prefix="/messages")
 app.register_blueprint(events_bp, url_prefix='/events')
 app.register_blueprint(password_reset_bp, url_prefix="/password-reset")
 app.register_blueprint(feedback_bp, url_prefix="/api") 
-app.register_blueprint(activities_bp, url_prefix='/api/activities')  # Register blueprint
+app.register_blueprint(activities_bp, url_prefix='/api/activities')  
 
 # ===== SOCKETIO EVENT HANDLERS =====
 
