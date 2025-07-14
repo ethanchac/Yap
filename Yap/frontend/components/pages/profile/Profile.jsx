@@ -1,7 +1,8 @@
-import Header from '../header/Header';
-import Sidebar from '../sidebar/Sidebar';
-import PostItem from '../posts/PostItem';
-import Program from '../profile/Program';
+import Header from '../../header/Header';
+import Sidebar from '../../sidebar/Sidebar';
+import PostItem from '../../posts/PostItem';
+import Program from './Program';
+import FriendList from './FriendList'; // Add this import
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap } from 'lucide-react';
@@ -559,6 +560,9 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          {/* FriendList Component - Added here between profile header and recent posts */}
+          <FriendList userId={userId} isOwnProfile={isOwnProfile} />
 
           {/* Recent Posts */}
           {profile.recent_posts && profile.recent_posts.length > 0 && (
