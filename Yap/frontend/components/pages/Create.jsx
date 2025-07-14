@@ -262,7 +262,7 @@ function Create() {
             <Header />
             <Sidebar />
             <div className="ml-64 p-6">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     <h1 className="text-white text-2xl font-bold mb-6">
                         Create New {activeTab === 'post' ? 'Post' : 'Event'}
                     </h1>

@@ -79,7 +79,7 @@ function Likes() {
                 ref={mainContentRef}
                 className="ml-64 h-full overflow-y-auto p-6"
             >
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     <div className="mb-6">
                         <h1 className="text-white text-2xl font-bold mb-2">Posts You've Liked</h1>
                         {totalLiked > 0 && (

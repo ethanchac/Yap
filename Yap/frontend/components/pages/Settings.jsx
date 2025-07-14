@@ -35,7 +35,7 @@ function Settings() {
                 ref={mainContentRef}
                 className="ml-64 h-full overflow-y-auto p-6"
             >
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     {/* Settings Header */}
                     <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
                         <div className="flex items-center space-x-3 mb-6">
