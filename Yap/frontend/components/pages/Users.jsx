@@ -77,7 +77,7 @@ function Users() {
             <Header />
             <Sidebar />
             <div className="ml-64 p-6">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-4xl mx-auto">
                     <h1 className="text-white text-2xl font-bold mb-6">Search Users</h1>
                     
                     {/* Search bar */}
@@ -92,7 +92,8 @@ function Users() {
                                 onChange={handleInputChange}
                                 placeholder="Search for users..."
                                 autoComplete="off"
-                                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
+                                style={{ backgroundColor: '#171717' }}
                             />
                         </div>
                     </div>
