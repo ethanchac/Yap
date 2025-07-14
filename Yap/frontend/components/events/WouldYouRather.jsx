@@ -318,7 +318,7 @@ export default function WouldYouRather() {
         <h2 className="text-white text-xl font-bold">Would You Rather</h2>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-colors"
+          className="px-4 py-2 bg-green-700 hover:bg-green-500 text-white rounded-lg font-bold transition-colors"
         >
           + Create
         </button>
