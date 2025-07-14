@@ -26,7 +26,7 @@ def get_would_you_rather():
 
 @activities_bp.route('/wouldyourather/create', methods=['POST', 'OPTIONS'])
 def create_would_you_rather():
-    """Create a new Would You Rather question"""
+    """Create a new Would You Rather question with only two options"""
     
     # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
@@ -47,34 +47,25 @@ def create_would_you_rather():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
-        question = data.get('question', '').strip()
         option_a = data.get('option_a', '').strip()
         option_b = data.get('option_b', '').strip()
         
-        print(f"🔍 DEBUG: Question: {question}")
         print(f"🔍 DEBUG: Option A: {option_a}")
         print(f"🔍 DEBUG: Option B: {option_b}")
         
         # Validate required fields
-        if not question or not option_a or not option_b:
-            return jsonify({'error': 'Question and both options are required'}), 400
+        if not option_a or not option_b:
+            return jsonify({'error': 'Both options are required'}), 400
         
         # Validate lengths
-        if len(question) < 10:
-            return jsonify({'error': 'Question must be at least 10 characters long'}), 400
-        
         if len(option_a) < 2 or len(option_b) < 2:
             return jsonify({'error': 'Options must be at least 2 characters long'}), 400
-        
-        if len(question) > 200:
-            return jsonify({'error': 'Question cannot exceed 200 characters'}), 400
         
         if len(option_a) > 100 or len(option_b) > 100:
             return jsonify({'error': 'Options cannot exceed 100 characters'}), 400
         
-        # Create new question document
+        # Create new question document (no question field, just options)
         new_question = {
-            'question': question,
             'option_a': option_a,
             'option_b': option_b,
             'votes_a': 0,
@@ -174,19 +165,3 @@ def delete_would_you_rather(question_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'Failed to delete question'}), 500
-class WouldYouRather:
-    def __init__(self, question, option_a, option_b, votes_a=0, votes_b=0):
-        self.question = question
-        self.option_a = option_a
-        self.option_b = option_b
-        self.votes_a = votes_a
-        self.votes_b = votes_b
-
-    def to_dict(self):
-        return {
-            'question': self.question,
-            'option_a': self.option_a,
-            'option_b': self.option_b,
-            'votes_a': self.votes_a,
-            'votes_b': self.votes_b
-        }

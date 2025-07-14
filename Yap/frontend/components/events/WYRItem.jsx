@@ -3,6 +3,7 @@ import { useState } from 'react';
 export default function WYRItem({ question, onVote, onDelete, userVote, canDelete }) {
   const [voting, setVoting] = useState(false);
   const [votingOption, setVotingOption] = useState(null);
+  const [clickedButton, setClickedButton] = useState(null);
 
   const totalVotes = question.votes_a + question.votes_b;
   const showResults = userVote;
@@ -17,6 +18,14 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
 
   const handleVote = async (option) => {
     if (userVote || voting) return;
+
+    // Set clicked button for animation
+    setClickedButton(option);
+    
+    // Reset animation after a short delay
+    setTimeout(() => {
+      setClickedButton(null);
+    }, 150);
 
     setVoting(true);
     setVotingOption(option);
@@ -34,7 +43,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
   return (
     <div className="rounded-lg p-4 border border-gray-700 mb-6" style={{ backgroundColor: '#171717' }}>
       {/* Header */}
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-6">
         <h3 className="text-white text-lg font-bold">Would You Rather</h3>
         {canDelete && (
           <button
@@ -46,44 +55,60 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
           </button>
         )}
       </div>
-      
-      {/* Question */}
-      <p className="text-white mb-6 text-center font-medium">{question.question}</p>
+
+      {/* Options Display */}
+      <div className="mb-6 space-y-3">
+        {/* Option 1 */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-black border-2 border-white flex items-center justify-center">
+            <span className="text-white text-lg font-bold">1</span>
+          </div>
+          <span className="text-white text-base">{question.option_a}</span>
+        </div>
+
+        {/* Option 2 */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-black border-2 border-white flex items-center justify-center">
+            <span className="text-white text-lg font-bold">2</span>
+          </div>
+          <span className="text-white text-base">{question.option_b}</span>
+        </div>
+      </div>
       
       {!showResults ? (
-        // Before voting - equal width side by side buttons
+        // Before voting - buttons with just numbers
         <div className="flex gap-2 mb-4">
-          {/* Option A - Green */}
+          {/* Button 1 - Green */}
           <button
-            className={`flex-1 px-4 py-4 rounded-lg font-bold transition-all transform hover:scale-105 bg-green-600 text-white hover:bg-green-500 shadow-md relative ${
+            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-150 transform hover:scale-105 bg-green-600 border-2 border-green-800 text-green-100 hover:bg-green-500 hover:border-green-700 shadow-md relative ${
               voting && votingOption === 'A' ? 'opacity-75' : ''
-            }`}
+            } ${clickedButton === 'A' ? 'scale-95' : ''}`}
             disabled={voting}
             onClick={() => handleVote('A')}
           >
             <div className="text-center">
-              <div className="text-base mb-1">{question.option_a}</div>
+              <div className="text-xl font-bold">1</div>
               {voting && votingOption === 'A' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-50 rounded-lg">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-100"></div>
                 </div>
               )}
             </div>
           </button>
 
-          {/* Option B - Red */}
+          {/* Button 2 - Red */}
           <button
-            className={`flex-1 px-4 py-4 rounded-lg font-bold transition-all transform hover:scale-105 bg-red-600 text-white hover:bg-red-500 shadow-md relative ${
+            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-150 transform hover:scale-105 bg-red-600 border-2 border-red-800 text-red-100 hover:bg-red-500 hover:border-red-700 shadow-md relative ${
               voting && votingOption === 'B' ? 'opacity-75' : ''
-            }`}
+            } ${clickedButton === 'B' ? 'scale-95' : ''}`}
             disabled={voting}
             onClick={() => handleVote('B')}
           >
             <div className="text-center">
-              <div className="text-base mb-1">{question.option_b}</div>
+              <div className="text-xl font-bold">2</div>
               {voting && votingOption === 'B' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-red-700 bg-opacity-50 rounded-lg">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-100"></div>
                 </div>
               )}
             </div>
@@ -93,7 +118,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
         // After voting - dynamic width based on percentages
         <div className="mb-4">
           <div className="flex h-16 rounded-lg overflow-hidden shadow-lg">
-            {/* Option A - Green with dynamic width */}
+            {/* Option 1 - Green with dynamic width */}
             <div 
               className={`bg-green-600 flex items-center justify-center text-white font-bold transition-all duration-700 ease-out ${
                 userVote === 'A' ? 'ring-4 ring-green-400' : ''
@@ -101,16 +126,15 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
               style={{ width: `${Math.max(percentageA, 5)}%` }}
             >
               <div className="text-center px-2">
-                <div className="text-xs mb-1 truncate">{question.option_a}</div>
                 <div className="text-base font-bold">{percentageA}%</div>
-                <div className="text-xs opacity-80">{question.votes_a} votes</div>
+                <div className="text-xs opacity-80">{question.votes_a}</div>
                 {userVote === 'A' && (
                   <div className="text-xs mt-1">✓ Your choice</div>
                 )}
               </div>
             </div>
 
-            {/* Option B - Red with dynamic width */}
+            {/* Option 2 - Red with dynamic width */}
             <div 
               className={`bg-red-600 flex items-center justify-center text-white font-bold transition-all duration-700 ease-out ${
                 userVote === 'B' ? 'ring-4 ring-red-400' : ''
@@ -118,9 +142,8 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
               style={{ width: `${Math.max(percentageB, 5)}%` }}
             >
               <div className="text-center px-2">
-                <div className="text-xs mb-1 truncate">{question.option_b}</div>
                 <div className="text-base font-bold">{percentageB}%</div>
-                <div className="text-xs opacity-80">{question.votes_b} votes</div>
+                <div className="text-xs opacity-80">{question.votes_b}</div>
                 {userVote === 'B' && (
                   <div className="text-xs mt-1">✓ Your choice</div>
                 )}
@@ -130,15 +153,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
         </div>
       )}
       
-      {/* Results Summary - only show after voting */}
-      {showResults && (
-        <div className="bg-gray-700 rounded-lg p-3">
-          <div className="text-center text-gray-300 text-sm">
-            <p className="font-semibold">Total Votes: {totalVotes}</p>
-            <p className="mt-1">You voted for: <span className="font-bold text-white">{userVote === 'A' ? question.option_a : question.option_b}</span></p>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

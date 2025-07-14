@@ -1,3 +1,4 @@
+// WouldYouRather.jsx - Clean version without debug elements
 import { useState, useEffect } from 'react';
 import WYRItem from './WYRItem';
 
@@ -10,19 +11,50 @@ export default function WouldYouRather() {
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
   
-  // Create question state
+  // Create question state - only two options now
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newQuestion, setNewQuestion] = useState({
-    question: '',
     option_a: '',
     option_b: ''
   });
   const [creating, setCreating] = useState(false);
   const [userCreatedQuestions, setUserCreatedQuestions] = useState(new Set());
 
+  // Load persisted data on component mount
   useEffect(() => {
+    // Load user votes from localStorage
+    const savedVotes = localStorage.getItem('wyr_user_votes');
+    if (savedVotes) {
+      try {
+        setUserVotes(JSON.parse(savedVotes));
+      } catch (err) {
+        console.error('Error loading saved votes:', err);
+      }
+    }
+
+    // Load user created questions from localStorage
+    const savedCreatedQuestions = localStorage.getItem('wyr_user_created');
+    if (savedCreatedQuestions) {
+      try {
+        const createdArray = JSON.parse(savedCreatedQuestions);
+        setUserCreatedQuestions(new Set(createdArray));
+      } catch (err) {
+        console.error('Error loading saved created questions:', err);
+      }
+    }
+
     fetchQuestions();
   }, []);
+
+  // Save user votes to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('wyr_user_votes', JSON.stringify(userVotes));
+  }, [userVotes]);
+
+  // Save user created questions to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('wyr_user_created', JSON.stringify([...userCreatedQuestions]));
+  }, [userCreatedQuestions]);
 
   const fetchQuestions = async () => {
     try {
@@ -36,7 +68,7 @@ export default function WouldYouRather() {
       if (Array.isArray(data) && data.length > 0) {
         setQuestions(data);
       } else {
-        setError('No questions found.');
+        setQuestions([]); // Set empty array instead of error
       }
     } catch (err) {
       console.error('Error fetching questions:', err);
@@ -49,6 +81,7 @@ export default function WouldYouRather() {
   const handleVote = async (questionId, option) => {
     // Prevent multiple votes on the same question
     if (userVotes[questionId]) {
+      console.log('User has already voted on this question');
       return;
     }
     
@@ -68,7 +101,7 @@ export default function WouldYouRather() {
       // Update the question in the list with new vote counts
       setQuestions(prev => prev.map(q => q._id === questionId ? updatedQuestion : q));
       
-      // Track that user voted on this question
+      // Track that user voted on this question (this will trigger localStorage save)
       setUserVotes(prev => ({ ...prev, [questionId]: option }));
       
     } catch (err) {
@@ -81,19 +114,19 @@ export default function WouldYouRather() {
   const handleCreateQuestion = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (!newQuestion.question.trim() || !newQuestion.option_a.trim() || !newQuestion.option_b.trim()) {
-      setError('All fields are required to create a question.');
-      return;
-    }
-
-    if (newQuestion.question.length < 10) {
-      setError('Question must be at least 10 characters long.');
+    // Validation - only need to check two options
+    if (!newQuestion.option_a.trim() || !newQuestion.option_b.trim()) {
+      setError('Both options are required.');
       return;
     }
 
     if (newQuestion.option_a.length < 2 || newQuestion.option_b.length < 2) {
       setError('Options must be at least 2 characters long.');
+      return;
+    }
+
+    if (newQuestion.option_a.length > 100 || newQuestion.option_b.length > 100) {
+      setError('Options cannot exceed 100 characters.');
       return;
     }
 
@@ -105,7 +138,6 @@ export default function WouldYouRather() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: newQuestion.question.trim(),
           option_a: newQuestion.option_a.trim(),
           option_b: newQuestion.option_b.trim()
         }),
@@ -120,11 +152,11 @@ export default function WouldYouRather() {
       // Add the new question to the beginning of the list (like posts)
       setQuestions(prev => [createdQuestion, ...prev]);
       
-      // Track that this user created this question
+      // Track that this user created this question (this will trigger localStorage save)
       setUserCreatedQuestions(prev => new Set([...prev, createdQuestion._id]));
       
       // Reset form
-      setNewQuestion({ question: '', option_a: '', option_b: '' });
+      setNewQuestion({ option_a: '', option_b: '' });
       setShowCreateForm(false);
       
     } catch (err) {
@@ -136,7 +168,7 @@ export default function WouldYouRather() {
   };
 
   const resetCreateForm = () => {
-    setNewQuestion({ question: '', option_a: '', option_b: '' });
+    setNewQuestion({ option_a: '', option_b: '' });
     setShowCreateForm(false);
     setError('');
   };
@@ -168,6 +200,13 @@ export default function WouldYouRather() {
         return newVotes;
       });
 
+      // Remove from user created questions
+      setUserCreatedQuestions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(questionId);
+        return newSet;
+      });
+
     } catch (err) {
       console.error('Error deleting question:', err);
       setError('Failed to delete question. Please try again.');
@@ -181,7 +220,7 @@ export default function WouldYouRather() {
     return (
       <div className="rounded-lg p-4 border border-gray-700" style={{ backgroundColor: '#171717' }}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-white text-lg font-bold">Create Would You Rather Question</h3>
+          <h3 className="text-white text-lg font-bold">Create Would You Rather</h3>
           <button
             onClick={resetCreateForm}
             className="text-gray-400 hover:text-white transition-colors"
@@ -191,31 +230,17 @@ export default function WouldYouRather() {
         </div>
 
         <form onSubmit={handleCreateQuestion} className="space-y-4">
-          <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">Question *</label>
-            <input
-              type="text"
-              value={newQuestion.question}
-              onChange={(e) => setNewQuestion(prev => ({ ...prev, question: e.target.value }))}
-              placeholder="Would you rather..."
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              maxLength={200}
-              disabled={creating}
-            />
-            <div className="text-xs text-gray-400 mt-1">
-              {newQuestion.question.length}/200 characters
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">Option A *</label>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                Option A *
+              </label>
               <input
                 type="text"
                 value={newQuestion.option_a}
                 onChange={(e) => setNewQuestion(prev => ({ ...prev, option_a: e.target.value }))}
                 placeholder="First option"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
                 maxLength={100}
                 disabled={creating}
               />
@@ -225,13 +250,15 @@ export default function WouldYouRather() {
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">Option B *</label>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                Option B *
+              </label>
               <input
                 type="text"
                 value={newQuestion.option_b}
                 onChange={(e) => setNewQuestion(prev => ({ ...prev, option_b: e.target.value }))}
                 placeholder="Second option"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                 maxLength={100}
                 disabled={creating}
               />
@@ -250,7 +277,7 @@ export default function WouldYouRather() {
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
-              disabled={creating || !newQuestion.question.trim() || !newQuestion.option_a.trim() || !newQuestion.option_b.trim()}
+              disabled={creating || !newQuestion.option_a.trim() || !newQuestion.option_b.trim()}
               className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-colors"
             >
               {creating ? 'Creating...' : 'Create Question'}
@@ -293,7 +320,7 @@ export default function WouldYouRather() {
           onClick={() => setShowCreateForm(true)}
           className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-colors"
         >
-          + Create Question
+          + Create
         </button>
       </div>
 
