@@ -351,7 +351,7 @@ const Profile = () => {
         ref={mainContentRef}
         className="ml-64 h-full overflow-y-auto p-6"
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Profile Header */}
           <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
             <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-6">
@@ -561,8 +561,8 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* FriendList Component - Added here between profile header and recent posts */}
-          <FriendList userId={userId} isOwnProfile={isOwnProfile} />
+          {/* FriendList Component - Only show for own profile */}
+          {isOwnProfile && <FriendList userId={userId} isOwnProfile={isOwnProfile} />}
 
           {/* Recent Posts */}
           {profile.recent_posts && profile.recent_posts.length > 0 && (
