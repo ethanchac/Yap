@@ -7,7 +7,7 @@ import Create from './components/pages/Create.jsx';
 import Users from './components/pages/Users.jsx';
 import Messages from './components/pages/Messages.jsx';
 import Likes from './components/pages/profile/Likes.jsx';
-import Waypoint from './components/pages/Waypoint.jsx';
+import Waypoint from './components/pages/waypoint/Waypoint.jsx';
 import Profile from './components/pages/profile/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
 import Feedback from './components/pages/Feedback.jsx';

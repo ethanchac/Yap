@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 waypoint_bp = Blueprint('waypoint', __name__)
 
-@waypoints_bp.route('/create', methods=['POST'])
+@waypoint_bp.route('/create', methods=['POST'])
 @token_required
 def create_waypoint(current_user):
     """Create a new waypoint"""
@@ -78,7 +78,7 @@ def create_waypoint(current_user):
         print(f"Error creating waypoint: {e}")
         return jsonify({"error": "Failed to create waypoint"}), 500
 
-@waypoints_bp.route('/nearby', methods=['GET'])
+@waypoint_bp.route('/nearby', methods=['GET'])
 def get_nearby_waypoints():
     """Get waypoints near a location - PUBLIC route"""
     try:
@@ -123,7 +123,7 @@ def get_nearby_waypoints():
         print(f"Error getting nearby waypoints: {e}")
         return jsonify({"error": "Failed to get waypoints"}), 500
 
-@waypoints_bp.route('/<waypoint_id>', methods=['GET'])
+@waypoint_bp.route('/<waypoint_id>', methods=['GET'])
 def get_waypoint(waypoint_id):
     """Get a single waypoint - PUBLIC route"""
     try:
@@ -144,7 +144,7 @@ def get_waypoint(waypoint_id):
         print(f"Error getting waypoint: {e}")
         return jsonify({"error": "Failed to get waypoint"}), 500
 
-@waypoints_bp.route('/<waypoint_id>/join', methods=['POST'])
+@waypoint_bp.route('/<waypoint_id>/join', methods=['POST'])
 @token_required
 def join_waypoint(current_user, waypoint_id):
     """Join or leave a waypoint"""
@@ -161,7 +161,7 @@ def join_waypoint(current_user, waypoint_id):
         print(f"Error joining waypoint: {e}")
         return jsonify({"error": "Failed to join waypoint"}), 500
 
-@waypoints_bp.route('/<waypoint_id>/like', methods=['POST'])
+@waypoint_bp.route('/<waypoint_id>/like', methods=['POST'])
 @token_required
 def like_waypoint(current_user, waypoint_id):
     """Like or unlike a waypoint"""
@@ -178,7 +178,7 @@ def like_waypoint(current_user, waypoint_id):
         print(f"Error liking waypoint: {e}")
         return jsonify({"error": "Failed to like waypoint"}), 500
 
-@waypoints_bp.route('/<waypoint_id>', methods=['DELETE'])
+@waypoint_bp.route('/<waypoint_id>', methods=['DELETE'])
 @token_required
 def delete_waypoint(current_user, waypoint_id):
     """Delete a waypoint"""
@@ -195,7 +195,7 @@ def delete_waypoint(current_user, waypoint_id):
         print(f"Error deleting waypoint: {e}")
         return jsonify({"error": "Failed to delete waypoint"}), 500
 
-@waypoints_bp.route('/user/<user_id>', methods=['GET'])
+@waypoint_bp.route('/user/<user_id>', methods=['GET'])
 def get_user_waypoints(user_id):
     """Get waypoints created by a user - PUBLIC route"""
     try:
@@ -217,7 +217,7 @@ def get_user_waypoints(user_id):
         print(f"Error getting user waypoints: {e}")
         return jsonify({"error": "Failed to get user waypoints"}), 500
 
-@waypoints_bp.route('/my-waypoints', methods=['GET'])
+@waypoint_bp.route('/my-waypoints', methods=['GET'])
 @token_required
 def get_my_waypoints(current_user):
     """Get current user's waypoints"""
@@ -243,7 +243,7 @@ def get_my_waypoints(current_user):
         print(f"Error getting my waypoints: {e}")
         return jsonify({"error": "Failed to get your waypoints"}), 500
 
-@waypoints_bp.route('/campus/tmu', methods=['GET'])
+@waypoint_bp.route('/campus/tmu', methods=['GET'])
 def get_tmu_waypoints():
     """Get waypoints specifically around TMU campus"""
     try:
@@ -276,7 +276,7 @@ def get_tmu_waypoints():
         print(f"Error getting TMU waypoints: {e}")
         return jsonify({"error": "Failed to get campus waypoints"}), 500
 
-@waypoints_bp.route('/types', methods=['GET'])
+@waypoint_bp.route('/types', methods=['GET'])
 def get_waypoint_types():
     """Get available waypoint types"""
     types = [
