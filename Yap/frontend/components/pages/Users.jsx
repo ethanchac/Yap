@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // Add this import
 import Sidebar from '../sidebar/Sidebar';
 import Header from '../header/Header'
 
 function Users() {
+    const navigate = useNavigate(); // Add this hook
     const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -50,9 +52,8 @@ function Users() {
     };
 
     const handleUserClick = (userId) => {
-        // goes to the profile page
-        // navigate(`/profile/${userId}`);
-        console.log('Navigate to profile:', userId);
+        // Actually navigate to the profile page
+        navigate(`/profile/${userId}`);
     };
 
     const formatDate = (dateString) => {
@@ -66,10 +67,12 @@ function Users() {
             if (user.profile_picture.startsWith('http')) {
                 return user.profile_picture;
             }
-            return `http://localhost:5000/uploads/profile_pictures/${user.profile_picture}`;
+            // Match the path from your Flask API routes
+            return `http://localhost:5000/uploads/profile_pictures/${user._id}/${user.profile_picture}`;
         }
-        // Default profile picture
-        return "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
+        // Default profile picture with user's initial
+        const initial = user.username ? user.username[0].toUpperCase() : '?';
+        return `data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='24' fill='%23e0e0e0'/%3E%3Ccircle cx='24' cy='18' r='8' fill='%23bdbdbd'/%3E%3Cellipse cx='24' cy='42' rx='16' ry='12' fill='%23bdbdbd'/%3E%3C/svg%3E`;
     };
 
     return (
@@ -77,7 +80,7 @@ function Users() {
             <Header />
             <Sidebar />
             <div className="ml-64 p-6">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     <h1 className="text-white text-2xl font-bold mb-6">Search Users</h1>
                     
                     {/* Search bar */}
@@ -92,15 +95,35 @@ function Users() {
                                 onChange={handleInputChange}
                                 placeholder="Search for users..."
                                 autoComplete="off"
-                                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
+                                style={{ backgroundColor: '#171717' }}
                             />
                         </div>
                     </div>
 
-                    {/* Loading state */}
+                    {/* Loading state with skeleton cards */}
                     {loading && (
-                        <div className="text-center py-8">
-                            <p className="text-gray-400">Searching...</p>
+                        <div className="space-y-4">
+                            <h3 className="text-white text-lg font-bold">Searching...</h3>
+                            <div className="space-y-3">
+                                {[...Array(3)].map((_, index) => (
+                                    <div 
+                                        key={index}
+                                        className="rounded-lg p-4 animate-pulse"
+                                        style={{backgroundColor: '#171717'}}
+                                    >
+                                        <div className="flex items-center space-x-4">
+                                            <div className="w-12 h-12 bg-gray-600 rounded-full"></div>
+                                            <div className="flex-1">
+                                                <div className="h-4 bg-gray-600 rounded w-32 mb-2"></div>
+                                                <div className="h-3 bg-gray-700 rounded w-48 mb-1"></div>
+                                                <div className="h-3 bg-gray-700 rounded w-24"></div>
+                                            </div>
+                                            <div className="w-24 h-8 bg-gray-600 rounded"></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 
@@ -146,9 +169,10 @@ function Users() {
                                                 src={getProfilePictureUrl(user)}
                                                 alt={`${user.username}'s profile`}
                                                 onError={(e) => {
-                                                    e.target.src = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";
+                                                    // Fallback to the same default as other components
+                                                    e.target.src = "data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='24' fill='%23e0e0e0'/%3E%3Ccircle cx='24' cy='18' r='8' fill='%23bdbdbd'/%3E%3Cellipse cx='24' cy='42' rx='16' ry='12' fill='%23bdbdbd'/%3E%3C/svg%3E";
                                                 }}
-                                                className="w-12 h-12 rounded-full object-cover"
+                                                className="w-12 h-12 rounded-full object-cover border-2 border-gray-600 hover:border-gray-500 transition-colors"
                                             />
                                             
                                             <div className="flex-1">

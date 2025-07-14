@@ -1,7 +1,8 @@
-import Header from '../header/Header';
-import Sidebar from '../sidebar/Sidebar';
-import PostItem from '../posts/PostItem';
-import Program from '../profile/Program';
+import Header from '../../header/Header';
+import Sidebar from '../../sidebar/Sidebar';
+import PostItem from '../../posts/PostItem';
+import Program from './Program';
+import FriendList from './FriendList'; // Add this import
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap } from 'lucide-react';
@@ -350,7 +351,7 @@ const Profile = () => {
         ref={mainContentRef}
         className="ml-64 h-full overflow-y-auto p-6"
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Profile Header */}
           <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
             <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-6">
@@ -559,6 +560,9 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          {/* FriendList Component - Only show for own profile */}
+          {isOwnProfile && <FriendList userId={userId} isOwnProfile={isOwnProfile} />}
 
           {/* Recent Posts */}
           {profile.recent_posts && profile.recent_posts.length > 0 && (

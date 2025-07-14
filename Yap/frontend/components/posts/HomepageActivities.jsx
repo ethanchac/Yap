@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import WouldYouRather from "../events/WouldYouRather";
 
 function PlaceholderActivity({ title }) {
     return (
-        <div className="flex flex-col items-center justify-center h-80 rounded-lg bg-gray-800 text-gray-400 font-bold text-xl shadow-md w-full">
+        <div className="flex flex-col items-center justify-center h-80 rounded-lg text-gray-400 font-bold text-xl shadow-md w-full" style={{ backgroundColor: '#171717' }}>
             <span>{title}</span>
             <span className="mt-2 text-sm">(Coming soon)</span>
         </div>
@@ -12,24 +12,57 @@ function PlaceholderActivity({ title }) {
 
 const activities = [
     {
-        key: "placeholder1",
-        component: <PlaceholderActivity title="Activity 1" />,
-    },
-    {
         key: "wouldyourather",
         component: <WouldYouRather />,
     },
     {
-        key: "placeholder2",
+        key: "placeholder1",
         component: <PlaceholderActivity title="Activity 2" />,
+    },
+    {
+        key: "placeholder2",
+        component: <PlaceholderActivity title="Activity 3" />,
     },
 ];
 
 function HomepageActivities() {
-    const [current, setCurrent] = useState(1); // Start on WouldYouRather
-    const [prev, setPrev] = useState(1);
+    const [current, setCurrent] = useState(0); // Start on WouldYouRather (now index 0)
+    const [prev, setPrev] = useState(0);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [containerHeight, setContainerHeight] = useState(320);
     const timeoutRef = useRef(null);
+    const containerRef = useRef(null);
+
+    // Update container height when current activity changes or content changes
+    useEffect(() => {
+        const updateHeight = () => {
+            if (containerRef.current) {
+                const currentActivity = containerRef.current.querySelector(`[data-activity="${current}"]`);
+                if (currentActivity) {
+                    const height = currentActivity.scrollHeight;
+                    setContainerHeight(Math.max(height, 320)); // Minimum 320px
+                }
+            }
+        };
+
+        updateHeight();
+
+        // Use ResizeObserver to detect content changes
+        const resizeObserver = new ResizeObserver(() => {
+            updateHeight();
+        });
+
+        if (containerRef.current) {
+            const currentActivity = containerRef.current.querySelector(`[data-activity="${current}"]`);
+            if (currentActivity) {
+                resizeObserver.observe(currentActivity);
+            }
+        }
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [current, isAnimating]);
 
     const handleDotClick = (idx) => {
         if (idx === current) return;
@@ -40,44 +73,29 @@ function HomepageActivities() {
         timeoutRef.current = setTimeout(() => setIsAnimating(false), 400);
     };
 
-    const direction = current > prev ? 1 : -1;
-
     return (
         <div className="relative w-full">
-            <div className="overflow-hidden w-full h-80">
+            <div 
+                ref={containerRef}
+                className="overflow-hidden w-full transition-all duration-400 ease-in-out"
+                style={{ height: `${containerHeight}px` }}
+            >
                 <div
-                    className={`flex w-full h-80`}
+                    className="flex w-full"
                     style={{
-                        position: 'relative',
-                        height: '100%',
+                        transform: `translateX(-${current * 100}%)`,
+                        transition: isAnimating ? 'transform 400ms ease-in-out' : 'none',
                     }}
                 >
-                    {activities.map((activity, idx) => {
-                        let translate = 0;
-                        if (idx === current) {
-                            translate = 0;
-                        } else if (idx < current) {
-                            translate = -100;
-                        } else {
-                            translate = 100;
-                        }
-                        // Animate only current and previous
-                        const isActive = idx === current || idx === prev;
-                        return isActive ? (
-                            <div
-                                key={activity.key}
-                                className="absolute top-0 left-0 w-full h-full transition-transform duration-400 ease-in-out"
-                                style={{
-                                    transform: isAnimating
-                                        ? `translateX(${(idx - current) * 100}%)`
-                                        : `translateX(${translate}%)`,
-                                    zIndex: idx === current ? 2 : 1,
-                                }}
-                            >
-                                {activity.component}
-                            </div>
-                        ) : null;
-                    })}
+                    {activities.map((activity, idx) => (
+                        <div
+                            key={activity.key}
+                            data-activity={idx}
+                            className="w-full flex-shrink-0"
+                        >
+                            {activity.component}
+                        </div>
+                    ))}
                 </div>
             </div>
             <div className="flex justify-center mt-4 space-x-2">
