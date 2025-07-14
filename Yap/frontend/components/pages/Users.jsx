@@ -80,7 +80,7 @@ function Users() {
             <Header />
             <Sidebar />
             <div className="ml-64 p-6">
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     <h1 className="text-white text-2xl font-bold mb-6">Search Users</h1>
                     
                     {/* Search bar */}
