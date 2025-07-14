@@ -25,7 +25,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
     // Reset animation after a short delay
     setTimeout(() => {
       setClickedButton(null);
-    }, 150);
+    }, 400);
 
     setVoting(true);
     setVotingOption(option);
@@ -80,7 +80,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
         <div className="flex gap-2 mb-4">
           {/* Button 1 - Green */}
           <button
-            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-150 transform hover:scale-105 bg-green-600 border-2 border-green-800 text-green-100 hover:bg-green-500 hover:border-green-700 shadow-md relative ${
+            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-green-600 border-2 border-green-800 text-green-100 hover:bg-green-500 hover:border-green-700 shadow-md relative ${
               voting && votingOption === 'A' ? 'opacity-75' : ''
             } ${clickedButton === 'A' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -98,7 +98,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
 
           {/* Button 2 - Red */}
           <button
-            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-150 transform hover:scale-105 bg-red-600 border-2 border-red-800 text-red-100 hover:bg-red-500 hover:border-red-700 shadow-md relative ${
+            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-red-600 border-2 border-red-800 text-red-100 hover:bg-red-500 hover:border-red-700 shadow-md relative ${
               voting && votingOption === 'B' ? 'opacity-75' : ''
             } ${clickedButton === 'B' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -152,7 +152,6 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
           </div>
         </div>
       )}
-      
       
     </div>
   );
