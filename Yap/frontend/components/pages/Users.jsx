@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // Add this import
 import Sidebar from '../sidebar/Sidebar';
 import Header from '../header/Header'
 
 function Users() {
+    const navigate = useNavigate(); // Add this hook
     const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -50,9 +52,8 @@ function Users() {
     };
 
     const handleUserClick = (userId) => {
-        // goes to the profile page
-        // navigate(`/profile/${userId}`);
-        console.log('Navigate to profile:', userId);
+        // Actually navigate to the profile page
+        navigate(`/profile/${userId}`);
     };
 
     const formatDate = (dateString) => {
