@@ -312,11 +312,7 @@ export default function WouldYouRather() {
   }
 
   return (
-<<<<<<< HEAD
-    <div>
-=======
     <div className="rounded-lg p-4 bg-[#171717] flex flex-col">
->>>>>>> cd4d5f5e74e5f75fa382e76197f7caf1e6b5d93f
       {/* Header with Create Button */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-white text-xl font-bold">Would You Rather</h2>
