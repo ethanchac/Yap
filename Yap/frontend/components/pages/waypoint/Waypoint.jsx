@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../../sidebar/Sidebar.jsx';
-import { MapPin, Users, Clock, Plus, AlertCircle } from 'lucide-react';
+import WaypointModal from './WaypointModal.jsx';
+import { MapPin, Users, Clock, Plus, AlertCircle, RefreshCw, Target, X } from 'lucide-react';
 
 // Import Leaflet components directly
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
@@ -18,64 +19,165 @@ L.Icon.Default.mergeOptions({
 });
 
 function Waypoint() {
-    const [pins, setPins] = useState([]);
+    const [waypoints, setWaypoints] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newPinLocation, setNewPinLocation] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [placementMode, setPlacementMode] = useState(false);
 
     // TMU Campus coordinates
     const TMU_COORDS = [43.6577, -79.3788];
     const ZOOM_LEVEL = 16;
+    const API_BASE_URL = 'http://localhost:5000';
 
-    // Load sample data
-    useEffect(() => {
-        const samplePins = [
-            {
-                id: 1,
-                coords: [43.6580, -79.3785],
-                title: "Free Pizza Here! 🍕",
-                description: "Pizza party in the student center - come grab a slice!",
-                type: "food",
-                time: "2 hours ago",
-                author: "StudentCouncil",
-                active: true
-            },
-            {
-                id: 2,
-                coords: [43.6574, -79.3792],
-                title: "Quiet Study Spot 📚",
-                description: "Perfect corner in the library, very quiet with good wifi",
-                type: "study",
-                time: "30 minutes ago",
-                author: "StudyBuddy",
-                active: true
-            },
-            {
-                id: 3,
-                coords: [43.6582, -79.3780],
-                title: "Math Study Group 👥",
-                description: "Calculus study group, all levels welcome!",
-                type: "group",
-                time: "1 hour ago",
-                author: "MathWiz",
-                active: true
+    // Get auth headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        };
+    };
+
+    // Fetch waypoints from API
+    const fetchWaypoints = async () => {
+        try {
+            setError(null);
+            
+            const response = await fetch(`${API_BASE_URL}/waypoint/campus/tmu?radius=2`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch waypoints');
             }
-        ];
-        setPins(samplePins);
+
+            const data = await response.json();
+            
+            // Transform API data to match our component format
+            const transformedWaypoints = data.waypoints.map(waypoint => ({
+                id: waypoint._id,
+                coords: [waypoint.latitude, waypoint.longitude],
+                title: waypoint.title,
+                description: waypoint.description,
+                type: waypoint.type,
+                time: waypoint.time_ago || 'recently',
+                author: waypoint.username,
+                active: true,
+                interactions: waypoint.interactions || { likes: 0, joins: 0 },
+                distance_km: waypoint.distance_km
+            }));
+
+            setWaypoints(transformedWaypoints);
+            console.log(`✅ Loaded ${transformedWaypoints.length} waypoints`);
+            
+        } catch (err) {
+            console.error('Error fetching waypoints:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    // Create waypoint via API
+    const createWaypoint = async (waypointData) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/waypoint/create`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    title: waypointData.title,
+                    description: waypointData.description,
+                    type: waypointData.type,
+                    latitude: newPinLocation.lat,
+                    longitude: newPinLocation.lng,
+                    expires_in_hours: 24 // Optional: expire after 24 hours
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create waypoint');
+            }
+
+            const data = await response.json();
+            console.log('✅ Waypoint created successfully:', data.waypoint);
+
+            // Refresh waypoints to show the new one
+            fetchWaypoints();
+            
+            setShowCreateModal(false);
+            setNewPinLocation(null);
+            setPlacementMode(false); // Exit placement mode after creating
+
+        } catch (err) {
+            console.error('Error creating waypoint:', err);
+            setError(err.message);
+        }
+    };
+
+    // Join waypoint
+    const joinWaypoint = async (waypointId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/waypoint/${waypointId}/join`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to join waypoint');
+            }
+
+            const data = await response.json();
+            console.log('✅ Join status updated:', data);
+
+            // Refresh waypoints to update join count
+            fetchWaypoints();
+
+        } catch (err) {
+            console.error('Error joining waypoint:', err);
+            alert(err.message);
+        }
+    };
+
+    // Manual refresh
+    const handleRefresh = () => {
+        setRefreshing(true);
+        fetchWaypoints();
+    };
+
+    // Toggle placement mode
+    const togglePlacementMode = () => {
+        setPlacementMode(!placementMode);
+        if (placementMode) {
+            // If turning off placement mode, clear any pending location
+            setNewPinLocation(null);
+            setShowCreateModal(false);
+        }
+    };
+
+    // Load waypoints on component mount
+    useEffect(() => {
+        fetchWaypoints();
+    }, []);
+
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            console.log('🔄 Auto-refreshing waypoints...');
+            fetchWaypoints();
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
     }, []);
 
     const handleCreatePin = (pinData) => {
-        const newPin = {
-            id: Date.now(),
-            coords: [newPinLocation.lat, newPinLocation.lng],
-            ...pinData,
-            time: "just now",
-            author: "You", // Replace with actual user
-            active: true
-        };
-        
-        setPins(prev => [...prev, newPin]);
-        setShowCreateModal(false);
-        setNewPinLocation(null);
+        createWaypoint(pinData);
     };
 
     // Custom icons for different pin types
@@ -85,6 +187,8 @@ function Waypoint() {
                 case 'food': return '#f59e0b';
                 case 'study': return '#3b82f6';
                 case 'group': return '#10b981';
+                case 'social': return '#8b5cf6';
+                case 'event': return '#ef4444';
                 default: return '#6b7280';
             }
         };
@@ -94,6 +198,8 @@ function Waypoint() {
                 case 'food': return '🍕';
                 case 'study': return '📚';
                 case 'group': return '👥';
+                case 'social': return '🎉';
+                case 'event': return '📅';
                 default: return '📍';
             }
         };
@@ -152,11 +258,32 @@ function Waypoint() {
     function MapClickHandler() {
         useMapEvents({
             click: (e) => {
-                setNewPinLocation(e.latlng);
-                setShowCreateModal(true);
+                // Only allow waypoint creation if in placement mode
+                if (placementMode) {
+                    setNewPinLocation(e.latlng);
+                    setShowCreateModal(true);
+                }
             }
         });
         return null;
+    }
+
+    // Loading state
+    if (loading) {
+        return (
+            <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+                <Sidebar />
+                <div className="ml-64 h-full overflow-y-auto p-6">
+                    <div className="max-w-full mx-auto h-full flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
+                            <h2 className="text-white text-xl font-bold mb-2">Loading Waypoints...</h2>
+                            <p className="text-gray-400">Fetching campus community data</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -175,12 +302,66 @@ function Waypoint() {
                                 </div>
                             </div>
                             <div className="flex items-center space-x-3">
+                                {/* Placement Mode Toggle */}
+                                <button
+                                    onClick={togglePlacementMode}
+                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all transform hover:scale-105 ${
+                                        placementMode 
+                                            ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25' 
+                                            : 'bg-gray-700 hover:bg-gray-600 text-white'
+                                    }`}
+                                >
+                                    {placementMode ? (
+                                        <>
+                                            <X className="w-4 h-4" />
+                                            <span>Cancel Placement</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Target className="w-4 h-4" />
+                                            <span>Place Waypoint</span>
+                                        </>
+                                    )}
+                                </button>
+
+                                <button
+                                    onClick={handleRefresh}
+                                    disabled={refreshing}
+                                    className="flex items-center space-x-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                                    <span>Refresh</span>
+                                </button>
+                                
                                 <div className="text-right text-sm text-gray-400">
-                                    <div>📍 Click anywhere to add a waypoint</div>
-                                    <div>🗺️ {pins.length} active waypoints</div>
+                                    <div>
+                                        {placementMode ? (
+                                            <span className="text-orange-400 font-semibold">🎯 Click map to place waypoint</span>
+                                        ) : (
+                                            <span>📍 Enable placement mode to add waypoints</span>
+                                        )}
+                                    </div>
+                                    <div>🗺️ {waypoints.length} active waypoints</div>
                                 </div>
                             </div>
                         </div>
+
+
+                        {/* Error Banner */}
+                        {error && (
+                            <div className="mt-4 p-3 bg-red-900 border border-red-600 rounded-lg">
+                                <div className="flex items-center space-x-2">
+                                    <AlertCircle className="w-5 h-5 text-red-400" />
+                                    <span className="text-red-200">{error}</span>
+                                    <button 
+                                        onClick={() => setError(null)}
+                                        className="ml-auto text-red-400 hover:text-red-300"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Map Container */}
@@ -188,7 +369,12 @@ function Waypoint() {
                         <MapContainer
                             center={TMU_COORDS}
                             zoom={ZOOM_LEVEL}
-                            style={{ height: '100%', width: '100%', minHeight: '600px' }}
+                            style={{ 
+                                height: '100%', 
+                                width: '100%', 
+                                minHeight: '600px',
+                                cursor: placementMode ? 'crosshair' : 'grab'
+                            }}
                             zoomControl={true}
                             scrollWheelZoom={true}
                         >
@@ -211,11 +397,11 @@ function Waypoint() {
                             </Marker>
 
                             {/* Waypoint Markers */}
-                            {pins.map((pin) => (
+                            {waypoints.map((waypoint) => (
                                 <Marker 
-                                    key={pin.id} 
-                                    position={pin.coords} 
-                                    icon={createCustomIcon(pin.type)}
+                                    key={waypoint.id} 
+                                    position={waypoint.coords} 
+                                    icon={createCustomIcon(waypoint.type)}
                                 >
                                     <Popup maxWidth={250}>
                                         <div style={{ fontFamily: 'Albert Sans, sans-serif', minWidth: '200px' }}>
@@ -225,7 +411,7 @@ function Waypoint() {
                                                 fontSize: '16px',
                                                 fontWeight: 'bold'
                                             }}>
-                                                {pin.title}
+                                                {waypoint.title}
                                             </h3>
                                             <p style={{ 
                                                 margin: '0 0 12px 0', 
@@ -233,27 +419,37 @@ function Waypoint() {
                                                 fontSize: '14px',
                                                 lineHeight: '1.4'
                                             }}>
-                                                {pin.description}
+                                                {waypoint.description}
                                             </p>
                                             <div style={{ 
                                                 fontSize: '12px', 
                                                 color: '#9ca3af',
                                                 marginBottom: '12px'
                                             }}>
-                                                <div style={{ marginBottom: '4px' }}>📅 {pin.time}</div>
-                                                <div>👤 {pin.author}</div>
+                                                <div style={{ marginBottom: '4px' }}>📅 {waypoint.time}</div>
+                                                <div style={{ marginBottom: '4px' }}>👤 {waypoint.author}</div>
+                                                {waypoint.distance_km && (
+                                                    <div style={{ marginBottom: '4px' }}>📍 {waypoint.distance_km}km away</div>
+                                                )}
+                                                <div className="flex items-center space-x-3 mt-2">
+                                                    <span>👍 {waypoint.interactions?.likes || 0}</span>
+                                                    <span>🤝 {waypoint.interactions?.joins || 0}</span>
+                                                </div>
                                             </div>
-                                            <button style={{
-                                                padding: '6px 12px',
-                                                backgroundColor: '#f59e0b',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '6px',
-                                                fontSize: '12px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer',
-                                                width: '100%'
-                                            }}>
+                                            <button 
+                                                onClick={() => joinWaypoint(waypoint.id)}
+                                                style={{
+                                                    padding: '6px 12px',
+                                                    backgroundColor: '#f59e0b',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    fontSize: '12px',
+                                                    fontWeight: 'bold',
+                                                    cursor: 'pointer',
+                                                    width: '100%'
+                                                }}
+                                            >
                                                 Join Waypoint
                                             </button>
                                         </div>
@@ -281,6 +477,14 @@ function Waypoint() {
                                     <span>👥</span>
                                     <span className="text-gray-700">Groups & Social</span>
                                 </div>
+                                <div className="flex items-center space-x-2">
+                                    <span>🎉</span>
+                                    <span className="text-gray-700">Social Events</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <span>📅</span>
+                                    <span className="text-gray-700">Events</span>
+                                </div>
                             </div>
                         </div>
 
@@ -289,110 +493,39 @@ function Waypoint() {
                             <div className="flex items-center space-x-4 text-sm">
                                 <div className="flex items-center space-x-1">
                                     <Users className="w-4 h-4" />
-                                    <span>{pins.length} pins</span>
+                                    <span>{waypoints.length} active</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <Clock className="w-4 h-4" />
                                     <span>Live updates</span>
                                 </div>
+                                {placementMode && (
+                                    <div className="flex items-center space-x-1">
+                                        <Target className="w-4 h-4 text-orange-400" />
+                                        <span className="text-orange-400">Placement mode</span>
+                                    </div>
+                                )}
+                                {refreshing && (
+                                    <div className="flex items-center space-x-1">
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        <span>Updating...</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Create Pin Modal */}
-                    {showCreateModal && (
-                        <CreatePinModal 
-                            onClose={() => setShowCreateModal(false)}
-                            onSubmit={handleCreatePin}
-                            location={newPinLocation}
-                        />
-                    )}
+                    {/* Waypoint Modal */}
+                    <WaypointModal
+                        isOpen={showCreateModal}
+                        onClose={() => {
+                            setShowCreateModal(false);
+                            setNewPinLocation(null);
+                        }}
+                        onSubmit={handleCreatePin}
+                        location={newPinLocation}
+                    />
                 </div>
-            </div>
-        </div>
-    );
-}
-
-// Simple Create Pin Modal Component
-function CreatePinModal({ onClose, onSubmit, location }) {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [type, setType] = useState('food');
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (title.trim() && description.trim()) {
-            onSubmit({ title, description, type });
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[2000]">
-            <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Create Waypoint</h2>
-                <p className="text-sm text-gray-600 mb-4">
-                    📍 {location?.lat.toFixed(4)}, {location?.lng.toFixed(4)}
-                </p>
-                
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
-                            Type
-                        </label>
-                        <select 
-                            value={type} 
-                            onChange={(e) => setType(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-orange-500"
-                        >
-                            <option value="food">🍕 Food & Events</option>
-                            <option value="study">📚 Study Spot</option>
-                            <option value="group">👥 Group & Social</option>
-                        </select>
-                    </div>
-                    
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
-                            Title
-                        </label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="e.g., Free coffee here!"
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-orange-500"
-                            required
-                        />
-                    </div>
-                    
-                    <div className="mb-6">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
-                            Description
-                        </label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Tell others what's happening here..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-orange-500 h-20 resize-none"
-                            required
-                        />
-                    </div>
-                    
-                    <div className="flex space-x-3">
-                        <button
-                            type="submit"
-                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition-colors"
-                        >
-                            Create Waypoint
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     );
