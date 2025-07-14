@@ -1,4 +1,4 @@
-// WouldYouRather.jsx - Clean version without debug elements
+// WouldYouRather.jsx - Fixed version without height constraints
 import { useState, useEffect } from 'react';
 import WYRItem from './WYRItem';
 
@@ -312,7 +312,7 @@ export default function WouldYouRather() {
   }
 
   return (
-    <div className="rounded-lg p-4 h-80 min-h-80 bg-[#171717] flex flex-col">
+    <div className="rounded-lg p-4 bg-[#171717] flex flex-col">
       {/* Header with Create Button */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-white text-xl font-bold">Would You Rather</h2>
