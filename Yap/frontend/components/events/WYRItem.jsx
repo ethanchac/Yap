@@ -80,7 +80,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
         <div className="flex gap-2 mb-4">
           {/* Button 1 - Green */}
           <button
-            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-green-600 border-2 border-green-800 text-green-100 hover:bg-green-500 hover:border-green-700 shadow-md relative ${
+            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-green-700 border-2 border-green-900 text-green-100 hover:bg-green-600 hover:border-green-800 shadow-md relative ${
               voting && votingOption === 'A' ? 'opacity-75' : ''
             } ${clickedButton === 'A' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -89,7 +89,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
             <div className="text-center">
               <div className="text-xl font-bold">1</div>
               {voting && votingOption === 'A' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-50 rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-green-800 bg-opacity-50 rounded-lg">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-100"></div>
                 </div>
               )}
@@ -98,7 +98,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
 
           {/* Button 2 - Red */}
           <button
-            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-red-600 border-2 border-red-800 text-red-100 hover:bg-red-500 hover:border-red-700 shadow-md relative ${
+            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-red-700 border-2 border-red-900 text-red-100 hover:bg-red-600 hover:border-red-800 shadow-md relative ${
               voting && votingOption === 'B' ? 'opacity-75' : ''
             } ${clickedButton === 'B' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -107,7 +107,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
             <div className="text-center">
               <div className="text-xl font-bold">2</div>
               {voting && votingOption === 'B' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-red-700 bg-opacity-50 rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-red-800 bg-opacity-50 rounded-lg">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-100"></div>
                 </div>
               )}
@@ -120,7 +120,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
           <div className="flex h-16 rounded-lg overflow-hidden shadow-lg">
             {/* Option 1 - Green with dynamic width */}
             <div 
-              className={`bg-green-600 flex items-center justify-center text-white font-bold transition-all duration-700 ease-out ${
+              className={`bg-green-700 flex items-center justify-center text-white font-bold transition-all duration-700 ease-out ${
                 userVote === 'A' ? 'ring-4 ring-green-400' : ''
               }`}
               style={{ width: `${Math.max(percentageA, 5)}%` }}
@@ -136,7 +136,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
 
             {/* Option 2 - Red with dynamic width */}
             <div 
-              className={`bg-red-600 flex items-center justify-center text-white font-bold transition-all duration-700 ease-out ${
+              className={`bg-red-700 flex items-center justify-center text-white font-bold transition-all duration-700 ease-out ${
                 userVote === 'B' ? 'ring-4 ring-red-400' : ''
               }`}
               style={{ width: `${Math.max(percentageB, 5)}%` }}
@@ -152,6 +152,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
           </div>
         </div>
       )}
+      
       
     </div>
   );
