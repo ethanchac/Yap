@@ -43,7 +43,9 @@ class User:
                     "username": 1,
                     "email": 1,
                     "created_at": 1,
-                    # Don't include password or sensitive data
+                    "profile_picture": 1, 
+                    "full_name": 1,   
+                    "is_verified": 1  
                 }
             }
         ]
