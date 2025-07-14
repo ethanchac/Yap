@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
-from pymongo import MongoClient
+from pymongo import MongoClient, GEOSPHERE
 from auth.routes import auth_bp
 from registration.routes import registration_bp
 from users.routes import users_bp
@@ -13,6 +13,7 @@ from events.routes import events_bp
 from password_reset.routes import password_reset_bp
 from feedback.routes import feedback_bp
 from activities.routes import activities_bp
+from waypoint.routes import waypoint_bp
 import os
 import sys
 
@@ -81,6 +82,53 @@ app.config["DB"] = db
 
 print(f"📊 Connected to database: {db_name}")
 
+# ===== WAYPOINT INDEXES SETUP =====
+def setup_waypoint_indexes():
+    """Set up MongoDB indexes for waypoints"""
+    try:
+        print("🗺️  Setting up waypoint indexes...")
+        
+        # Create 2dsphere index for geospatial queries
+        db.waypoint.create_index([("location", GEOSPHERE)])
+        print("  ✅ Geospatial index created")
+        
+        # Create compound indexes for better performance
+        db.waypoint.create_index([
+            ("active", 1),
+            ("type", 1),
+            ("created_at", -1)
+        ])
+        print("  ✅ Active waypoints index created")
+        
+        # Index for user's waypoints
+        db.waypoint.create_index([
+            ("user_id", 1),
+            ("created_at", -1)
+        ])
+        print("  ✅ User waypoints index created")
+        
+        # Index for expiration cleanup
+        db.waypoint.create_index([
+            ("expires_at", 1),
+            ("active", 1)
+        ])
+        print("  ✅ Expiration index created")
+        
+        # TTL index for automatic cleanup of expired waypoints
+        db.waypoint.create_index(
+            [("expires_at", 1)], 
+            expireAfterSeconds=0  # Delete when expires_at time is reached
+        )
+        print("  ✅ TTL index for expired waypoints created")
+        
+        print("🗺️  Waypoint indexes setup complete!")
+        
+    except Exception as e:
+        print(f"❌ Error setting up waypoint indexes: {e}")
+
+# Setup waypoint indexes
+setup_waypoint_indexes()
+
 # register blueprints
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(registration_bp, url_prefix="/users")
@@ -93,6 +141,7 @@ app.register_blueprint(events_bp, url_prefix='/events')
 app.register_blueprint(password_reset_bp, url_prefix="/password-reset")
 app.register_blueprint(feedback_bp, url_prefix="/api") 
 app.register_blueprint(activities_bp, url_prefix='/api/activities')  
+app.register_blueprint(waypoint_bp, url_prefix='/waypoint')
 
 # ===== SOCKETIO EVENT HANDLERS =====
 
