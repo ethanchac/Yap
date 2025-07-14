@@ -44,9 +44,6 @@ function HomepageActivities() {
 
     return (
         <div className="relative w-full">
-            <div className="flex items-center justify-center mb-2">
-                <span className="text-white font-semibold text-lg">Activities</span>
-            </div>
             <div className="overflow-hidden w-full h-80">
                 <div
                     className={`flex w-full h-80`}
