@@ -41,19 +41,6 @@ function Sidebar() {
                 </li>
                 <li>
                     <Link 
-                        to="/create" 
-                        className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
-                            isActive('/create') 
-                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
-                        }`}
-                    >
-                        <Plus className="w-6 h-6" />
-                        <span>Create</span>
-                    </Link>
-                </li>
-                <li>
-                    <Link 
                         to="/users" 
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/users') 
