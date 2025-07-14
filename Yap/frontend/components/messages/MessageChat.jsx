@@ -19,8 +19,6 @@ function MessageChat({ conversation, onNewMessage }) {
     const typingTimeoutRef = useRef(null);
     const emojiPickerRef = useRef(null);
     const inputRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const [uploading, setUploading] = useState(false);
 
     // Common emojis for the picker
     const emojis = [
@@ -289,38 +287,6 @@ function MessageChat({ conversation, onNewMessage }) {
         setShowEmojiPicker(!showEmojiPicker);
     };
 
-    const handleAttachmentClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = async (event) => {
-        const file = event.target.files[0];
-        if (!file || !conversation || !conversation._id) return;
-        setUploading(true);
-        try {
-            const token = localStorage.getItem('token');
-            const formData = new FormData();
-            formData.append('file', file);
-            const response = await fetch(`http://localhost:5000/messages/conversations/${conversation._id}/attachments`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-            if (response.ok) {
-                await fetchMessages();
-            } else {
-                // Optionally show error
-            }
-        } catch (err) {
-            // Optionally show error
-        } finally {
-            setUploading(false);
-            event.target.value = null; // Clear the file input
-        }
-    };
-
     // Use the Eastern Time utilities directly
     const formatTime = formatMessageTime;
     const formatDateSep = formatDateSeparator;
@@ -455,38 +421,8 @@ function MessageChat({ conversation, onNewMessage }) {
                                         myMessage 
                                             ? 'bg-blue-500 text-white rounded-br-md shadow-lg' 
                                             : 'bg-gray-600 text-white rounded-bl-md shadow-md'
-                                    }`}> 
-                                        {/* Show text content if present */}
-                                        {message.content && <p className="break-words">{message.content}</p>}
-                                        {/* Show attachment if present */}
-                                        {message.attachment_url && (
-                                            message.attachment_url.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                                                <img 
-                                                    src={`http://localhost:5000${message.attachment_url}`} 
-                                                    alt="attachment" 
-                                                    className="mt-2 max-w-xs max-h-48 rounded-lg border border-gray-400" 
-                                                    style={{objectFit: 'cover'}}
-                                                />
-                                            ) : message.attachment_url.match(/\.(mp4|webm|ogg)$/i) ? (
-                                                <video 
-                                                    controls
-                                                    src={`http://localhost:5000${message.attachment_url}`}
-                                                    className="mt-2 max-w-xs max-h-48 rounded-lg border border-gray-400"
-                                                    style={{objectFit: 'cover'}}
-                                                >
-                                                    Your browser does not support the video tag.
-                                                </video>
-                                            ) : (
-                                                <a 
-                                                    href={`http://localhost:5000${message.attachment_url}`} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    className="mt-2 block text-blue-200 underline break-all"
-                                                >
-                                                    Download attachment
-                                                </a>
-                                            )
-                                        )}
+                                    }`}>
+                                        <p className="break-words">{message.content}</p>
                                     </div>
                                     
                                     {/* Timestamp - Using Eastern Time */}
@@ -575,24 +511,6 @@ function MessageChat({ conversation, onNewMessage }) {
                             </div>
                         )}
                     </div>
-                    {/* Attachment Button */}
-                    <button
-                        type="button"
-                        onClick={handleAttachmentClick}
-                        className={`text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-600 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={uploading}
-                        title="Attach file"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49" stroke="currentColor" strokeWidth="2"/>
-                        </svg>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            style={{ display: 'none' }}
-                            onChange={handleFileChange}
-                        />
-                    </button>
                     
                     <div className="flex-1 relative">
                         <input
@@ -603,18 +521,26 @@ function MessageChat({ conversation, onNewMessage }) {
                             placeholder={`Message ${conversation.other_participant?.username || 'user'}...`}
                             className="w-full bg-gray-600 text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
                         />
-                        <button
+                        <button 
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    {newMessage.trim() && (
+                        <button 
                             type="submit"
-                            disabled={!newMessage.trim()}
-                            className={`absolute right-3 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full shadow transition-colors ${!newMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            style={{ transition: 'background 0.2s' }}
-                            title="Send"
+                            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2"/>
                             </svg>
                         </button>
-                    </div>
+                    )}
                 </form>
             </div>
         </div>
