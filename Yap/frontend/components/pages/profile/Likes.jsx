@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import Header from '../header/Header';
-import Sidebar from '../sidebar/Sidebar';
-import PostItem from '../posts/PostItem';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import Header from '../../header/Header';
+import Sidebar from '../../sidebar/Sidebar';
+import PostItem from '../../posts/PostItem';
 
 function Likes() {
     const [likedPosts, setLikedPosts] = useState([]);
@@ -12,10 +14,21 @@ function Likes() {
     const [totalLiked, setTotalLiked] = useState(0);
     const [loadingMore, setLoadingMore] = useState(false);
     const mainContentRef = useRef(null);
+    
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    
+    // Check if we came from profile page
+    const fromProfile = searchParams.get('from') === 'profile';
 
     // Get token from localStorage or your auth context
     const getToken = () => {
         return localStorage.getItem('token'); // Adjust based on how you store tokens
+    };
+
+    // Handle back to profile
+    const handleBackToProfile = () => {
+        navigate('/profile');
     };
 
     // Fetch liked posts
@@ -80,11 +93,24 @@ function Likes() {
                 className="ml-64 h-full overflow-y-auto p-6"
             >
                 <div className="max-w-6xl mx-auto">
-                    <div className="mb-6">
-                        <h1 className="text-white text-2xl font-bold mb-2">Posts You've Liked</h1>
-                        {totalLiked > 0 && (
-                            <p className="text-gray-400">{totalLiked} liked posts</p>
+                    {/* Header with optional back button */}
+                    <div className="mb-6 flex items-center space-x-4">
+                        {fromProfile && (
+                            <button 
+                                onClick={handleBackToProfile}
+                                className="flex items-center justify-center w-10 h-10 bg-gray-700 hover:bg-gray-600 text-white rounded-full transition-colors"
+                                aria-label="Back to profile"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
                         )}
+                        
+                        <div>
+                            <h1 className="text-white text-2xl font-bold mb-2">Posts You've Liked</h1>
+                            {totalLiked > 0 && (
+                                <p className="text-gray-400">{totalLiked} liked posts</p>
+                            )}
+                        </div>
                     </div>
 
                     {loading && (
