@@ -341,7 +341,7 @@ function Waypoint() {
                             <div className="flex items-center space-x-3">
                                 <MapPin className="w-8 h-8 text-orange-400" />
                                 <div>
-                                    <h1 className="text-white text-3xl font-bold">Waypoints</h1>
+                                    <h1 className="text-white text-3xl font-bold">Waypoint</h1>
                                     <p className="text-gray-400">Real-time campus community map</p>
                                 </div>
                             </div>
@@ -352,8 +352,11 @@ function Waypoint() {
                                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all transform hover:scale-105 ${
                                         placementMode 
                                             ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25' 
-                                            : 'bg-gray-700 hover:bg-gray-600 text-white'
+                                            : 'text-white hover:bg-gray-600'
                                     }`}
+                                    style={{
+                                        backgroundColor: placementMode ? '' : '#171717'
+                                    }}
                                 >
                                     {placementMode ? (
                                         <>
@@ -371,7 +374,10 @@ function Waypoint() {
                                 <button
                                     onClick={handleRefresh}
                                     disabled={refreshing}
-                                    className="flex items-center space-x-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+                                    className="flex items-center space-x-2 px-3 py-2 disabled:opacity-50 text-white rounded-lg transition-colors hover:bg-gray-600"
+                                    style={{
+                                        backgroundColor: '#171717'
+                                    }}
                                 >
                                     <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                                     <span>Refresh</span>
@@ -390,27 +396,7 @@ function Waypoint() {
                             </div>
                         </div>
 
-                        {/* Placement Mode Banner */}
-                        {placementMode && (
-                            <div className="mt-4 p-4 bg-orange-900 border border-orange-600 rounded-lg">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <Target className="w-5 h-5 text-orange-400" />
-                                        <div>
-                                            <p className="text-orange-200 font-semibold">Placement Mode Active</p>
-                                            <p className="text-orange-300 text-sm">Click anywhere on the map to create a new waypoint</p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={togglePlacementMode}
-                                        className="text-orange-400 hover:text-orange-300 p-1"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
+                    
                         {/* Error Banner */}
                         {error && (
                             <div className="mt-4 p-3 bg-red-900 border border-red-600 rounded-lg">
