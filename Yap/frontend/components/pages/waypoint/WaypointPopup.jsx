@@ -1,4 +1,35 @@
 function WaypointPopup({ waypoint, isOwner, onJoin, onDelete }) {
+    // Check if this is an event waypoint
+    const isEventWaypoint = waypoint.type === 'event' || waypoint.title.startsWith('📅');
+    
+    // Parse event details from description if it's an event
+    const parseEventDetails = (description) => {
+        if (!isEventWaypoint) return null;
+        
+        const lines = description.split('\n');
+        const eventLine = lines.find(line => line.startsWith('Event on'));
+        
+        if (eventLine) {
+            const match = eventLine.match(/Event on (\d{4}-\d{2}-\d{2}) at (\d{2}:\d{2})/);
+            if (match) {
+                const [, date, time] = match;
+                const eventDate = new Date(`${date}T${time}`);
+                const now = new Date();
+                const isUpcoming = eventDate > now;
+                
+                return {
+                    date,
+                    time,
+                    isUpcoming,
+                    eventDate
+                };
+            }
+        }
+        return null;
+    };
+
+    const eventDetails = parseEventDetails(waypoint.description);
+
     return (
         <div style={{ fontFamily: 'Albert Sans, sans-serif', minWidth: '200px' }}>
             {/* Header with optional delete button */}
@@ -43,13 +74,43 @@ function WaypointPopup({ waypoint, isOwner, onJoin, onDelete }) {
                 )}
             </div>
 
+            {/* Event-specific information */}
+            {isEventWaypoint && eventDetails && (
+                <div style={{
+                    backgroundColor: eventDetails.isUpcoming ? '#dbeafe' : '#fef3c7',
+                    border: `1px solid ${eventDetails.isUpcoming ? '#93c5fd' : '#fcd34d'}`,
+                    borderRadius: '6px',
+                    padding: '8px',
+                    marginBottom: '8px'
+                }}>
+                    <div style={{ 
+                        fontSize: '12px', 
+                        fontWeight: 'bold',
+                        color: eventDetails.isUpcoming ? '#1e40af' : '#92400e',
+                        marginBottom: '4px'
+                    }}>
+                        {eventDetails.isUpcoming ? '🔜 UPCOMING EVENT' : '⏰ PAST EVENT'}
+                    </div>
+                    <div style={{ 
+                        fontSize: '12px', 
+                        color: eventDetails.isUpcoming ? '#1e40af' : '#92400e'
+                    }}>
+                        📅 {eventDetails.date} at {eventDetails.time}
+                    </div>
+                </div>
+            )}
+
             <p style={{ 
                 margin: '0 0 12px 0', 
                 color: '#6b7280', 
                 fontSize: '14px',
                 lineHeight: '1.4'
             }}>
-                {waypoint.description}
+                {/* For event waypoints, show only the description part (after the date line) */}
+                {isEventWaypoint 
+                    ? waypoint.description.split('\n').slice(2).join('\n').trim() || waypoint.description
+                    : waypoint.description
+                }
             </p>
             
             <div style={{ 
