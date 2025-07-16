@@ -289,4 +289,4 @@ def handle_typing_stop(socketio, data):
             )
             
     except Exception as e:
-        logger.error(f"Error in handle_typing_stop: {str(e)}")
+        logger.error(f"Error in handle_typing_stodadp: {str(e)}")
