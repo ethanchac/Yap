@@ -15,6 +15,14 @@ function Waypoint() {
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
     const [placementMode, setPlacementMode] = useState(false);
+    const [targetWaypoint, setTargetWaypoint] = useState(null);
+    const [shouldOpenPopup, setShouldOpenPopup] = useState(false);
+    
+    // Saved waypoints navigation state
+    const [savedWaypoints, setSavedWaypoints] = useState([]);
+    const [currentSavedIndex, setCurrentSavedIndex] = useState(-1);
+    const [isNavigatingSaved, setIsNavigatingSaved] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false); // Prevent rapid navigation
 
     // TMU Campus coordinates
     const TMU_COORDS = [43.6577, -79.3788];
@@ -110,6 +118,82 @@ function Waypoint() {
             setLoading(false);
             setRefreshing(false);
         }
+    };
+
+    // Fetch saved waypoints
+    const fetchSavedWaypoints = async () => {
+        try {
+            const currentUserId = getCurrentUserId();
+            if (!currentUserId) {
+                alert('Please log in to view saved waypoints');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/waypoint/my-bookmarks`, {
+                method: 'GET',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch saved waypoints');
+            }
+
+            const data = await response.json();
+            setSavedWaypoints(data.waypoints);
+            
+            if (data.waypoints.length > 0) {
+                setCurrentSavedIndex(0);
+                setIsNavigatingSaved(true);
+                navigateToSavedWaypoint(data.waypoints[0]);
+            } else {
+                alert('No saved waypoints found');
+            }
+        } catch (err) {
+            console.error('Error fetching saved waypoints:', err);
+            alert(err.message);
+        }
+    };
+
+    // Navigate to a saved waypoint
+    const navigateToSavedWaypoint = (savedWaypoint) => {
+        const mapWaypoint = {
+            id: savedWaypoint._id,
+            coords: [savedWaypoint.latitude, savedWaypoint.longitude],
+            title: savedWaypoint.title,
+            description: savedWaypoint.description,
+            type: savedWaypoint.type,
+            time: savedWaypoint.time_ago || 'recently',
+            author: savedWaypoint.username,
+            interactions: savedWaypoint.interactions || { likes: 0, bookmarks: 0 }
+        };
+        
+        setTargetWaypoint(mapWaypoint);
+        setShouldOpenPopup(true);
+        setIsNavigating(true);
+        
+        // Clear the popup flag and navigation lock after the movement completes
+        setTimeout(() => {
+            setShouldOpenPopup(false);
+            setIsNavigating(false);
+        }, 1500); // Shorter timeout for quicker navigation
+    };
+
+    // Navigate to previous saved waypoint
+    const goToPreviousSaved = () => {
+        if (savedWaypoints.length === 0 || isNavigating) return;
+        
+        const newIndex = currentSavedIndex > 0 ? currentSavedIndex - 1 : savedWaypoints.length - 1;
+        setCurrentSavedIndex(newIndex);
+        navigateToSavedWaypoint(savedWaypoints[newIndex]);
+    };
+
+    // Navigate to next saved waypoint
+    const goToNextSaved = () => {
+        if (savedWaypoints.length === 0 || isNavigating) return;
+        
+        const newIndex = currentSavedIndex < savedWaypoints.length - 1 ? currentSavedIndex + 1 : 0;
+        setCurrentSavedIndex(newIndex);
+        navigateToSavedWaypoint(savedWaypoints[newIndex]);
     };
 
     // Create waypoint via API
@@ -289,6 +373,30 @@ function Waypoint() {
         createWaypoint(pinData);
     };
 
+    // Handle keyboard navigation for saved waypoints
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!isNavigatingSaved || isNavigating) return;
+            
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                goToPreviousSaved();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                goToNextSaved();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setIsNavigatingSaved(false);
+                setSavedWaypoints([]);
+                setCurrentSavedIndex(-1);
+                setIsNavigating(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isNavigatingSaved, currentSavedIndex, savedWaypoints.length, isNavigating]);
+
     // Load waypoints on component mount
     useEffect(() => {
         fetchWaypoints();
@@ -335,6 +443,17 @@ function Waypoint() {
                         waypointCount={waypoints.length}
                         error={error}
                         onClearError={() => setError(null)}
+                        onOpenSavedWaypoints={fetchSavedWaypoints}
+                        isNavigatingSaved={isNavigatingSaved}
+                        currentSavedIndex={currentSavedIndex}
+                        savedWaypointsCount={savedWaypoints.length}
+                        onPreviousSaved={goToPreviousSaved}
+                        onNextSaved={goToNextSaved}
+                        onExitSavedNavigation={() => {
+                            setIsNavigatingSaved(false);
+                            setSavedWaypoints([]);
+                            setCurrentSavedIndex(-1);
+                        }}
                     />
 
                     {/* Map Container */}
@@ -350,6 +469,15 @@ function Waypoint() {
                         getCurrentUser={getCurrentUser}
                         TMU_COORDS={TMU_COORDS}
                         ZOOM_LEVEL={ZOOM_LEVEL}
+                        targetWaypoint={targetWaypoint}
+                        shouldOpenPopup={shouldOpenPopup}
+                        // Navigation overlay props
+                        isNavigatingSaved={isNavigatingSaved}
+                        currentSavedWaypoint={savedWaypoints[currentSavedIndex]}
+                        currentSavedIndex={currentSavedIndex}
+                        savedWaypointsCount={savedWaypoints.length}
+                        onPreviousSaved={goToPreviousSaved}
+                        onNextSaved={goToNextSaved}
                     />
 
                     {/* Waypoint Modal */}

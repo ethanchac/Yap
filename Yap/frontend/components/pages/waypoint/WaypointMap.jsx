@@ -1,8 +1,10 @@
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
 import { createCustomIcon, campusIcon } from './waypointIcons.js';
 import WaypointPopup from './WaypointPopup.jsx';
 import WaypointLegend from './WaypointLegend.jsx';
 import WaypointStats from './WaypointStats.jsx';
+import WaypointNavigationOverlay from './WaypointNavigationOverlay.jsx';
 
 // Component to handle map clicks
 function MapClickHandler({ placementMode, onMapClick }) {
@@ -17,6 +19,36 @@ function MapClickHandler({ placementMode, onMapClick }) {
     return null;
 }
 
+// Component to handle map navigation
+function MapNavigator({ targetWaypoint, shouldOpenPopup }) {
+    const map = useMap();
+    
+    useEffect(() => {
+        if (targetWaypoint) {
+            // Always use flyTo for precise centering and smooth movement
+            map.flyTo(targetWaypoint.coords, 18, {
+                duration: 1.0,
+                easeLinearity: 0.05,
+                animate: true
+            });
+            
+            // If we should open the popup, do it much faster
+            if (shouldOpenPopup) {
+                setTimeout(() => {
+                    // Find the marker and open its popup
+                    map.eachLayer((layer) => {
+                        if (layer.options && layer.options.waypointId === targetWaypoint.id) {
+                            layer.openPopup();
+                        }
+                    });
+                }, 400); // Much faster popup opening
+            }
+        }
+    }, [targetWaypoint, shouldOpenPopup, map]);
+    
+    return null;
+}
+
 function WaypointMap({ 
     waypoints, 
     placementMode, 
@@ -28,10 +60,20 @@ function WaypointMap({
     onBookmarkWaypoint,
     getCurrentUser,
     TMU_COORDS = [43.6577, -79.3788],
-    ZOOM_LEVEL = 16 
+    ZOOM_LEVEL = 16,
+    targetWaypoint = null,
+    shouldOpenPopup = false,
+    // Navigation overlay props
+    isNavigatingSaved = false,
+    currentSavedWaypoint = null,
+    currentSavedIndex = -1,
+    savedWaypointsCount = 0,
+    onPreviousSaved,
+    onNextSaved
 }) {
     // Get both current username and user ID
     const currentUsername = getCurrentUser();
+    const markerRefs = useRef({});
     
     // Get current user ID from JWT token
     const getCurrentUserId = () => {
@@ -88,6 +130,13 @@ function WaypointMap({
                             key={waypoint.id} 
                             position={waypoint.coords} 
                             icon={createCustomIcon(waypoint.type)}
+                            ref={(ref) => {
+                                if (ref) {
+                                    markerRefs.current[waypoint.id] = ref;
+                                    // Add waypoint ID to marker options for identification
+                                    ref.options.waypointId = waypoint.id;
+                                }
+                            }}
                         >
                             <Popup maxWidth={250}>
                                 <WaypointPopup 
@@ -109,6 +158,12 @@ function WaypointMap({
                     placementMode={placementMode} 
                     onMapClick={onMapClick} 
                 />
+
+                {/* Handle navigation to target waypoint */}
+                <MapNavigator 
+                    targetWaypoint={targetWaypoint}
+                    shouldOpenPopup={shouldOpenPopup}
+                />
             </MapContainer>
 
             {/* Map Legend */}
@@ -119,6 +174,16 @@ function WaypointMap({
                 waypointCount={waypoints.length}
                 placementMode={placementMode}
                 refreshing={refreshing}
+            />
+
+            {/* Navigation Overlay for Saved Waypoints */}
+            <WaypointNavigationOverlay
+                isVisible={isNavigatingSaved}
+                currentWaypoint={currentSavedWaypoint}
+                currentIndex={currentSavedIndex}
+                totalCount={savedWaypointsCount}
+                onPrevious={onPreviousSaved}
+                onNext={onNextSaved}
             />
         </div>
     );
