@@ -12,6 +12,7 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 
 def generate_token(user: dict) -> str:
     payload = {
+        "user_id": str(user["_id"]),
         "username": user["username"],
         "is_verified": user["is_verified"],
         "exp": datetime.utcnow() + timedelta(days=1) #token expires in 1 day
@@ -31,7 +32,7 @@ def verify_token(token: str) -> dict:
     except jwt.ExpiredSignatureError:
         return {"error": "Token has expired"}
     except jwt.InvalidTokenError:
-        return {"error": "Invalid token"}
+        return {"error": "Invalid tokedn"}
 
 def get_current_user_from_token(token: str) -> dict:
     """Get full user info from database using token"""

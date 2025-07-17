@@ -30,6 +30,25 @@ function WaypointMap({
     TMU_COORDS = [43.6577, -79.3788],
     ZOOM_LEVEL = 16 
 }) {
+    // Get both current username and user ID
+    const currentUsername = getCurrentUser();
+    
+    // Get current user ID from JWT token
+    const getCurrentUserId = () => {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.user_id || null;
+        } catch (err) {
+            console.error('Error decoding token:', err);
+            return null;
+        }
+    };
+    
+    const currentUserId = getCurrentUserId();
+
     return (
         <div className="flex-1 relative rounded-lg overflow-hidden" style={{backgroundColor: '#171717', minHeight: '600px'}}>
             <MapContainer
@@ -64,9 +83,6 @@ function WaypointMap({
 
                 {/* Waypoint Markers */}
                 {waypoints.map((waypoint) => {
-                    const currentUser = getCurrentUser();
-                    const isOwner = currentUser && waypoint.author === currentUser;
-                    
                     return (
                         <Marker 
                             key={waypoint.id} 
@@ -76,7 +92,8 @@ function WaypointMap({
                             <Popup maxWidth={250}>
                                 <WaypointPopup 
                                     waypoint={waypoint}
-                                    isOwner={isOwner}
+                                    isOwner={waypoint.isOwner}
+                                    currentUserId={currentUserId}
                                     onJoin={onJoinWaypoint}
                                     onDelete={onDeleteWaypoint}
                                     onLike={onLikeWaypoint}

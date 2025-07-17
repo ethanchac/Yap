@@ -264,6 +264,9 @@ def get_tmu_waypoints():
             skip=skip
         )
         
+        # If user is authenticated, we already have liked_users and bookmarked_users
+        # The frontend will use these arrays to determine user interaction status
+        
         return jsonify({
             "waypoints": waypoints,
             "campus": "TMU",

@@ -2,9 +2,9 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
     // Check if this is an event waypoint
     const isEventWaypoint = waypoint.type === 'event' || waypoint.title.startsWith('📅');
     
-    // Check if user has liked or bookmarked this waypoint
-    const isLiked = waypoint.liked_users?.includes(currentUserId) || false;
-    const isBookmarked = waypoint.bookmarked_users?.includes(currentUserId) || false;
+    // Use the pre-calculated isLiked and isBookmarked from the waypoint data
+    const isLiked = waypoint.isLiked || false;
+    const isBookmarked = waypoint.isBookmarked || false;
     
     // Parse event details from description if it's an event
     const parseEventDetails = (description) => {
@@ -35,12 +35,22 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
     const eventDetails = parseEventDetails(waypoint.description);
 
     const handleLike = () => {
+        if (!currentUserId) {
+            alert('Please log in to like waypoints');
+            return;
+        }
+        
         if (onLike) {
             onLike(waypoint.id);
         }
     };
 
     const handleBookmark = () => {
+        if (!currentUserId) {
+            alert('Please log in to bookmark waypoints');
+            return;
+        }
+        
         if (onBookmark) {
             onBookmark(waypoint.id);
         }
@@ -161,7 +171,6 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                 )}
                 <div className="flex items-center space-x-3 mt-2">
                     <span>👍 {waypoint.interactions?.likes || 0}</span>
-                    <span>🤝 {waypoint.interactions?.joins || 0}</span>
                     <span>🔖 {waypoint.interactions?.bookmarks || 0}</span>
                 </div>
             </div>
@@ -190,13 +199,24 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                         style={{
                             flex: 1,
                             padding: '6px 12px',
-                            backgroundColor: isLiked ? '#ef4444' : '#6b7280',
+                            backgroundColor: isLiked ? '#10b981' : '#f97316',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
                             fontSize: '12px',
                             fontWeight: 'bold',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isLiked) {
+                                e.target.style.backgroundColor = '#ea580c';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isLiked) {
+                                e.target.style.backgroundColor = '#f97316';
+                            }
                         }}
                     >
                         {isLiked ? '❤️ Liked' : '🤍 Like'}
@@ -206,13 +226,24 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                         style={{
                             flex: 1,
                             padding: '6px 12px',
-                            backgroundColor: isBookmarked ? '#f59e0b' : '#6b7280',
+                            backgroundColor: isBookmarked ? '#8b5cf6' : '#f97316',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
                             fontSize: '12px',
                             fontWeight: 'bold',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isBookmarked) {
+                                e.target.style.backgroundColor = '#ea580c';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isBookmarked) {
+                                e.target.style.backgroundColor = '#f97316';
+                            }
                         }}
                     >
                         {isBookmarked ? '🔖 Saved' : '📖 Save'}
@@ -225,13 +256,24 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                         style={{
                             flex: 1,
                             padding: '6px 12px',
-                            backgroundColor: isLiked ? '#ef4444' : '#6b7280',
+                            backgroundColor: isLiked ? '#10b981' : '#f97316',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
                             fontSize: '12px',
                             fontWeight: 'bold',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isLiked) {
+                                e.target.style.backgroundColor = '#ea580c';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isLiked) {
+                                e.target.style.backgroundColor = '#f97316';
+                            }
                         }}
                     >
                         {isLiked ? '❤️ Liked' : '🤍 Like'}
@@ -241,13 +283,24 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                         style={{
                             flex: 1,
                             padding: '6px 12px',
-                            backgroundColor: isBookmarked ? '#f59e0b' : '#6b7280',
+                            backgroundColor: isBookmarked ? '#8b5cf6' : '#f97316',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
                             fontSize: '12px',
                             fontWeight: 'bold',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isBookmarked) {
+                                e.target.style.backgroundColor = '#ea580c';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isBookmarked) {
+                                e.target.style.backgroundColor = '#f97316';
+                            }
                         }}
                     >
                         {isBookmarked ? '🔖 Saved' : '📖 Save'}

@@ -30,14 +30,45 @@ function Waypoint() {
         };
     };
 
+    // Get user's ObjectId directly from JWT token
+    const getCurrentUserId = () => {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.user_id || null;
+        } catch (err) {
+            console.error('Error decoding token:', err);
+            return null;
+        }
+    };
+
+    // Get current username
+    const getCurrentUser = () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return null;
+        }
+        
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.username;
+        } catch (err) {
+            console.error('Error decoding token:', err);
+            return null;
+        }
+    };
+
     // Fetch waypoints from API
     const fetchWaypoints = async () => {
         try {
             setError(null);
             
+            // Make authenticated request to get user-specific data
             const response = await fetch(`${API_BASE_URL}/waypoint/campus/tmu?radius=2`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: getAuthHeaders() // Include auth headers
             });
 
             if (!response.ok) {
@@ -47,7 +78,8 @@ function Waypoint() {
             const data = await response.json();
             
             const transformedWaypoints = data.waypoints.map(waypoint => {
-                const currentUserId = getCurrentUser();
+                const currentUsername = getCurrentUser();
+                const currentUserId = getCurrentUserId();
                 
                 return {
                     id: waypoint._id,
@@ -58,16 +90,18 @@ function Waypoint() {
                     time: waypoint.time_ago || 'recently',
                     author: waypoint.username,
                     active: true,
-                    interactions: waypoint.interactions || { likes: 0, joins: 0, bookmarks: 0 },
+                    interactions: waypoint.interactions || { likes: 0, bookmarks: 0 },
                     distance_km: waypoint.distance_km,
-                    // Check if current user has liked/bookmarked this waypoint
-                    isLiked: currentUserId && waypoint.liked_users ? waypoint.liked_users.includes(currentUserId) : false,
-                    isBookmarked: currentUserId && waypoint.bookmarked_users ? waypoint.bookmarked_users.includes(currentUserId) : false
+                    // Use backend data to determine user interaction status
+                    isLiked: currentUserId ? waypoint.liked_users?.includes(currentUserId) : false,
+                    isBookmarked: currentUserId ? waypoint.bookmarked_users?.includes(currentUserId) : false,
+                    isOwner: currentUsername && waypoint.username === currentUsername,
+                    liked_users: waypoint.liked_users || [],
+                    bookmarked_users: waypoint.bookmarked_users || []
                 };
             });
 
             setWaypoints(transformedWaypoints);
-            console.log(`✅ Loaded ${transformedWaypoints.length} waypoints`);
             
         } catch (err) {
             console.error('Error fetching waypoints:', err);
@@ -100,7 +134,6 @@ function Waypoint() {
             }
 
             const data = await response.json();
-            console.log('✅ Waypoint created successfully:', data.waypoint);
 
             // Refresh waypoints to show the new one
             fetchWaypoints();
@@ -129,9 +162,8 @@ function Waypoint() {
             }
 
             const data = await response.json();
-            console.log('✅ Join status updated:', data);
 
-            // Refresh waypoints to update join count
+            // Refresh waypoints to update join count and status
             fetchWaypoints();
 
         } catch (err) {
@@ -140,9 +172,16 @@ function Waypoint() {
         }
     };
 
-    // Like waypoint (for manual waypoints)
+    // Like waypoint
     const likeWaypoint = async (waypointId) => {
         try {
+            const currentUserId = getCurrentUserId();
+            
+            if (!currentUserId) {
+                alert('Please log in to like waypoints');
+                return;
+            }
+
             const response = await fetch(`${API_BASE_URL}/waypoint/${waypointId}/like`, {
                 method: 'POST',
                 headers: getAuthHeaders()
@@ -154,9 +193,8 @@ function Waypoint() {
             }
 
             const data = await response.json();
-            console.log('✅ Like status updated:', data);
 
-            // Refresh waypoints to update like count
+            // Refresh waypoints to get updated state from backend
             fetchWaypoints();
 
         } catch (err) {
@@ -165,9 +203,16 @@ function Waypoint() {
         }
     };
 
-    // Bookmark waypoint (for manual waypoints)
+    // Bookmark waypoint
     const bookmarkWaypoint = async (waypointId) => {
         try {
+            const currentUserId = getCurrentUserId();
+            
+            if (!currentUserId) {
+                alert('Please log in to bookmark waypoints');
+                return;
+            }
+
             const response = await fetch(`${API_BASE_URL}/waypoint/${waypointId}/bookmark`, {
                 method: 'POST',
                 headers: getAuthHeaders()
@@ -179,9 +224,8 @@ function Waypoint() {
             }
 
             const data = await response.json();
-            console.log('✅ Bookmark status updated:', data);
 
-            // Refresh waypoints to update bookmark count
+            // Refresh waypoints to get the updated state from backend
             fetchWaypoints();
 
         } catch (err) {
@@ -208,7 +252,6 @@ function Waypoint() {
             }
 
             const data = await response.json();
-            console.log('✅ Waypoint deleted:', data);
 
             // Refresh waypoints to remove the deleted one
             fetchWaypoints();
@@ -216,36 +259,6 @@ function Waypoint() {
         } catch (err) {
             console.error('Error deleting waypoint:', err);
             alert(err.message);
-        }
-    };
-
-    // Get current user info
-    const getCurrentUser = () => {
-        const token = localStorage.getItem('token');
-        if (!token) return null;
-        
-        try {
-            // Decode JWT token to get user info (basic implementation)
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            return payload.user_id || payload._id; // Return user ID for status checking
-        } catch (err) {
-            console.error('Error decoding token:', err);
-            return null;
-        }
-    };
-
-    // Get current username for display
-    const getCurrentUsername = () => {
-        const token = localStorage.getItem('token');
-        if (!token) return null;
-        
-        try {
-            // Decode JWT token to get user info (basic implementation)
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            return payload.username;
-        } catch (err) {
-            console.error('Error decoding token:', err);
-            return null;
         }
     };
 
@@ -284,7 +297,6 @@ function Waypoint() {
     // Auto-refresh every 30 seconds
     useEffect(() => {
         const interval = setInterval(() => {
-            console.log('🔄 Auto-refreshing waypoints...');
             fetchWaypoints();
         }, 30000); // 30 seconds
 
@@ -335,7 +347,7 @@ function Waypoint() {
                         onDeleteWaypoint={deleteWaypoint}
                         onLikeWaypoint={likeWaypoint}
                         onBookmarkWaypoint={bookmarkWaypoint}
-                        getCurrentUser={getCurrentUsername}
+                        getCurrentUser={getCurrentUser}
                         TMU_COORDS={TMU_COORDS}
                         ZOOM_LEVEL={ZOOM_LEVEL}
                     />
