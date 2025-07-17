@@ -1,6 +1,10 @@
-function WaypointPopup({ waypoint, isOwner, onJoin, onDelete }) {
+function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, currentUserId }) {
     // Check if this is an event waypoint
     const isEventWaypoint = waypoint.type === 'event' || waypoint.title.startsWith('📅');
+    
+    // Check if user has liked or bookmarked this waypoint
+    const isLiked = waypoint.liked_users?.includes(currentUserId) || false;
+    const isBookmarked = waypoint.bookmarked_users?.includes(currentUserId) || false;
     
     // Parse event details from description if it's an event
     const parseEventDetails = (description) => {
@@ -29,6 +33,18 @@ function WaypointPopup({ waypoint, isOwner, onJoin, onDelete }) {
     };
 
     const eventDetails = parseEventDetails(waypoint.description);
+
+    const handleLike = () => {
+        if (onLike) {
+            onLike(waypoint.id);
+        }
+    };
+
+    const handleBookmark = () => {
+        if (onBookmark) {
+            onBookmark(waypoint.id);
+        }
+    };
 
     return (
         <div style={{ fontFamily: 'Albert Sans, sans-serif', minWidth: '200px' }}>
@@ -146,10 +162,11 @@ function WaypointPopup({ waypoint, isOwner, onJoin, onDelete }) {
                 <div className="flex items-center space-x-3 mt-2">
                     <span>👍 {waypoint.interactions?.likes || 0}</span>
                     <span>🤝 {waypoint.interactions?.joins || 0}</span>
+                    <span>🔖 {waypoint.interactions?.bookmarks || 0}</span>
                 </div>
             </div>
             
-            {/* Action button - different for owner vs others */}
+            {/* Action buttons */}
             {isOwner ? (
                 <div style={{ display: 'flex', gap: '6px' }}>
                     <button 
@@ -169,11 +186,11 @@ function WaypointPopup({ waypoint, isOwner, onJoin, onDelete }) {
                         Delete
                     </button>
                     <button 
-                        onClick={() => onJoin(waypoint.id)}
+                        onClick={handleLike}
                         style={{
                             flex: 1,
                             padding: '6px 12px',
-                            backgroundColor: '#f59e0b',
+                            backgroundColor: isLiked ? '#ef4444' : '#6b7280',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
@@ -182,26 +199,60 @@ function WaypointPopup({ waypoint, isOwner, onJoin, onDelete }) {
                             cursor: 'pointer'
                         }}
                     >
-                        Update
+                        {isLiked ? '❤️ Liked' : '🤍 Like'}
+                    </button>
+                    <button 
+                        onClick={handleBookmark}
+                        style={{
+                            flex: 1,
+                            padding: '6px 12px',
+                            backgroundColor: isBookmarked ? '#f59e0b' : '#6b7280',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {isBookmarked ? '🔖 Saved' : '📖 Save'}
                     </button>
                 </div>
             ) : (
-                <button 
-                    onClick={() => onJoin(waypoint.id)}
-                    style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#f59e0b',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        width: '100%'
-                    }}
-                >
-                    Join Waypoint
-                </button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                    <button 
+                        onClick={handleLike}
+                        style={{
+                            flex: 1,
+                            padding: '6px 12px',
+                            backgroundColor: isLiked ? '#ef4444' : '#6b7280',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {isLiked ? '❤️ Liked' : '🤍 Like'}
+                    </button>
+                    <button 
+                        onClick={handleBookmark}
+                        style={{
+                            flex: 1,
+                            padding: '6px 12px',
+                            backgroundColor: isBookmarked ? '#f59e0b' : '#6b7280',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {isBookmarked ? '🔖 Saved' : '📖 Save'}
+                    </button>
+                </div>
             )}
         </div>
     );

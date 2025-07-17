@@ -327,3 +327,46 @@ def get_waypoint_types():
     return jsonify({
         "types": types
     }), 200
+
+@waypoint_bp.route('/<waypoint_id>/bookmark', methods=['POST'])
+@token_required
+def bookmark_waypoint(current_user, waypoint_id):
+    """Bookmark or unbookmark a waypoint"""
+    try:
+        result = Waypoint.bookmark_waypoint(waypoint_id, current_user['_id'])
+        
+        if "error" in result:
+            status_code = 404 if "not found" in result["error"].lower() else 400
+            return jsonify({"error": result["error"]}), status_code
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"Error bookmarking waypoint: {e}")
+        return jsonify({"error": "Failed to bookmark waypoint"}), 500
+    
+@waypoint_bp.route('/my-bookmarks', methods=['GET'])
+@token_required
+def get_my_bookmarked_waypoints(current_user):
+    """Get current user's bookmarked waypoints"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 20)), 50)
+        skip = (page - 1) * limit
+        
+        waypoints = Waypoint.get_user_bookmarked_waypoints(
+            current_user['_id'], 
+            limit=limit, 
+            skip=skip
+        )
+        
+        return jsonify({
+            "waypoints": waypoints,
+            "page": page,
+            "limit": limit,
+            "count": len(waypoints)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting bookmarked waypoints: {e}")
+        return jsonify({"error": "Failed to get bookmarked waypoints"}), 500

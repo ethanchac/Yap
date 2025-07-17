@@ -46,19 +46,25 @@ function Waypoint() {
 
             const data = await response.json();
             
-            // Transform API data to match our component format
-            const transformedWaypoints = data.waypoints.map(waypoint => ({
-                id: waypoint._id,
-                coords: [waypoint.latitude, waypoint.longitude],
-                title: waypoint.title,
-                description: waypoint.description,
-                type: waypoint.type,
-                time: waypoint.time_ago || 'recently',
-                author: waypoint.username,
-                active: true,
-                interactions: waypoint.interactions || { likes: 0, joins: 0 },
-                distance_km: waypoint.distance_km
-            }));
+            const transformedWaypoints = data.waypoints.map(waypoint => {
+                const currentUserId = getCurrentUser();
+                
+                return {
+                    id: waypoint._id,
+                    coords: [waypoint.latitude, waypoint.longitude],
+                    title: waypoint.title,
+                    description: waypoint.description,
+                    type: waypoint.type,
+                    time: waypoint.time_ago || 'recently',
+                    author: waypoint.username,
+                    active: true,
+                    interactions: waypoint.interactions || { likes: 0, joins: 0, bookmarks: 0 },
+                    distance_km: waypoint.distance_km,
+                    // Check if current user has liked/bookmarked this waypoint
+                    isLiked: currentUserId && waypoint.liked_users ? waypoint.liked_users.includes(currentUserId) : false,
+                    isBookmarked: currentUserId && waypoint.bookmarked_users ? waypoint.bookmarked_users.includes(currentUserId) : false
+                };
+            });
 
             setWaypoints(transformedWaypoints);
             console.log(`✅ Loaded ${transformedWaypoints.length} waypoints`);
@@ -109,7 +115,7 @@ function Waypoint() {
         }
     };
 
-    // Join waypoint
+    // Join waypoint (for event waypoints)
     const joinWaypoint = async (waypointId) => {
         try {
             const response = await fetch(`${API_BASE_URL}/waypoint/${waypointId}/join`, {
@@ -130,6 +136,56 @@ function Waypoint() {
 
         } catch (err) {
             console.error('Error joining waypoint:', err);
+            alert(err.message);
+        }
+    };
+
+    // Like waypoint (for manual waypoints)
+    const likeWaypoint = async (waypointId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/waypoint/${waypointId}/like`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to like waypoint');
+            }
+
+            const data = await response.json();
+            console.log('✅ Like status updated:', data);
+
+            // Refresh waypoints to update like count
+            fetchWaypoints();
+
+        } catch (err) {
+            console.error('Error liking waypoint:', err);
+            alert(err.message);
+        }
+    };
+
+    // Bookmark waypoint (for manual waypoints)
+    const bookmarkWaypoint = async (waypointId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/waypoint/${waypointId}/bookmark`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to bookmark waypoint');
+            }
+
+            const data = await response.json();
+            console.log('✅ Bookmark status updated:', data);
+
+            // Refresh waypoints to update bookmark count
+            fetchWaypoints();
+
+        } catch (err) {
+            console.error('Error bookmarking waypoint:', err);
             alert(err.message);
         }
     };
@@ -165,6 +221,21 @@ function Waypoint() {
 
     // Get current user info
     const getCurrentUser = () => {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        
+        try {
+            // Decode JWT token to get user info (basic implementation)
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.user_id || payload._id; // Return user ID for status checking
+        } catch (err) {
+            console.error('Error decoding token:', err);
+            return null;
+        }
+    };
+
+    // Get current username for display
+    const getCurrentUsername = () => {
         const token = localStorage.getItem('token');
         if (!token) return null;
         
@@ -262,7 +333,9 @@ function Waypoint() {
                         onMapClick={handleMapClick}
                         onJoinWaypoint={joinWaypoint}
                         onDeleteWaypoint={deleteWaypoint}
-                        getCurrentUser={getCurrentUser}
+                        onLikeWaypoint={likeWaypoint}
+                        onBookmarkWaypoint={bookmarkWaypoint}
+                        getCurrentUser={getCurrentUsername}
                         TMU_COORDS={TMU_COORDS}
                         ZOOM_LEVEL={ZOOM_LEVEL}
                     />

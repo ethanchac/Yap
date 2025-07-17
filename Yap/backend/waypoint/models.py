@@ -26,10 +26,12 @@ class Waypoint:
             "interactions": {
                 "likes": 0,
                 "joins": 0,
-                "views": 0
+                "views": 0,
+                "bookmarks": 0  # Add bookmarks count
             },
             "joined_users": [],  # List of user IDs who joined
-            "liked_users": []    # List of user IDs who liked
+            "liked_users": [],   # List of user IDs who liked
+            "bookmarked_users": []  # Add list of user IDs who bookmarked
         }
         
         result = db.waypoint.insert_one(waypoint_doc)
@@ -98,7 +100,10 @@ class Waypoint:
                         "interactions": 1,
                         "distance": 1,  # Distance in meters
                         "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]},
-                        "is_verified": {"$ifNull": ["$user_info.is_verified", False]}
+                        "is_verified": {"$ifNull": ["$user_info.is_verified", False]},
+                        "joined_users": 1,
+                        "liked_users": 1,
+                        "bookmarked_users": 1  # Include bookmarked users for status checking
                     }
                 },
                 {"$sort": {"distance": 1, "created_at": -1}},
@@ -159,6 +164,7 @@ class Waypoint:
                         "interactions": 1,
                         "joined_users": 1,
                         "liked_users": 1,
+                        "bookmarked_users": 1,  # Include bookmarked users
                         "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]},
                         "is_verified": {"$ifNull": ["$user_info.is_verified", False]}
                     }
@@ -252,6 +258,43 @@ class Waypoint:
             return {"error": str(e)}
     
     @staticmethod
+    def bookmark_waypoint(waypoint_id, user_id):
+        """Bookmark or unbookmark a waypoint"""
+        db = current_app.config["DB"]
+        
+        try:
+            waypoint = db.waypoint.find_one({"_id": ObjectId(waypoint_id)})
+            if not waypoint:
+                return {"error": "Waypoint not found"}
+            
+            bookmarked_users = waypoint.get("bookmarked_users", [])
+            
+            if user_id in bookmarked_users:
+                # Unbookmark waypoint
+                db.waypoint.update_one(
+                    {"_id": ObjectId(waypoint_id)},
+                    {
+                        "$pull": {"bookmarked_users": user_id},
+                        "$inc": {"interactions.bookmarks": -1}
+                    }
+                )
+                return {"bookmarked": False, "message": "Removed bookmark"}
+            else:
+                # Bookmark waypoint
+                db.waypoint.update_one(
+                    {"_id": ObjectId(waypoint_id)},
+                    {
+                        "$addToSet": {"bookmarked_users": user_id},
+                        "$inc": {"interactions.bookmarks": 1}
+                    }
+                )
+                return {"bookmarked": True, "message": "Bookmarked waypoint"}
+                
+        except Exception as e:
+            print(f"Error bookmarking waypoint: {e}")
+            return {"error": str(e)}
+    
+    @staticmethod
     def delete_waypoint(waypoint_id, user_id):
         """Delete a waypoint (only by owner)"""
         db = current_app.config["DB"]
@@ -312,6 +355,54 @@ class Waypoint:
             
         except Exception as e:
             print(f"Error getting user waypoints: {e}")
+            return []
+    
+    @staticmethod
+    def get_user_bookmarked_waypoints(user_id, limit=50, skip=0):
+        """Get waypoints bookmarked by a specific user"""
+        db = current_app.config["DB"]
+        
+        try:
+            pipeline = [
+                {"$match": {"bookmarked_users": user_id, "active": True}},
+                {
+                    "$match": {
+                        # Filter out expired waypoints
+                        "$or": [
+                            {"expires_at": None},
+                            {"expires_at": {"$gt": datetime.utcnow()}}
+                        ]
+                    }
+                },
+                {"$sort": {"created_at": -1}},
+                {"$skip": skip},
+                {"$limit": limit},
+                {
+                    "$project": {
+                        "_id": {"$toString": "$_id"},
+                        "title": 1,
+                        "description": 1,
+                        "type": 1,
+                        "latitude": 1,
+                        "longitude": 1,
+                        "created_at": 1,
+                        "expires_at": 1,
+                        "interactions": 1,
+                        "username": 1
+                    }
+                }
+            ]
+            
+            waypoints = list(db.waypoint.aggregate(pipeline))
+            
+            # Add time ago
+            for waypoint in waypoints:
+                waypoint["time_ago"] = Waypoint._calculate_time_ago(waypoint["created_at"])
+            
+            return waypoints
+            
+        except Exception as e:
+            print(f"Error getting user bookmarked waypoints: {e}")
             return []
     
     @staticmethod
