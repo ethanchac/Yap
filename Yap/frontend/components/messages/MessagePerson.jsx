@@ -71,7 +71,7 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
                 <div className="flex items-center justify-between mt-1">
                     <p className="text-gray-400 text-sm truncate pr-2">{getLastMessagePreview()}</p>
                     {hasUnreadMessages && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
                     )}
                 </div>
             </div>
