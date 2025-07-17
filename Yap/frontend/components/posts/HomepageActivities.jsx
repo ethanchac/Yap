@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import WouldYouRather from "../events/WouldYouRather";
+import WouldYouRather from "../activities/WouldYouRather";
 
 function PlaceholderActivity({ title }) {
     return (

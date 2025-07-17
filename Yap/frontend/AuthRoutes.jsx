@@ -1,12 +1,13 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/authentication/LoginForm.jsx';
 import Signup from './components/authentication/RegisterForm.jsx';
-import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx'; // ADD THIS LINE
+import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx';
 import Home from './components/pages/Home.jsx';
-import Create from './components/pages/Create.jsx';
+import Create from './components/pages/create/Create.jsx';
 import Users from './components/pages/Users.jsx';
 import Messages from './components/pages/Messages.jsx';
-import Likes from './components/pages/Likes.jsx';
+import Likes from './components/pages/profile/Likes.jsx';
+import Waypoint from './components/pages/waypoint/Waypoint.jsx';
 import Profile from './components/pages/profile/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
 import Feedback from './components/pages/Feedback.jsx';
@@ -93,6 +94,16 @@ function AuthRoutes() {
                     <PrivateRoute>
                         <PageTransition>
                             <Likes />
+                        </PageTransition>
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/waypoint"
+                element={
+                    <PrivateRoute>
+                        <PageTransition>
+                            <Waypoint />
                         </PageTransition>
                     </PrivateRoute>
                 }

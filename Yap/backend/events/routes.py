@@ -2,80 +2,82 @@ from flask import Blueprint, request, jsonify, current_app
 from events.models import Event
 from auth.service import token_required
 from datetime import datetime
+from waypoint.models import Waypoint
+from datetime import datetime, timedelta
 
 events_bp = Blueprint('events', __name__)
 
 @events_bp.route('/create', methods=['POST'])
 @token_required
-def create_event(current_user):
-    """Create a new event"""
+def create_event_with_waypoint(current_user):
+    """Create a new event and optionally add it to the waypoint map"""
     try:
         data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
         
         # Validate required fields
         required_fields = ['title', 'description', 'event_date', 'event_time']
         for field in required_fields:
-            if not data or not data.get(field):
-                return jsonify({"error": f"{field.replace('_', ' ').title()} is required"}), 400
+            if field not in data or not data[field]:
+                return jsonify({"error": f"{field} is required"}), 400
         
-        # Validate and clean data
-        title = data.get('title').strip()
-        description = data.get('description').strip()
-        event_date = data.get('event_date').strip()
-        event_time = data.get('event_time').strip()
-        location = data.get('location', '').strip() if data.get('location') else None
-        max_attendees = data.get('max_attendees')
+        # Create the event (your existing event creation logic)
+        event_doc = {
+            "user_id": current_user['_id'],
+            "username": current_user['username'],
+            "title": data['title'],
+            "description": data['description'],
+            "event_date": data['event_date'],
+            "event_time": data['event_time'],
+            "location": data.get('location'),
+            "latitude": data.get('latitude'),
+            "longitude": data.get('longitude'),
+            "max_attendees": data.get('max_attendees'),
+            "created_at": datetime.utcnow(),
+            "attendees": []
+        }
         
-        # Validate content length
-        if len(title) == 0:
-            return jsonify({"error": "Title cannot be empty"}), 400
-        if len(description) == 0:
-            return jsonify({"error": "Description cannot be empty"}), 400
+        # Insert event into database
+        db = current_app.config["DB"]
+        result = db.events.insert_one(event_doc)
+        event_doc["_id"] = str(result.inserted_id)
         
-        # Validate title and description length
-        if len(title) > 100:
-            return jsonify({"error": "Title too long (max 100 characters)"}), 400
-        if len(description) > 500:
-            return jsonify({"error": "Description too long (max 500 characters)"}), 400
-        
-        # Validate max_attendees if provided
-        if max_attendees is not None:
+        # If event has location coordinates, create a waypoint
+        waypoint_created = False
+        if data.get('latitude') and data.get('longitude'):
             try:
-                max_attendees = int(max_attendees)
-                if max_attendees < 1:
-                    return jsonify({"error": "Max attendees must be at least 1"}), 400
-            except (ValueError, TypeError):
-                return jsonify({"error": "Max attendees must be a valid number"}), 400
-        
-        # Validate event date and time format
-        try:
-            # Check if the event is in the future
-            event_datetime_str = f"{event_date} {event_time}"
-            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-            if event_datetime <= datetime.utcnow():
-                return jsonify({"error": "Event must be scheduled for a future date and time"}), 400
-        except ValueError:
-            return jsonify({"error": "Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time"}), 400
-        
-        # Create the event
-        event = Event.create_event(
-            user_id=current_user['_id'],
-            username=current_user['username'],
-            title=title,
-            description=description,
-            event_date=event_date,
-            event_time=event_time,
-            location=location,
-            max_attendees=max_attendees
-        )
+                # Calculate waypoint expiration (2 hours after event)
+                event_datetime = datetime.strptime(f"{data['event_date']} {data['event_time']}", "%Y-%m-%d %H:%M")
+                expires_at = event_datetime + timedelta(hours=2)
+                
+                # Create waypoint with event prefix
+                waypoint = Waypoint.create_waypoint(
+                    user_id=current_user['_id'],
+                    username=current_user['username'],
+                    title=f"📅 {data['title']}",
+                    description=f"Event on {data['event_date']} at {data['event_time']}\n\n{data['description']}",
+                    waypoint_type='event',
+                    latitude=float(data['latitude']),
+                    longitude=float(data['longitude']),
+                    expires_at=expires_at
+                )
+                
+                waypoint_created = True
+                print(f"✅ Created waypoint for event: {waypoint['_id']}")
+                
+            except Exception as waypoint_error:
+                print(f"⚠️ Failed to create waypoint for event: {waypoint_error}")
+                # Don't fail the entire request if waypoint creation fails
         
         return jsonify({
-            "message": "Event created successfully",
-            "event": event
+            "success": True,
+            "message": "Event created successfully" + (" and added to campus map!" if waypoint_created else "!"),
+            "event": event_doc,
+            "waypoint_created": waypoint_created
         }), 201
         
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
     except Exception as e:
         print(f"Error creating event: {e}")
         return jsonify({"error": "Failed to create event"}), 500

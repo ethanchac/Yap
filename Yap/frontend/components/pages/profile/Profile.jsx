@@ -5,7 +5,7 @@ import Program from './Program';
 import FriendList from './FriendList'; // Add this import
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap } from 'lucide-react';
+import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap, Heart } from 'lucide-react';
 
 const Profile = () => {
   const { userId } = useParams(); // Get userId from URL
@@ -44,6 +44,11 @@ const Profile = () => {
     return {
       ...(token && { 'Authorization': `Bearer ${token}` })
     };
+  };
+
+  // Handle navigate to liked posts
+  const handleViewLikedPosts = () => {
+    navigate('/likes?from=profile');
   };
 
   // Handle message button click
@@ -564,17 +569,30 @@ const Profile = () => {
           {/* FriendList Component - Only show for own profile */}
           {isOwnProfile && <FriendList userId={userId} isOwnProfile={isOwnProfile} />}
 
+          {/* Posts Section Header with Liked Posts Button */}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-white text-xl font-bold">
+              Recent Posts {profile.recent_posts && profile.recent_posts.length > 0 && `(${profile.recent_posts.length})`}
+            </h3>
+            
+            {/* Liked Posts Button - Only show for own profile */}
+            {isOwnProfile && (
+              <button 
+                onClick={handleViewLikedPosts}
+                className="flex items-center space-x-2 px-4 py-2 text-white rounded-lg font-bold transition-colors" style={{backgroundColor: '#171717'}}
+              >
+                <Heart className="w-4 h-4" />
+                <span>Liked Posts</span>
+              </button>
+            )}
+          </div>
+
           {/* Recent Posts */}
           {profile.recent_posts && profile.recent_posts.length > 0 && (
-            <div>
-              <h3 className="text-white text-xl font-bold mb-4">
-                Recent Posts ({profile.recent_posts.length})
-              </h3>
-              <div className="space-y-4">
-                {profile.recent_posts.map((post) => (
-                  <PostItem key={post._id} post={post} />
-                ))}
-              </div>
+            <div className="space-y-4">
+              {profile.recent_posts.map((post) => (
+                <PostItem key={post._id} post={post} />
+              ))}
             </div>
           )}
           

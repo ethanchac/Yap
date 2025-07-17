@@ -8,6 +8,8 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [attendingFriends, setAttendingFriends] = useState([]);
   const [totalAttendees, setTotalAttendees] = useState(0);
+  const [likesCount, setLikesCount] = useState(0);
+  const [actionLoading, setActionLoading] = useState({ like: false, attend: false });
 
   const fetchEventDetails = async () => {
     if (!event || !isOpen || !currentUser) return;
@@ -25,11 +27,13 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
         setIsAttending(data.is_attending || false);
         setIsLiked(data.is_liked || false);
         setAttendingFriends(data.attending_friends || []);
-        setTotalAttendees(data.total_attendees || 0);
+        setTotalAttendees(data.total_attendees || event.attendees_count || 0);
+        setLikesCount(data.event?.likes_count || event.likes_count || 0);
       } else {
         // Fallback to basic event data if details endpoint fails
         setEventDetails(event);
         setTotalAttendees(event.attendees_count || 0);
+        setLikesCount(event.likes_count || 0);
         
         // Fetch attendance and like status separately
         await Promise.all([
@@ -42,6 +46,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
       // Fallback to basic event data
       setEventDetails(event);
       setTotalAttendees(event.attendees_count || 0);
+      setLikesCount(event.likes_count || 0);
       
       // Try to fetch attendance and like status separately
       await Promise.all([
@@ -83,36 +88,75 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     }
   };
 
+  const refreshFriendsAttending = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/events/${event._id}/details`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAttendingFriends(data.attending_friends || []);
+      }
+    } catch (error) {
+      console.error('Error refreshing friends attending:', error);
+    }
+  };
+
   const toggleAttendance = async () => {
+    if (actionLoading.attend) return;
+    
+    setActionLoading(prev => ({ ...prev, attend: true }));
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/events/${event._id}/attend`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
       if (response.ok) {
         const data = await response.json();
         setIsAttending(data.attending);
-        setTotalAttendees(prev => data.attending ? prev + 1 : prev - 1);
+        setTotalAttendees(prev => data.attending ? prev + 1 : Math.max(0, prev - 1));
+        
+        // Refresh friends attending list since attendance changed
+        await refreshFriendsAttending();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to update attendance');
       }
     } catch (error) {
       console.error('Error toggling attendance:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, attend: false }));
     }
   };
 
   const toggleLike = async () => {
+    if (actionLoading.like) return;
+    
+    setActionLoading(prev => ({ ...prev, like: true }));
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/events/${event._id}/like`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
       if (response.ok) {
         const data = await response.json();
         setIsLiked(data.liked);
+        setLikesCount(prev => data.liked ? prev + 1 : Math.max(0, prev - 1));
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to update like');
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, like: false }));
     }
   };
 
@@ -151,6 +195,8 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
       setIsLiked(false);
       setAttendingFriends([]);
       setTotalAttendees(0);
+      setLikesCount(0);
+      setActionLoading({ like: false, attend: false });
       
       // Fetch new data
       fetchEventDetails();
@@ -270,28 +316,36 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 <div className="flex space-x-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={toggleAttendance}
-                    disabled={loading}
+                    disabled={actionLoading.attend}
                     className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
                       isAttending
                         ? 'bg-green-100 text-green-700 hover:bg-green-200'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
                   >
-                    <UserPlus className="w-5 h-5" />
+                    {actionLoading.attend ? (
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <UserPlus className="w-5 h-5" />
+                    )}
                     <span>{isAttending ? 'Attending' : 'Join Event'}</span>
                   </button>
 
                   <button
                     onClick={toggleLike}
-                    disabled={loading}
+                    disabled={actionLoading.like}
                     className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
                       isLiked
                         ? 'bg-red-100 text-red-600 hover:bg-red-200'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                    <span>{event.likes_count || 0}</span>
+                    {actionLoading.like ? (
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                    )}
+                    <span>{likesCount}</span>
                   </button>
 
                   <button className="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
@@ -308,7 +362,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                     <p className="text-sm text-gray-600">Attending</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{event.likes_count || 0}</p>
+                    <p className="text-2xl font-bold text-gray-900">{likesCount}</p>
                     <p className="text-sm text-gray-600">Likes</p>
                   </div>
                   <div>
