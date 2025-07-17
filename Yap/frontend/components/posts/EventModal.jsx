@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus, Map } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // Assuming you're using React Router
 
 const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [eventDetails, setEventDetails] = useState(null);
@@ -10,6 +11,8 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [totalAttendees, setTotalAttendees] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
   const [actionLoading, setActionLoading] = useState({ like: false, attend: false });
+  
+  const navigate = useNavigate(); // For navigation to waypoint map
 
   const fetchEventDetails = async () => {
     if (!event || !isOpen || !currentUser) return;
@@ -160,6 +163,35 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     }
   };
 
+  // Handle viewing event on waypoint map
+  const handleViewOnMap = () => {
+    const coordinates = getEventCoordinates();
+    
+    if (!coordinates) {
+      alert('Location coordinates not available for this event');
+      return;
+    }
+
+    // Store event data in sessionStorage to pass to waypoint map
+    const eventMapData = {
+      eventId: event._id,
+      title: event.title,
+      description: event.description,
+      latitude: coordinates.lat,
+      longitude: coordinates.lng,
+      eventDate: event.event_date || event.event_datetime?.split('T')[0],
+      eventTime: event.event_time || event.event_datetime?.split('T')[1]?.substring(0, 5),
+      location: event.location,
+      navigateToEvent: true
+    };
+    
+    sessionStorage.setItem('navigateToEvent', JSON.stringify(eventMapData));
+    
+    // Close modal and navigate to waypoint map
+    onClose();
+    navigate('/waypoint'); // Adjust the route as needed for your app
+  };
+
   const getProfilePictureUrl = (profilePicture) => {
     if (profilePicture?.trim()) {
       return profilePicture.startsWith('http')
@@ -184,6 +216,40 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const getEventIcon = (index) => {
     const icons = ['🎉', '🎵', '🎨', '🏃', '🍕', '📚', '🎬', '🎪', '🎯', '🎮'];
     return icons[index % icons.length];
+  };
+
+  // Check if event has location coordinates
+  const hasLocationCoordinates = () => {
+    // Check both the event object and eventDetails for coordinates
+    const currentEvent = eventDetails || event;
+    return (currentEvent.latitude && currentEvent.longitude) || 
+           (currentEvent.lat && currentEvent.lng) ||
+           (currentEvent.location && currentEvent.location.includes(',') && currentEvent.location.includes('.'));
+  };
+
+  // Get coordinates from various possible formats
+  const getEventCoordinates = () => {
+    const currentEvent = eventDetails || event;
+    
+    // Direct latitude/longitude properties
+    if (currentEvent.latitude && currentEvent.longitude) {
+      return { lat: currentEvent.latitude, lng: currentEvent.longitude };
+    }
+    
+    // Alternative lat/lng properties
+    if (currentEvent.lat && currentEvent.lng) {
+      return { lat: currentEvent.lat, lng: currentEvent.lng };
+    }
+    
+    // Parse from location string if it contains coordinates
+    if (currentEvent.location && typeof currentEvent.location === 'string') {
+      const coordMatch = currentEvent.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+      if (coordMatch) {
+        return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+      }
+    }
+    
+    return null;
   };
 
   // Reset state when modal opens with a new event
@@ -258,9 +324,20 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 {event.location && (
                   <div className="flex items-start space-x-3">
                     <MapPin className="w-5 h-5 text-gray-500 mt-1" />
-                    <div>
+                    <div className="flex-1">
                       <p className="font-semibold text-gray-900">Location</p>
-                      <p className="text-gray-600">{event.location}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-gray-600">{event.location}</p>
+                        {hasLocationCoordinates() && (
+                          <button
+                            onClick={handleViewOnMap}
+                            className="flex items-center space-x-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            <Map className="w-4 h-4" />
+                            <span>View on Map</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

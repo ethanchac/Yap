@@ -373,6 +373,63 @@ function Waypoint() {
         createWaypoint(pinData);
     };
 
+    // Function to find and navigate to event waypoint
+    const findAndNavigateToEventWaypoint = (eventData) => {
+        // Look for an existing event waypoint that matches this event
+        const eventWaypoint = waypoints.find(waypoint => {
+            // Check if this waypoint is for the same event (by title or coordinates)
+            const titleMatch = waypoint.title.includes(eventData.title) || 
+                              eventData.title.includes(waypoint.title.replace('📅 ', ''));
+            
+            // Check coordinates are close (within ~50 meters)
+            const latDiff = Math.abs(waypoint.coords[0] - eventData.latitude);
+            const lngDiff = Math.abs(waypoint.coords[1] - eventData.longitude);
+            const coordMatch = latDiff < 0.0005 && lngDiff < 0.0005;
+            
+            return (titleMatch || coordMatch) && waypoint.type === 'event';
+        });
+
+        if (eventWaypoint) {
+            // Found existing waypoint, navigate to it
+            setTargetWaypoint(eventWaypoint);
+            setShouldOpenPopup(true);
+            
+            // Clear after navigation
+            setTimeout(() => {
+                setShouldOpenPopup(false);
+            }, 3000);
+        } else {
+            // No existing waypoint found, create a temporary one and show it
+            const tempEventWaypoint = {
+                id: `temp_event_${eventData.eventId}`,
+                coords: [eventData.latitude, eventData.longitude],
+                title: `📅 ${eventData.title}`,
+                description: `Event on ${eventData.eventDate} at ${eventData.eventTime}\n\n${eventData.description}`,
+                type: 'event',
+                time: 'Event',
+                author: 'Event Host',
+                interactions: { likes: 0, bookmarks: 0 },
+                isTemporary: true // Mark as temporary
+            };
+            
+            // Add temporary waypoint to the list
+            setWaypoints(prev => [...prev, tempEventWaypoint]);
+            
+            // Navigate to it
+            setTargetWaypoint(tempEventWaypoint);
+            setShouldOpenPopup(true);
+            
+            // Clear popup flag and remove temporary waypoint after viewing
+            setTimeout(() => {
+                setShouldOpenPopup(false);
+                // Remove temporary waypoint after 10 seconds
+                setTimeout(() => {
+                    setWaypoints(prev => prev.filter(w => w.id !== tempEventWaypoint.id));
+                }, 10000);
+            }, 3000);
+        }
+    };
+
     // Handle keyboard navigation for saved waypoints
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -401,6 +458,24 @@ function Waypoint() {
     useEffect(() => {
         fetchWaypoints();
     }, []);
+
+    // Handle event navigation after waypoints are loaded
+    useEffect(() => {
+        const eventNavData = sessionStorage.getItem('navigateToEvent');
+        if (eventNavData && waypoints.length > 0) {
+            try {
+                const eventData = JSON.parse(eventNavData);
+                // Clear the session storage
+                sessionStorage.removeItem('navigateToEvent');
+                
+                // Find and navigate to the event waypoint
+                findAndNavigateToEventWaypoint(eventData);
+                
+            } catch (error) {
+                console.error('Error parsing event navigation data:', error);
+            }
+        }
+    }, [waypoints]); // Depend on waypoints being loaded
 
     // Auto-refresh every 30 seconds
     useEffect(() => {
