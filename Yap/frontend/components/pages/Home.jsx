@@ -111,7 +111,7 @@ function Home() {
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-white text-xl font-bold">Events</h2>
-                        <button className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                        <button className="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">
                             View All Events (not implemented yet)
                         </button>
                     </div>
@@ -128,7 +128,7 @@ function Home() {
                             <h2 className="text-white text-xl font-bold">Posts</h2>
                             <button 
                                 onClick={refreshPosts}
-                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors"
                             >
                                 Refresh
                             </button>
@@ -156,7 +156,7 @@ function Home() {
                             <div className="text-center mt-8">
                                 <button 
                                     onClick={loadMorePosts}
-                                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                                    className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors"
                                 >
                                     Load More Posts
                                 </button>

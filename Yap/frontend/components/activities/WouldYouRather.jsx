@@ -318,7 +318,7 @@ export default function WouldYouRather() {
         <h2 className="text-white text-xl font-bold">Would You Rather</h2>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-green-700 hover:bg-green-500 text-white rounded-lg font-bold transition-colors"
+          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors"
         >
           + Create
         </button>
@@ -335,7 +335,7 @@ export default function WouldYouRather() {
           <p className="text-gray-400 mb-4">No questions found. Be the first to create one!</p>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors"
           >
             Create First Question
           </button>

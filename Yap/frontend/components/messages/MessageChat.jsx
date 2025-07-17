@@ -419,7 +419,7 @@ function MessageChat({ conversation, onNewMessage }) {
                                     {/* Message Content with improved styling */}
                                     <div className={`rounded-2xl px-4 py-3 ${
                                         myMessage 
-                                            ? 'bg-blue-500 text-white rounded-br-md shadow-lg' 
+                                            ? 'bg-orange-500 text-white rounded-br-md shadow-lg' 
                                             : 'bg-gray-600 text-white rounded-bl-md shadow-md'
                                     }`}>
                                         <p className="break-words">{message.content}</p>
@@ -519,7 +519,7 @@ function MessageChat({ conversation, onNewMessage }) {
                             value={newMessage}
                             onChange={handleTyping}
                             placeholder={`Message ${conversation.other_participant?.username || 'user'}...`}
-                            className="w-full bg-gray-600 text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+                            className="w-full bg-gray-600 text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-400"
                         />
                         <button 
                             type="button"
@@ -534,7 +534,7 @@ function MessageChat({ conversation, onNewMessage }) {
                     {newMessage.trim() && (
                         <button 
                             type="submit"
-                            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors"
+                            className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-lg transition-colors"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2"/>

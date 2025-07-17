@@ -162,7 +162,7 @@ function Feedback() {
                                         onClick={() => setFeedback(prev => ({ ...prev, type: type.value }))}
                                         className={`p-4 border rounded-lg text-left transition-colors ${
                                             feedback.type === type.value
-                                                ? 'border-blue-500 bg-blue-500/20'
+                                                ? 'border-orange-500 bg-orange-500/20'
                                                 : 'border-gray-600 hover:border-gray-500'
                                         }`}
                                     >
