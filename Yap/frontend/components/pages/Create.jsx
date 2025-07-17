@@ -273,7 +273,7 @@ function Create() {
                             onClick={() => handleTabChange('post')}
                             className={`flex-1 py-3 px-4 text-center font-semibold transition-colors ${
                                 activeTab === 'post'
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-orange-500 text-white'
                                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                             }`}
                         >
@@ -283,7 +283,7 @@ function Create() {
                             onClick={() => handleTabChange('event')}
                             className={`flex-1 py-3 px-4 text-center font-semibold transition-colors ${
                                 activeTab === 'event'
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-orange-500 text-white'
                                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                             }`}
                         >
@@ -364,7 +364,7 @@ function Create() {
                                             uploadingImages || 
                                             (!content.trim() && selectedImages.length === 0)
                                         }
-                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                                        className="px-6 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
                                     >
                                         {isSubmittingPost ? 'Posting...' : 
                                          uploadingImages ? 'Uploading...' : 'Create Post'}
@@ -482,7 +482,7 @@ function Create() {
                                     <button 
                                         type="submit" 
                                         disabled={isSubmittingEvent || !eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
-                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                                        className="px-6 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
                                     >
                                         {isSubmittingEvent ? 'Creating Event...' : 'Create Event'}
                                     </button>
