@@ -53,23 +53,86 @@ export const createCustomIcon = (type) => {
     });
 };
 
-// Campus marker icon
+// Enhanced campus marker icon with label
 export const campusIcon = L.divIcon({
     className: 'campus-marker',
     html: `
         <div style="
-            background-color: #dc2626;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 4px solid white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-        ">🏫</div>
+        ">
+            <div style="
+                background-color: #dc2626;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                border: 5px solid white;
+                box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 28px;
+                margin-bottom: 2px;
+            ">🏫</div>
+            <div style="
+                background-color: rgba(220, 38, 38, 0.95);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-family: 'Albert Sans', sans-serif;
+                font-size: 12px;
+                font-weight: bold;
+                white-space: nowrap;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                border: 2px solid white;
+            ">TMU Campus</div>
+        </div>
     `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
+    iconSize: [80, 90],
+    iconAnchor: [40, 45],
+    popupAnchor: [0, -45]
+});
+
+// Student Learning Centre (SLC) marker icon
+export const slcIcon = L.divIcon({
+    className: 'slc-marker',
+    html: `
+        <div style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        ">
+            <div style="
+                background-color: #2563eb;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                border: 4px solid white;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                margin-bottom: 2px;
+            ">📚</div>
+            <div style="
+                background-color: rgba(37, 99, 235, 0.95);
+                color: white;
+                padding: 3px 6px;
+                border-radius: 10px;
+                font-family: 'Albert Sans', sans-serif;
+                font-size: 11px;
+                font-weight: bold;
+                white-space: nowrap;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                border: 2px solid white;
+            ">SLC</div>
+        </div>
+    `,
+    iconSize: [70, 75],
+    iconAnchor: [35, 37],
+    popupAnchor: [0, -37]
 });

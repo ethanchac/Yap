@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import { useEffect, useRef } from 'react';
-import { createCustomIcon, campusIcon } from './waypointIcons.js';
+import { createCustomIcon, campusIcon, slcIcon } from './waypointIcons.js';
 import WaypointPopup from './WaypointPopup.jsx';
 import WaypointLegend from './WaypointLegend.jsx';
 import WaypointStats from './WaypointStats.jsx';
@@ -59,7 +59,7 @@ function WaypointMap({
     onLikeWaypoint,
     onBookmarkWaypoint,
     getCurrentUser,
-    TMU_COORDS = [43.6577, -79.3788],
+    TMU_COORDS = [42.6577, -79.3788],
     ZOOM_LEVEL = 16,
     targetWaypoint = null,
     shouldOpenPopup = false,
@@ -74,6 +74,9 @@ function WaypointMap({
     // Get both current username and user ID
     const currentUsername = getCurrentUser();
     const markerRefs = useRef({});
+    
+    // SLC coordinates (at the Library Building location)
+    const SLC_COORDS = [43.6578, -79.3805];
     
     // Get current user ID from JWT token
     const getCurrentUserId = () => {
@@ -118,6 +121,21 @@ function WaypointMap({
                             <h3 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>TMU Campus</h3>
                             <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
                                 Toronto Metropolitan University
+                            </p>
+                        </div>
+                    </Popup>
+                </Marker>
+
+                {/* Student Learning Centre (SLC) Marker */}
+                <Marker position={SLC_COORDS} icon={slcIcon}>
+                    <Popup>
+                        <div style={{ textAlign: 'center', fontFamily: 'Albert Sans, sans-serif' }}>
+                            <h3 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>Student Learning Centre</h3>
+                            <p style={{ margin: '0 0 4px 0', color: '#6b7280', fontSize: '14px' }}>
+                                📚 Study spaces, tutoring, and academic support
+                            </p>
+                            <p style={{ margin: 0, color: '#2563eb', fontSize: '12px', fontWeight: 'bold' }}>
+                                SLC Building
                             </p>
                         </div>
                     </Popup>
