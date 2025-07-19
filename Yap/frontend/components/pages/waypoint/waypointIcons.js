@@ -65,15 +65,15 @@ export const campusIcon = L.divIcon({
         ">
             <div style="
                 background-color: #dc2626;
-                width: 60px;
-                height: 60px;
+                width: 45px;
+                height: 45px;
                 border-radius: 50%;
-                border: 5px solid white;
-                box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+                border: 4px solid white;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.4);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 28px;
+                font-size: 20px;
                 margin-bottom: 2px;
             ">🏫</div>
             <div style="
@@ -90,9 +90,9 @@ export const campusIcon = L.divIcon({
             ">TMU Campus</div>
         </div>
     `,
-    iconSize: [80, 90],
-    iconAnchor: [40, 45],
-    popupAnchor: [0, -45]
+    iconSize: [60, 70],
+    iconAnchor: [30, 35],
+    popupAnchor: [0, -35]
 });
 
 // Student Learning Centre (SLC) marker icon
@@ -107,15 +107,15 @@ export const slcIcon = L.divIcon({
         ">
             <div style="
                 background-color: #2563eb;
-                width: 50px;
-                height: 50px;
+                width: 38px;
+                height: 38px;
                 border-radius: 50%;
-                border: 4px solid white;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+                border: 3px solid white;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.4);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 22px;
+                font-size: 18px;
                 margin-bottom: 2px;
             ">📚</div>
             <div style="
@@ -132,7 +132,7 @@ export const slcIcon = L.divIcon({
             ">SLC</div>
         </div>
     `,
-    iconSize: [70, 75],
-    iconAnchor: [35, 37],
-    popupAnchor: [0, -37]
+    iconSize: [55, 60],
+    iconAnchor: [27, 30],
+    popupAnchor: [0, -30]
 });
