@@ -1,4 +1,4 @@
-// WouldYouRather.jsx - Fixed version without height constraints
+// WouldYouRather.jsx - Updated to use server-side vote tracking
 import { useState, useEffect } from 'react';
 import WYRItem from './WYRItem';
 
@@ -6,107 +6,111 @@ const API_URL = 'http://localhost:5000/api/activities/wouldyourather';
 
 export default function WouldYouRather() {
   const [questions, setQuestions] = useState([]);
-  const [userVotes, setUserVotes] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
   
-  // Create question state - only two options now
+  // Create question state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newQuestion, setNewQuestion] = useState({
     option_a: '',
     option_b: ''
   });
   const [creating, setCreating] = useState(false);
-  const [userCreatedQuestions, setUserCreatedQuestions] = useState(new Set());
 
-  // Load persisted data on component mount
+  // Load questions on component mount
   useEffect(() => {
-    // Load user votes from localStorage
-    const savedVotes = localStorage.getItem('wyr_user_votes');
-    if (savedVotes) {
-      try {
-        setUserVotes(JSON.parse(savedVotes));
-      } catch (err) {
-        console.error('Error loading saved votes:', err);
-      }
-    }
-
-    // Load user created questions from localStorage
-    const savedCreatedQuestions = localStorage.getItem('wyr_user_created');
-    if (savedCreatedQuestions) {
-      try {
-        const createdArray = JSON.parse(savedCreatedQuestions);
-        setUserCreatedQuestions(new Set(createdArray));
-      } catch (err) {
-        console.error('Error loading saved created questions:', err);
-      }
-    }
-
     fetchQuestions();
   }, []);
 
-  // Save user votes to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('wyr_user_votes', JSON.stringify(userVotes));
-  }, [userVotes]);
-
-  // Save user created questions to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('wyr_user_created', JSON.stringify([...userCreatedQuestions]));
-  }, [userCreatedQuestions]);
+  const getAuthHeaders = () => {
+    // Generate a simple user ID for this browser session
+    let userId = localStorage.getItem('temp_user_id');
+    if (!userId) {
+      userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('temp_user_id', userId);
+    }
+    
+    return {
+      'Content-Type': 'application/json',
+      'X-User-ID': userId
+    };
+  };
 
   const fetchQuestions = async () => {
+    console.log('🔍 Frontend: Starting fetchQuestions...');
+    console.log('🔍 Frontend: API_URL:', API_URL);
+    
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        mode: 'cors',
+        credentials: 'include'
+      });
+      
+      console.log('🔍 Frontend: Response received:', response);
+      console.log('🔍 Frontend: Response status:', response.status);
+      console.log('🔍 Frontend: Response ok:', response.ok);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch questions');
+        const errorText = await response.text();
+        console.error('🔍 Frontend: Error response body:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('🔍 Frontend: Data received:', data);
       
       if (Array.isArray(data) && data.length > 0) {
         setQuestions(data);
       } else {
-        setQuestions([]); // Set empty array instead of error
+        setQuestions([]);
       }
     } catch (err) {
-      console.error('Error fetching questions:', err);
-      setError('Failed to load activity.');
+      console.error('🔍 Frontend: Fetch error:', err);
+      console.error('🔍 Frontend: Error message:', err.message);
+      setError(err.message || 'Failed to load activity.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleVote = async (questionId, option) => {
-    // Prevent multiple votes on the same question
-    if (userVotes[questionId]) {
-      console.log('User has already voted on this question');
-      return;
-    }
+    console.log('🔍 Frontend: handleVote called', { questionId, option });
     
     try {
+      console.log('🔍 Frontend: Sending vote request...');
       const response = await fetch(`${API_URL}/vote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ option, question_id: questionId }),
       });
 
+      console.log('🔍 Frontend: Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to submit vote');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('🔍 Frontend: Vote failed:', errorData);
+        throw new Error(errorData.error || 'Failed to submit vote');
       }
 
       const updatedQuestion = await response.json();
+      console.log('🔍 Frontend: Updated question received:', updatedQuestion);
       
-      // Update the question in the list with new vote counts
-      setQuestions(prev => prev.map(q => q._id === questionId ? updatedQuestion : q));
-      
-      // Track that user voted on this question (this will trigger localStorage save)
-      setUserVotes(prev => ({ ...prev, [questionId]: option }));
+      // Update the question in the list with new vote counts and user vote
+      setQuestions(prev => prev.map(q => {
+        if (q._id === questionId) {
+          console.log('🔍 Frontend: Updating question in state:', updatedQuestion);
+          console.log('🔍 Frontend: Question user_vote field:', updatedQuestion.user_vote);
+          return updatedQuestion;
+        }
+        return q;
+      }));
       
     } catch (err) {
       console.error('Error submitting vote:', err);
-      setError('Failed to submit vote. Please try again.');
+      setError(err.message || 'Failed to submit vote. Please try again.');
       throw err;
     }
   };
@@ -114,7 +118,7 @@ export default function WouldYouRather() {
   const handleCreateQuestion = async (e) => {
     e.preventDefault();
     
-    // Validation - only need to check two options
+    // Validation
     if (!newQuestion.option_a.trim() || !newQuestion.option_b.trim()) {
       setError('Both options are required.');
       return;
@@ -136,7 +140,7 @@ export default function WouldYouRather() {
     try {
       const response = await fetch(`${API_URL}/create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           option_a: newQuestion.option_a.trim(),
           option_b: newQuestion.option_b.trim()
@@ -144,16 +148,14 @@ export default function WouldYouRather() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create question');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create question');
       }
 
       const createdQuestion = await response.json();
       
-      // Add the new question to the beginning of the list (like posts)
+      // Add the new question to the beginning of the list
       setQuestions(prev => [createdQuestion, ...prev]);
-      
-      // Track that this user created this question (this will trigger localStorage save)
-      setUserCreatedQuestions(prev => new Set([...prev, createdQuestion._id]));
       
       // Reset form
       setNewQuestion({ option_a: '', option_b: '' });
@@ -161,7 +163,7 @@ export default function WouldYouRather() {
       
     } catch (err) {
       console.error('Error creating question:', err);
-      setError('Failed to create question. Please try again.');
+      setError(err.message || 'Failed to create question. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -183,33 +185,20 @@ export default function WouldYouRather() {
     try {
       const response = await fetch(`${API_URL}/${questionId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete question');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete question');
       }
 
       // Remove the question from the list
       setQuestions(prev => prev.filter(q => q._id !== questionId));
-      
-      // Remove user vote for this question
-      setUserVotes(prev => {
-        const newVotes = { ...prev };
-        delete newVotes[questionId];
-        return newVotes;
-      });
-
-      // Remove from user created questions
-      setUserCreatedQuestions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(questionId);
-        return newSet;
-      });
 
     } catch (err) {
       console.error('Error deleting question:', err);
-      setError('Failed to delete question. Please try again.');
+      setError(err.message || 'Failed to delete question. Please try again.');
     } finally {
       setDeleting(null);
     }
@@ -341,18 +330,35 @@ export default function WouldYouRather() {
           </button>
         </div>
       ) : (
-        // Render all questions in a vertical stack (like posts)
         <div className="space-y-0">
-          {questions.map((question) => (
-            <WYRItem
-              key={question._id}
-              question={question}
-              onVote={handleVote}
-              onDelete={handleDeleteQuestion}
-              userVote={userVotes[question._id]}
-              canDelete={userCreatedQuestions.has(question._id)}
-            />
-          ))}
+          {questions.map((question) => {
+            // For testing without JWT, allow deletion for all questions
+            const canDelete = true;
+            
+            // Uncomment this when you have JWT working:
+            // const token = localStorage.getItem('access_token');
+            // let currentUserId = null;
+            // if (token) {
+            //   try {
+            //     const payload = JSON.parse(atob(token.split('.')[1]));
+            //     currentUserId = payload.sub;
+            //   } catch (e) {
+            //     console.error('Error parsing token:', e);
+            //   }
+            // }
+            // const canDelete = question.created_by === currentUserId;
+            
+            return (
+              <WYRItem
+                key={question._id}
+                question={question}
+                onVote={handleVote}
+                onDelete={handleDeleteQuestion}
+                userVote={question.user_vote} // Now comes from server
+                canDelete={canDelete} // Check if user created this question
+              />
+            );
+          })}
         </div>
       )}
     </div>

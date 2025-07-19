@@ -10,7 +10,17 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
   const [animatedPercentageB, setAnimatedPercentageB] = useState(50);
 
   const totalVotes = question.votes_a + question.votes_b;
-  const showResults = userVote;
+  const showResults = userVote; // userVote is now A, B, or null/undefined
+
+  console.log('🔍 WYRItem: Props received:', { 
+    questionId: question._id, 
+    userVote, 
+    showResults, 
+    totalVotes,
+    votesA: question.votes_a,
+    votesB: question.votes_b,
+    fullQuestion: question // Let's see the full question object
+  });
 
   const getVotePercentage = (votes, total) => {
     if (total === 0) return 0;
@@ -33,7 +43,12 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
   }, [showResults, percentageA, percentageB]);
 
   const handleVote = async (option) => {
-    if (userVote || voting) return;
+    console.log('🔍 WYRItem: handleVote called', { option, userVote, voting });
+    
+    if (userVote || voting) {
+      console.log('🔍 WYRItem: Vote blocked - already voted or voting in progress');
+      return; // userVote is now truthy if user has voted
+    }
 
     setClickedButton(option);
     setTimeout(() => {
@@ -44,10 +59,13 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
     setVotingOption(option);
 
     try {
+      console.log('🔍 WYRItem: Calling onVote...');
       await onVote(question._id, option);
+      console.log('🔍 WYRItem: onVote completed successfully');
     } catch (err) {
-      console.error('Error voting:', err);
+      console.error('🔍 WYRItem: Error voting:', err);
     } finally {
+      console.log('🔍 WYRItem: Resetting voting state');
       setVoting(false);
       setVotingOption(null);
     }

@@ -8,38 +8,43 @@ activities_bp = Blueprint('activities', __name__)
 def get_would_you_rather():
     print("🔍 DEBUG: get_would_you_rather route called")
     db = current_app.config["DB"]
-    print(f"🔍 DEBUG: Database object: {db}")
-    print(f"🔍 DEBUG: Database name: {db.name}")
     
-    # Check if collection exists
-    collections = db.list_collection_names()
-    print(f"🔍 DEBUG: Available collections: {collections}")
+    # For now, use a session-based user ID (you can replace this with your auth system later)
+    current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
+    print(f"🔍 DEBUG: Using user ID: {current_user_id}")
     
+    # Get all questions
     questions = list(db['would_you_rather'].find())
     print(f"🔍 DEBUG: Found {len(questions)} questions")
     
+    # Get user's votes for these questions
+    question_ids = [q['_id'] for q in questions]
+    user_votes = list(db['wyr_votes'].find({
+        'user_id': current_user_id,
+        'question_id': {'$in': question_ids}
+    }))
+    
+    # Create a mapping of question_id -> user_vote
+    vote_mapping = {str(vote['question_id']): vote['option'] for vote in user_votes}
+    print(f"🔍 DEBUG: User vote mapping: {vote_mapping}")
+    
+    # Add user vote info to each question
     for q in questions:
         q['_id'] = str(q['_id'])
+        q['user_vote'] = vote_mapping.get(q['_id'])  # Will be None if user hasn't voted
+        print(f"🔍 DEBUG: Question {q['_id']} has user_vote: {q['user_vote']}")
     
-    print(f"🔍 DEBUG: Returning {len(questions)} questions")
+    print(f"🔍 DEBUG: Returning {len(questions)} questions with user votes")
     return jsonify(questions)
 
-@activities_bp.route('/wouldyourather/create', methods=['POST', 'OPTIONS'])
+@activities_bp.route('/wouldyourather/create', methods=['POST'])
 def create_would_you_rather():
     """Create a new Would You Rather question with only two options"""
-    
-    # Handle preflight OPTIONS request
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
     
     print("🔍 DEBUG: create_would_you_rather route called")
     try:
         db = current_app.config["DB"]
+        current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
         data = request.json
         print(f"🔍 DEBUG: Received data: {data}")
         
@@ -64,14 +69,14 @@ def create_would_you_rather():
         if len(option_a) > 100 or len(option_b) > 100:
             return jsonify({'error': 'Options cannot exceed 100 characters'}), 400
         
-        # Create new question document (no question field, just options)
+        # Create new question document
         new_question = {
             'option_a': option_a,
             'option_b': option_b,
             'votes_a': 0,
             'votes_b': 0,
             'created_at': datetime.utcnow(),
-            'created_by': 'anonymous'  # You can add user authentication later
+            'created_by': current_user_id
         }
         
         print(f"🔍 DEBUG: Creating question: {new_question}")
@@ -83,6 +88,7 @@ def create_would_you_rather():
         # Get the created document
         created_question = db['would_you_rather'].find_one({'_id': result.inserted_id})
         created_question['_id'] = str(created_question['_id'])
+        created_question['user_vote'] = None  # User hasn't voted on their own question yet
         
         print(f"🔍 DEBUG: Created question: {created_question}")
         
@@ -98,8 +104,10 @@ def create_would_you_rather():
 def vote_would_you_rather():
     print("🔍 DEBUG: vote_would_you_rather route called")
     db = current_app.config["DB"]
+    current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
     data = request.json
     print(f"🔍 DEBUG: Vote data: {data}")
+    print(f"🔍 DEBUG: Current user: {current_user_id}")
     
     option = data.get('option')
     question_id = data.get('question_id')
@@ -107,33 +115,61 @@ def vote_would_you_rather():
     if not question_id:
         return jsonify({'error': 'Missing question_id'}), 400
     
+    if option not in ['A', 'B']:
+        return jsonify({'error': 'Invalid option'}), 400
+    
     try:
-        wyr = db['would_you_rather'].find_one({'_id': ObjectId(question_id)})
+        question_obj_id = ObjectId(question_id)
+        wyr = db['would_you_rather'].find_one({'_id': question_obj_id})
     except:
         return jsonify({'error': 'Invalid question_id format'}), 400
         
     if not wyr:
         return jsonify({'error': 'No question found'}), 404
     
+    # Check if user has already voted on this question
+    existing_vote = db['wyr_votes'].find_one({
+        'user_id': current_user_id,
+        'question_id': question_obj_id
+    })
+    
+    if existing_vote:
+        return jsonify({'error': 'You have already voted on this question'}), 400
+    
+    # Record the vote in the votes collection
+    vote_record = {
+        'user_id': current_user_id,
+        'question_id': question_obj_id,
+        'option': option,
+        'voted_at': datetime.utcnow()
+    }
+    db['wyr_votes'].insert_one(vote_record)
+    print(f"🔍 DEBUG: Vote recorded: {vote_record}")
+    
+    # Update vote counts on the question
     if option == 'A':
-        db['would_you_rather'].update_one({'_id': wyr['_id']}, {'$inc': {'votes_a': 1}})
-    elif option == 'B':
-        db['would_you_rather'].update_one({'_id': wyr['_id']}, {'$inc': {'votes_b': 1}})
-    else:
-        return jsonify({'error': 'Invalid option'}), 400
+        db['would_you_rather'].update_one({'_id': question_obj_id}, {'$inc': {'votes_a': 1}})
+    else:  # option == 'B'
+        db['would_you_rather'].update_one({'_id': question_obj_id}, {'$inc': {'votes_b': 1}})
     
-    wyr = db['would_you_rather'].find_one({'_id': wyr['_id']})
+    # Get updated question
+    wyr = db['would_you_rather'].find_one({'_id': question_obj_id})
     wyr['_id'] = str(wyr['_id'])
+    wyr['user_vote'] = option  # Add the user's vote to the response
     
-    print(f"🔍 DEBUG: Updated question: {wyr}")
+    print(f"🔍 DEBUG: Updated question with user_vote: {wyr}")
+    print(f"🔍 DEBUG: user_vote field specifically: {wyr.get('user_vote')}")
+    
     return jsonify(wyr)
 
 @activities_bp.route('/wouldyourather/<question_id>', methods=['DELETE'])
 def delete_would_you_rather(question_id):
     """Delete a Would You Rather question"""
+    
     print(f"🔍 DEBUG: delete_would_you_rather route called for ID: {question_id}")
     try:
         db = current_app.config["DB"]
+        current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
         
         # Validate ObjectId format
         try:
@@ -146,10 +182,13 @@ def delete_would_you_rather(question_id):
         if not question:
             return jsonify({'error': 'Question not found'}), 404
         
-        # TODO: Add user authentication check here
-        # For now, we'll allow anyone to delete (you can add user ownership check later)
+        # For now, allow anyone to delete (you can add user ownership check later)
+        # Check if user is the creator of this question
         # if question.get('created_by') != current_user_id:
         #     return jsonify({'error': 'Not authorized to delete this question'}), 403
+        
+        # Delete associated votes first
+        db['wyr_votes'].delete_many({'question_id': obj_id})
         
         # Delete the question
         result = db['would_you_rather'].delete_one({'_id': obj_id})
