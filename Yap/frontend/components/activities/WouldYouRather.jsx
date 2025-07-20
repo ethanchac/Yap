@@ -301,26 +301,26 @@ export default function WouldYouRather() {
   }
 
   return (
-    <div className="rounded-lg p-4 bg-[#171717] flex flex-col">
+    <div className="rounded-lg p-4 bg-[#171717] flex flex-col h-full">
       {/* Header with Create Button */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 flex-shrink-0">
         <h2 className="text-white text-xl font-bold">Would You Rather</h2>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors"
+          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors whitespace-nowrap"
         >
           + Create
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-lg">
+        <div className="mb-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-lg flex-shrink-0">
           {error}
         </div>
       )}
 
       {questions.length === 0 ? (
-        <div className="text-center py-12 rounded-lg border border-gray-700" style={{ backgroundColor: '#171717' }}>
+        <div className="text-center py-12 rounded-lg border border-gray-700 flex-1 flex flex-col justify-center" style={{ backgroundColor: '#171717' }}>
           <p className="text-gray-400 mb-4">No questions found. Be the first to create one!</p>
           <button
             onClick={() => setShowCreateForm(true)}
@@ -330,7 +330,7 @@ export default function WouldYouRather() {
           </button>
         </div>
       ) : (
-        <div className="space-y-0">
+        <div className="space-y-0 flex-1 overflow-y-auto">
           {questions.map((question) => {
             // For testing without JWT, allow deletion for all questions
             const canDelete = true;

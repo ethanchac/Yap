@@ -90,24 +90,24 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
       {/* Options Display */}
       <div className="mb-6 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-full bg-black border-2 border-white flex items-center justify-center">
+          <div className="w-7 h-7 rounded-full bg-black border-2 border-white flex items-center justify-center flex-shrink-0">
             <span className="text-white text-lg font-bold">1</span>
           </div>
-          <span className="text-white text-base">{question.option_a}</span>
+          <span className="text-white text-base break-words">{question.option_a}</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-full bg-black border-2 border-white flex items-center justify-center">
+          <div className="w-7 h-7 rounded-full bg-black border-2 border-white flex items-center justify-center flex-shrink-0">
             <span className="text-white text-lg font-bold">2</span>
           </div>
-          <span className="text-white text-base">{question.option_b}</span>
+          <span className="text-white text-base break-words">{question.option_b}</span>
         </div>
       </div>
 
       {!showResults ? (
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-3 mb-4">
           {/* Vote A Button */}
           <button
-            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-green-700 border-2 border-green-900 text-green-100 hover:bg-green-600 hover:border-green-800 shadow-md relative ${
+            className={`flex-1 min-w-0 px-4 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-green-700 border-2 border-green-900 text-green-100 hover:bg-green-600 hover:border-green-800 shadow-md relative ${
               voting && votingOption === 'A' ? 'opacity-75' : ''
             } ${clickedButton === 'A' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -125,7 +125,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
 
           {/* Vote B Button */}
           <button
-            className={`flex-1 px-3 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-red-700 border-2 border-red-900 text-red-100 hover:bg-red-600 hover:border-red-800 shadow-md relative ${
+            className={`flex-1 min-w-0 px-4 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-red-700 border-2 border-red-900 text-red-100 hover:bg-red-600 hover:border-red-800 shadow-md relative ${
               voting && votingOption === 'B' ? 'opacity-75' : ''
             } ${clickedButton === 'B' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -145,36 +145,47 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
         <div className="mb-4">
           <div className="flex h-16 rounded-lg overflow-hidden shadow-lg">
             {/* Result A */}
-            <div
-              className={`bg-green-700 flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out ${
-                userVote === 'A' ? 'ring-4 ring-green-400' : ''
-              }`}
-              style={{
-                width: `${Math.max(animatedPercentageA, 5)}%`,
-              }}
-            >
-              <div className="text-center px-2">
-                <div className="text-base font-bold">{animatedPercentageA}%</div>
-                <div className="text-xs opacity-80">{question.votes_a}</div>
-                {userVote === 'A' && <div className="text-xs mt-1">✓ Your choice</div>}
+            {animatedPercentageA > 0 && (
+              <div
+                className={`bg-green-700 flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out min-w-0 ${
+                  userVote === 'A' ? 'ring-4 ring-green-400' : ''
+                }`}
+                style={{
+                  width: `${Math.max(animatedPercentageA, 5)}%`,
+                }}
+              >
+                <div className="text-center px-2 min-w-0">
+                  <div className="text-base font-bold truncate">{animatedPercentageA}%</div>
+                  <div className="text-xs opacity-80 truncate">{question.votes_a}</div>
+                  {userVote === 'A' && <div className="text-xs mt-1 truncate">✓ Your choice</div>}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Result B */}
-            <div
-              className={`bg-red-700 flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out ${
-                userVote === 'B' ? 'ring-4 ring-red-400' : ''
-              }`}
-              style={{
-                width: `${Math.max(animatedPercentageB, 5)}%`,
-              }}
-            >
-              <div className="text-center px-2">
-                <div className="text-base font-bold">{animatedPercentageB}%</div>
-                <div className="text-xs opacity-80">{question.votes_b}</div>
-                {userVote === 'B' && <div className="text-xs mt-1">✓ Your choice</div>}
+            {animatedPercentageB > 0 && (
+              <div
+                className={`bg-red-700 flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out min-w-0 ${
+                  userVote === 'B' ? 'ring-4 ring-red-400' : ''
+                }`}
+                style={{
+                  width: `${Math.max(animatedPercentageB, 5)}%`,
+                }}
+              >
+                <div className="text-center px-2 min-w-0">
+                  <div className="text-base font-bold truncate">{animatedPercentageB}%</div>
+                  <div className="text-xs opacity-80 truncate">{question.votes_b}</div>
+                  {userVote === 'B' && <div className="text-xs mt-1 truncate">✓ Your choice</div>}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Show message when both options have 0 votes */}
+            {animatedPercentageA === 0 && animatedPercentageB === 0 && (
+              <div className="w-full bg-gray-700 flex items-center justify-center text-gray-400 font-medium">
+                No votes yet
+              </div>
+            )}
           </div>
         </div>
       )}

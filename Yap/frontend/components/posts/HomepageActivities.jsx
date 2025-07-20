@@ -3,7 +3,7 @@ import WouldYouRather from "../activities/WouldYouRather";
 
 function PlaceholderActivity({ title }) {
     return (
-        <div className="flex flex-col items-center justify-center h-80 rounded-lg text-gray-400 font-bold text-xl shadow-md w-full" style={{ backgroundColor: '#171717' }}>
+        <div className="flex flex-col items-center justify-center h-60 rounded-lg text-gray-400 font-bold text-xl shadow-md w-full" style={{ backgroundColor: '#171717' }}>
             <span>{title}</span>
             <span className="mt-2 text-sm">(Coming soon)</span>
         </div>
@@ -29,7 +29,7 @@ function HomepageActivities() {
     const [current, setCurrent] = useState(0); // Start on WouldYouRather (now index 0)
     const [prev, setPrev] = useState(0);
     const [isAnimating, setIsAnimating] = useState(false);
-    const [containerHeight, setContainerHeight] = useState(320);
+    const [containerHeight, setContainerHeight] = useState(280);
     const timeoutRef = useRef(null);
     const containerRef = useRef(null);
 
@@ -40,7 +40,7 @@ function HomepageActivities() {
                 const currentActivity = containerRef.current.querySelector(`[data-activity="${current}"]`);
                 if (currentActivity) {
                     const height = currentActivity.scrollHeight;
-                    setContainerHeight(Math.max(height, 320)); // Minimum 320px
+                    setContainerHeight(Math.max(height, 280)); // Minimum 280px
                 }
             }
         };
@@ -98,7 +98,7 @@ function HomepageActivities() {
                     ))}
                 </div>
             </div>
-            <div className="flex justify-center mt-4 space-x-2">
+            <div className="flex justify-center mt-2 space-x-2">
                 {activities.map((_, idx) => (
                     <button
                         key={idx}
