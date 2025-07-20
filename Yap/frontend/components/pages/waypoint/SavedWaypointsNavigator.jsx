@@ -243,7 +243,7 @@ function SavedWaypointsNavigator({
                             </button>
                         </div>
 
-                        {/* Keyboard hints */}
+                        {/* Keyboard hints for left and right */}
                         <div className="mt-4 text-center text-xs text-gray-400">
                             Use ← → arrow keys to navigate • ESC to close
                         </div>
