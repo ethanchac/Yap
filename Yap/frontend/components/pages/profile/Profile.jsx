@@ -3,6 +3,7 @@ import Sidebar from '../../sidebar/Sidebar';
 import PostItem from '../../posts/PostItem';
 import Program from './Program';
 import FriendList from './FriendList'; // Add this import
+import ProfileEvents from './ProfileEvents'; // Add this import
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap, Heart } from 'lucide-react';
@@ -568,6 +569,9 @@ const Profile = () => {
 
           {/* FriendList Component - Only show for own profile */}
           {isOwnProfile && <FriendList userId={userId} isOwnProfile={isOwnProfile} />}
+
+          {/* Events Section - Show for all profiles */}
+          <ProfileEvents userId={userId} isOwnProfile={isOwnProfile} />
 
           {/* Posts Section Header with Liked Posts Button */}
           <div className="flex items-center justify-between mb-6">
