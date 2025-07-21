@@ -10,21 +10,21 @@ function Settings() {
     const mainContentRef = useRef(null);
 
     const handleLogout = async () => {
-        try {
-            setIsLoggingOut(true);
-            
-            // Clear the token from localStorage
-            localStorage.removeItem('token');
-            navigate('/login');
-            
-        } catch (error) {
-            console.error('Error during logout:', error);
-            // Even if there's an error, still clear local storage and redirect
-            localStorage.removeItem('token');
-            navigate('/login');
-        } finally {
-            setIsLoggingOut(false);
-        }
+    try {
+        setIsLoggingOut(true);
+        
+        // Only need to clear the main token now
+        localStorage.removeItem('token');
+        
+        navigate('/login');
+        
+    } catch (error) {
+        console.error('Error during logout:', error);
+        localStorage.removeItem('token');
+        navigate('/login');
+    } finally {
+        setIsLoggingOut(false);
+    }
     };
 
     return (

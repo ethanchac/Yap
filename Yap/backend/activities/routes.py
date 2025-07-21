@@ -1,23 +1,83 @@
 from flask import Blueprint, request, jsonify, current_app
 from bson import ObjectId
 from datetime import datetime
+import jwt
+import traceback
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 activities_bp = Blueprint('activities', __name__)
+
+def get_current_user_id():
+    """Extract real user ID from JWT token"""
+    try:
+        # Get token from Authorization header
+        auth_header = request.headers.get('Authorization', '')
+        print(f"🔍 DEBUG: Auth header received: {auth_header[:50]}..." if len(auth_header) > 50 else f"🔍 DEBUG: Auth header received: {auth_header}")
+        
+        if not auth_header.startswith('Bearer '):
+            print("🔍 DEBUG: No Bearer token found")
+            return None
+        
+        token = auth_header.replace('Bearer ', '')
+        print(f"🔍 DEBUG: Extracted token: {token[:20]}...")
+        
+        # Use the SAME JWT_SECRET that's used in auth/service.py
+        JWT_SECRET = os.getenv("JWT_SECRET")
+        print(f"🔍 DEBUG: Using JWT_SECRET from env: {JWT_SECRET[:10]}..." if JWT_SECRET and len(JWT_SECRET) > 10 else f"🔍 DEBUG: JWT_SECRET: {JWT_SECRET}")
+        
+        if not JWT_SECRET:
+            print("🔍 DEBUG: No JWT_SECRET found in environment variables!")
+            return None
+        
+        try:
+            decoded_token = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+            print(f"🔍 DEBUG: Decoded token payload: {decoded_token}")
+        except jwt.ExpiredSignatureError:
+            print("🔍 DEBUG: Token expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            print(f"🔍 DEBUG: Invalid token error: {e}")
+            return None
+        
+        # Based on your auth/service.py, the token contains 'user_id'
+        user_id = decoded_token.get('user_id')
+        
+        print(f"🔍 DEBUG: Extracted user_id: {user_id}")
+        
+        if not user_id:
+            print("🔍 DEBUG: No user_id found in token payload")
+            print(f"🔍 DEBUG: Available fields in token: {list(decoded_token.keys())}")
+            return None
+            
+        return str(user_id)
+        
+    except Exception as e:
+        print(f"🔍 DEBUG: Exception in get_current_user_id: {e}")
+        traceback.print_exc()
+        return None
 
 @activities_bp.route('/wouldyourather', methods=['GET'])
 def get_would_you_rather():
     print("🔍 DEBUG: get_would_you_rather route called")
     db = current_app.config["DB"]
     
-    # For now, use a session-based user ID (you can replace this with your auth system later)
-    current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
-    print(f"🔍 DEBUG: Using user ID: {current_user_id}")
+    # Get real user ID from JWT token
+    current_user_id = get_current_user_id()
+    print(f"🔍 DEBUG: Current user ID: {current_user_id}")
+    
+    if not current_user_id:
+        print("🔍 DEBUG: Authentication failed, returning 401")
+        return jsonify({'error': 'Authentication required'}), 401
     
     # Get all questions
     questions = list(db['would_you_rather'].find())
     print(f"🔍 DEBUG: Found {len(questions)} questions")
     
-    # Get user's votes for these questions
+    # Get user's votes for these questions using REAL user ID
     question_ids = [q['_id'] for q in questions]
     user_votes = list(db['wyr_votes'].find({
         'user_id': current_user_id,
@@ -31,7 +91,7 @@ def get_would_you_rather():
     # Add user vote info to each question
     for q in questions:
         q['_id'] = str(q['_id'])
-        q['user_vote'] = vote_mapping.get(q['_id'])  # Will be None if user hasn't voted
+        q['user_vote'] = vote_mapping.get(q['_id'])
         print(f"🔍 DEBUG: Question {q['_id']} has user_vote: {q['user_vote']}")
     
     print(f"🔍 DEBUG: Returning {len(questions)} questions with user votes")
@@ -44,7 +104,12 @@ def create_would_you_rather():
     print("🔍 DEBUG: create_would_you_rather route called")
     try:
         db = current_app.config["DB"]
-        current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
+        
+        # Get real user ID from JWT token
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+        
         data = request.json
         print(f"🔍 DEBUG: Received data: {data}")
         
@@ -96,7 +161,6 @@ def create_would_you_rather():
         
     except Exception as e:
         print(f"❌ Error creating Would You Rather question: {e}")
-        import traceback
         traceback.print_exc()
         return jsonify({'error': 'Failed to create question'}), 500
 
@@ -104,7 +168,13 @@ def create_would_you_rather():
 def vote_would_you_rather():
     print("🔍 DEBUG: vote_would_you_rather route called")
     db = current_app.config["DB"]
-    current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
+    
+    # Get real user ID from JWT token
+    current_user_id = get_current_user_id()
+    if not current_user_id:
+        print("🔍 DEBUG: Authentication failed in vote route")
+        return jsonify({'error': 'Authentication required'}), 401
+    
     data = request.json
     print(f"🔍 DEBUG: Vote data: {data}")
     print(f"🔍 DEBUG: Current user: {current_user_id}")
@@ -127,13 +197,14 @@ def vote_would_you_rather():
     if not wyr:
         return jsonify({'error': 'No question found'}), 404
     
-    # Check if user has already voted on this question
+    # Check if user has already voted on this question (using REAL user ID)
     existing_vote = db['wyr_votes'].find_one({
         'user_id': current_user_id,
         'question_id': question_obj_id
     })
     
     if existing_vote:
+        print(f"🔍 DEBUG: User {current_user_id} already voted on question {question_id}")
         return jsonify({'error': 'You have already voted on this question'}), 400
     
     # Record the vote in the votes collection
@@ -169,7 +240,11 @@ def delete_would_you_rather(question_id):
     print(f"🔍 DEBUG: delete_would_you_rather route called for ID: {question_id}")
     try:
         db = current_app.config["DB"]
-        current_user_id = request.headers.get('X-User-ID', 'anonymous_user')
+        
+        # Get real user ID from JWT token
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'error': 'Authentication required'}), 401
         
         # Validate ObjectId format
         try:
@@ -182,13 +257,14 @@ def delete_would_you_rather(question_id):
         if not question:
             return jsonify({'error': 'Question not found'}), 404
         
-        # For now, allow anyone to delete (you can add user ownership check later)
-        # Check if user is the creator of this question
-        # if question.get('created_by') != current_user_id:
-        #     return jsonify({'error': 'Not authorized to delete this question'}), 403
+        # Check if user is the creator of this question (optional - you can remove this check)
+        if question.get('created_by') != current_user_id:
+            print(f"🔍 DEBUG: User {current_user_id} trying to delete question created by {question.get('created_by')}")
+            return jsonify({'error': 'Not authorized to delete this question'}), 403
         
         # Delete associated votes first
-        db['wyr_votes'].delete_many({'question_id': obj_id})
+        votes_deleted = db['wyr_votes'].delete_many({'question_id': obj_id})
+        print(f"🔍 DEBUG: Deleted {votes_deleted.deleted_count} votes")
         
         # Delete the question
         result = db['would_you_rather'].delete_one({'_id': obj_id})
@@ -201,6 +277,23 @@ def delete_would_you_rather(question_id):
         
     except Exception as e:
         print(f"❌ Error deleting Would You Rather question: {e}")
-        import traceback
         traceback.print_exc()
         return jsonify({'error': 'Failed to delete question'}), 500
+
+# Optional: Add a test route to check JWT decoding
+@activities_bp.route('/test-auth', methods=['GET'])
+def test_auth():
+    """Test route to check if JWT authentication is working"""
+    current_user_id = get_current_user_id()
+    
+    if current_user_id:
+        return jsonify({
+            'authenticated': True,
+            'user_id': current_user_id,
+            'message': 'JWT authentication working!'
+        })
+    else:
+        return jsonify({
+            'authenticated': False,
+            'message': 'JWT authentication failed'
+        }), 401

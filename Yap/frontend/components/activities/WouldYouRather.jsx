@@ -24,17 +24,25 @@ export default function WouldYouRather() {
   }, []);
 
   const getAuthHeaders = () => {
-    // Generate a simple user ID for this browser session
-    let userId = localStorage.getItem('temp_user_id');
-    if (!userId) {
-      userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('temp_user_id', userId);
+    // Get the JWT token from localStorage
+    const token = localStorage.getItem('token');
+    
+    console.log('🔍 Frontend: Token from localStorage:', token ? 'Token exists' : 'No token found');
+    
+    if (!token) {
+      console.log('🔍 Frontend: No token, sending basic headers');
+      return {
+        'Content-Type': 'application/json'
+      };
     }
     
-    return {
+    const headers = {
       'Content-Type': 'application/json',
-      'X-User-ID': userId
+      'Authorization': `Bearer ${token}`
     };
+    
+    console.log('🔍 Frontend: Sending headers:', headers);
+    return headers;
   };
 
   const fetchQuestions = async () => {
