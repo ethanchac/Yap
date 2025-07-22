@@ -1,29 +1,72 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import EventModal from './EventModal'; // Import your EventModal component
+import EventModal from './EventModal';
 
 function EventItem() {
     const [events, setEvents] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [currentUser, setCurrentUser] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(null); // Changed to just store the ID
     const [deletingEvent, setDeletingEvent] = useState(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Get current user info
+    // Get current user ID from token - using same pattern as WouldYouRather
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
+        const getCurrentUserId = () => {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                return null;
+            }
+            
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                setCurrentUser(payload);
+                
+                // Try different possible user ID fields
+                const userId = payload.sub || payload._id || payload.id || payload.user_id;
+                
+                return userId;
             } catch (e) {
-                console.error('Error decoding token:', e);
+                console.error('Error parsing token:', e);
+                return null;
             }
-        }
+        };
+
+        const userId = getCurrentUserId();
+        setCurrentUserId(userId);
     }, []);
+
+    // Get auth headers - same pattern as WouldYouRather
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            return {
+                'Content-Type': 'application/json'
+            };
+        }
+        
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    };
+
+    // Get current user object for EventModal (keeping the existing pattern for modal)
+    const getCurrentUser = () => {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload;
+        } catch (e) {
+            console.error('Error getting current user:', e);
+            return null;
+        }
+    };
 
     // Fetch events from API
     useEffect(() => {
@@ -32,16 +75,31 @@ function EventItem() {
 
     const fetchEvents = async () => {
         try {
-            const response = await fetch('http://localhost:5000/events/feed?limit=10');
+            setLoading(true);
+            setError('');
+            
+            console.log('Fetching events from API...');
+            const response = await fetch('http://localhost:5000/events/feed?limit=10&include_past=false');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
-            if (response.ok) {
+            if (data.events && Array.isArray(data.events)) {
                 setEvents(data.events);
+                
+                if (data.debug_info) {
+                    console.log('Database stats:', data.debug_info);
+                }
             } else {
-                setError(data.error || 'Failed to fetch events');
+                console.error('Invalid data structure:', data);
+                setError('Invalid response format from server');
             }
         } catch (err) {
-            setError('Network error. Please try again.');
+            console.error('Error fetching events:', err);
+            setError(`Failed to fetch events: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -59,7 +117,6 @@ function EventItem() {
         }
     };
 
-    // Get the visible events (maximum 5)
     const getVisibleEvents = () => {
         const maxVisible = 5;
         const totalEvents = events.length;
@@ -79,21 +136,37 @@ function EventItem() {
     };
 
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            month: 'short', 
-            day: 'numeric' 
-        });
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return 'Invalid Date';
+            }
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        } catch (e) {
+            console.error('Error formatting date:', e);
+            return 'Invalid Date';
+        }
     };
 
     const formatTime = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-        });
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return 'Invalid Time';
+            }
+            return date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        } catch (e) {
+            console.error('Error formatting time:', e);
+            return 'Invalid Time';
+        }
     };
 
     const getEventIcon = (index) => {
@@ -106,31 +179,35 @@ function EventItem() {
             return;
         }
 
+        if (!currentUserId) {
+            alert('You must be logged in to delete events');
+            return;
+        }
+
         setDeletingEvent(eventId);
         try {
-            const token = localStorage.getItem('token');
             const response = await fetch(`http://localhost:5000/events/${eventId}/cancel`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getAuthHeaders(), // Using same pattern as WouldYouRather
             });
+
+            const data = await response.json();
 
             if (response.ok) {
                 setEvents(prevEvents => prevEvents.filter(event => event._id !== eventId));
                 if (currentIndex > 0 && currentIndex >= events.length - 3) {
                     setCurrentIndex(Math.max(0, currentIndex - 1));
                 }
-                // Close modal if the deleted event was selected
                 if (selectedEvent && selectedEvent._id === eventId) {
                     setIsModalOpen(false);
                     setSelectedEvent(null);
                 }
+                alert('Event cancelled successfully');
             } else {
-                const data = await response.json();
-                alert(data.error || 'Failed to delete event');
+                alert(data.error || 'Failed to cancel event');
             }
         } catch (err) {
+            console.error('Error cancelling event:', err);
             alert('Network error. Please try again.');
         } finally {
             setDeletingEvent(null);
@@ -139,11 +216,9 @@ function EventItem() {
 
     const handleEventClick = (event, isExpanded) => {
         if (isExpanded) {
-            // Open modal for expanded events
             setSelectedEvent(event);
             setIsModalOpen(true);
         } else {
-            // Center the event for compressed events
             const originalIndex = events.findIndex(e => e._id === event._id);
             const newIndex = Math.max(0, Math.min(originalIndex - 1, events.length - 2));
             setCurrentIndex(newIndex);
@@ -155,26 +230,60 @@ function EventItem() {
         setSelectedEvent(null);
     };
 
+    // Check if current user can delete the event
+    const canDeleteEvent = (event) => {
+        if (!currentUserId || !event) {
+            return false;
+        }
+        
+        const eventUserId = String(event.user_id || '');
+        const currentUserIdStr = String(currentUserId || '');
+        
+        return currentUserIdStr === eventUserId && currentUserIdStr !== '';
+    };
+
+    // Show loading state
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <div className="text-gray-400">Loading events...</div>
+                <div className="flex flex-col items-center space-y-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="text-gray-400">Loading events...</div>
+                </div>
             </div>
         );
     }
 
+    // Show error state
     if (error) {
         return (
             <div className="flex justify-center items-center h-64">
-                <div className="text-red-400">{error}</div>
+                <div className="text-center">
+                    <div className="text-red-400 mb-2">{error}</div>
+                    <button 
+                        onClick={fetchEvents}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Retry
+                    </button>
+                </div>
             </div>
         );
     }
 
+    // Show empty state
     if (events.length === 0) {
         return (
             <div className="flex justify-center items-center h-64">
-                <div className="text-gray-400">No events found</div>
+                <div className="text-center">
+                    <div className="text-gray-400 mb-2">No events found</div>
+                    <button 
+                        onClick={fetchEvents}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Refresh
+                    </button>
+                </div>
             </div>
         );
     }
@@ -255,7 +364,7 @@ function EventItem() {
                                             // Full expanded view
                                             <>
                                                 {/* Delete Button for Event Owner */}
-                                                {currentUser && (
+                                                {canDeleteEvent(event) && (
                                                     <div className="absolute top-2 right-2 z-10">
                                                         <button
                                                             onClick={(e) => {
@@ -333,7 +442,7 @@ function EventItem() {
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                                                         </svg>
                                                         <span className="text-sm font-medium">
-                                                            {event.attendees_count} attending
+                                                            {event.attendees_count || 0} attending
                                                         </span>
                                                     </div>
                                                 </div>
@@ -346,10 +455,10 @@ function EventItem() {
                                                 </div>
                                             </>
                                         ) : (
-                                            // Compressed view - only show icon and title vertically
+                                            // Compressed view
                                             <div className="flex flex-col items-center justify-center h-full text-center relative">
                                                 {/* Delete Button for Event Owner (Compressed View) */}
-                                                {currentUser && (
+                                                {canDeleteEvent(event) && (
                                                     <div className="absolute top-1 right-1 z-10">
                                                         <button
                                                             onClick={(e) => {
@@ -393,7 +502,7 @@ function EventItem() {
                 {/* Dots Indicator */}
                 {events.length > 2 && (
                     <div className="flex justify-center mt-6 space-x-2">
-                        {Array.from({ length: events.length - 1 }).map((_, index) => (
+                        {Array.from({ length: Math.max(0, events.length - 1) }).map((_, index) => (
                             <button
                                 key={index}
                                 onClick={() => setCurrentIndex(index)}
@@ -408,7 +517,7 @@ function EventItem() {
                 )}
             </div>
 
-            {/* Event Modal with React Portal - renders at document.body level */}
+            {/* Event Modal */}
             {isModalOpen && createPortal(
                 <div 
                     className="fixed inset-0 backdrop-blur-sm transition-all duration-300"
@@ -426,7 +535,7 @@ function EventItem() {
                         event={selectedEvent}
                         isOpen={isModalOpen}
                         onClose={closeModal}
-                        currentUser={currentUser}
+                        currentUser={getCurrentUser()} // Get full user object for modal
                     />
                 </div>,
                 document.body

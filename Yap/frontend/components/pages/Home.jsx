@@ -12,7 +12,40 @@ function Home() {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null); // Add currentUser state
     const mainContentRef = useRef(null);
+
+    // Get current user info
+    useEffect(() => {
+        const getUserData = () => {
+            // Try to get from sessionStorage first
+            const sessionUser = sessionStorage.getItem('currentUser');
+            if (sessionUser) {
+                try {
+                    return JSON.parse(sessionUser);
+                } catch (e) {
+                    console.error('Error parsing session user:', e);
+                }
+            }
+
+            // Fallback to token decoding
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    sessionStorage.setItem('currentUser', JSON.stringify(payload));
+                    return payload;
+                } catch (e) {
+                    console.error('Error decoding token:', e);
+                }
+            }
+            return null;
+        };
+
+        const userData = getUserData();
+        setCurrentUser(userData);
+        console.log('Home - currentUser loaded:', userData); // Debug log
+    }, []);
 
     const fetchPosts = async (pageNum = 1, reset = false) => {
         try {
@@ -116,7 +149,8 @@ function Home() {
                         </button>
                     </div>
                     <div className="rounded-lg p-4" style={{backgroundColor: '#171717'}}>
-                        <EventItem />
+                        {/* Pass currentUser to EventItem */}
+                        <EventItem currentUser={currentUser} />
                     </div>
                 </div>
 

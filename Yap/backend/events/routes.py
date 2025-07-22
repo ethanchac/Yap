@@ -23,33 +23,35 @@ def create_event_with_waypoint(current_user):
             if field not in data or not data[field]:
                 return jsonify({"error": f"{field} is required"}), 400
         
-        # Create the event (your existing event creation logic)
-        event_doc = {
-            "user_id": current_user['_id'],
-            "username": current_user['username'],
-            "title": data['title'],
-            "description": data['description'],
-            "event_date": data['event_date'],
-            "event_time": data['event_time'],
-            "location": data.get('location'),
-            "latitude": data.get('latitude'),
-            "longitude": data.get('longitude'),
-            "max_attendees": data.get('max_attendees'),
-            "created_at": datetime.utcnow(),
-            "attendees": []
-        }
+        # Validate date format
+        try:
+            event_datetime_str = f"{data['event_date']} {data['event_time']}"
+            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+            if event_datetime <= datetime.utcnow():
+                return jsonify({"error": "Event must be scheduled for a future date and time"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time"}), 400
         
-        # Insert event into database
-        db = current_app.config["DB"]
-        result = db.events.insert_one(event_doc)
-        event_doc["_id"] = str(result.inserted_id)
+        # Create the event using the Event model
+        try:
+            event_doc = Event.create_event(
+                user_id=current_user['_id'],
+                username=current_user['username'],
+                title=data['title'],
+                description=data['description'],
+                event_date=data['event_date'],
+                event_time=data['event_time'],
+                location=data.get('location'),
+                max_attendees=data.get('max_attendees')
+            )
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
         
         # If event has location coordinates, create a waypoint
         waypoint_created = False
         if data.get('latitude') and data.get('longitude'):
             try:
                 # Calculate waypoint expiration (2 hours after event)
-                event_datetime = datetime.strptime(f"{data['event_date']} {data['event_time']}", "%Y-%m-%d %H:%M")
                 expires_at = event_datetime + timedelta(hours=2)
                 
                 # Create waypoint with event prefix
@@ -80,6 +82,8 @@ def create_event_with_waypoint(current_user):
         
     except Exception as e:
         print(f"Error creating event: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Failed to create event"}), 500
 
 @events_bp.route('/feed', methods=['GET'])
@@ -91,18 +95,40 @@ def get_events_feed():
         include_past = request.args.get('include_past', 'false').lower() == 'true'
         skip = (page - 1) * limit
         
+        print(f"Fetching events feed: page={page}, limit={limit}, include_past={include_past}, skip={skip}")
+        
         events = Event.get_all_events(limit=limit, skip=skip, include_past=include_past)
+        
+        print(f"Retrieved {len(events)} events from database")
+        
+        # Debug: Check database directly
+        db = current_app.config["DB"]
+        total_events_in_db = db.events.count_documents({})
+        active_events_in_db = db.events.count_documents({"is_active": True})
+        future_events_in_db = db.events.count_documents({
+            "is_active": True,
+            "event_datetime": {"$gte": datetime.utcnow()}
+        }) if not include_past else active_events_in_db
+        
+        print(f"Database stats: total={total_events_in_db}, active={active_events_in_db}, future={future_events_in_db}")
         
         return jsonify({
             "events": events,
             "page": page,
             "limit": limit,
             "total_events": len(events),
-            "include_past": include_past
+            "include_past": include_past,
+            "debug_info": {
+                "total_in_db": total_events_in_db,
+                "active_in_db": active_events_in_db,
+                "future_in_db": future_events_in_db
+            }
         }), 200
         
     except Exception as e:
         print(f"Error fetching events feed: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Failed to fetch events"}), 500
 
 @events_bp.route('/my-events', methods=['GET'])
@@ -125,6 +151,7 @@ def get_my_events(current_user):
         }), 200
         
     except Exception as e:
+        print(f"Error fetching my events: {e}")
         return jsonify({"error": "Failed to fetch your events"}), 500
 
 @events_bp.route('/user/<user_id>', methods=['GET'])
@@ -160,6 +187,7 @@ def get_single_event(event_id):
         return jsonify({"event": event}), 200
         
     except Exception as e:
+        print(f"Error fetching single event: {e}")
         return jsonify({"error": "Failed to fetch event"}), 500
 
 @events_bp.route('/<event_id>/like', methods=['POST'])
@@ -430,30 +458,36 @@ def get_event_details(current_user, event_id):
         following_ids = [f["following_id"] for f in following]
         
         # Get attendees who are in the following list
-        attending_friends_pipeline = [
-            {"$match": {"event_id": event_id, "user_id": {"$in": following_ids}}},
-            {
-                "$lookup": {
-                    "from": "users",
-                    "let": {"user_id": {"$toObjectId": "$user_id"}},
-                    "pipeline": [
-                        {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
-                    ],
-                    "as": "user_info"
+        attending_friends = []
+        if following_ids:
+            attending_friends_pipeline = [
+                {"$match": {"event_id": event_id, "user_id": {"$in": following_ids}}},
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "let": {"user_id": {"$toObjectId": "$user_id"}},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
+                        ],
+                        "as": "user_info"
+                    }
+                },
+                {"$unwind": "$user_info"},
+                {
+                    "$project": {
+                        "_id": "$user_info._id",
+                        "username": "$user_info.username",
+                        "full_name": "$user_info.full_name",
+                        "profile_picture": "$user_info.profile_picture"
+                    }
                 }
-            },
-            {"$unwind": "$user_info"},
-            {
-                "$project": {
-                    "_id": "$user_info._id",
-                    "username": "$user_info.username",
-                    "full_name": "$user_info.full_name",
-                    "profile_picture": "$user_info.profile_picture"
-                }
-            }
-        ]
-        
-        attending_friends = list(db.attendances.aggregate(attending_friends_pipeline))
+            ]
+            
+            try:
+                attending_friends = list(db.attendances.aggregate(attending_friends_pipeline))
+            except Exception as e:
+                print(f"Error getting attending friends: {e}")
+                attending_friends = []
         
         # Get total attendees count
         total_attendees = db.attendances.count_documents({"event_id": event_id})
@@ -469,3 +503,36 @@ def get_event_details(current_user, event_id):
     except Exception as e:
         print(f"Error fetching event details: {e}")
         return jsonify({"error": "Failed to fetch event details"}), 500
+
+# Debug route to check database content
+@events_bp.route('/debug/database', methods=['GET'])
+def debug_database():
+    """Debug route to check what's in the database"""
+    try:
+        db = current_app.config["DB"]
+        
+        # Get all events
+        all_events = list(db.events.find({}))
+        
+        # Convert ObjectIds to strings for JSON serialization
+        for event in all_events:
+            event["_id"] = str(event["_id"])
+            if "user_id" in event:
+                event["user_id"] = str(event["user_id"])
+        
+        # Get counts
+        total_count = len(all_events)
+        active_count = len([e for e in all_events if e.get("is_active", True)])
+        future_count = len([e for e in all_events if e.get("is_active", True) and e.get("event_datetime") and e["event_datetime"] >= datetime.utcnow()])
+        
+        return jsonify({
+            "total_events": total_count,
+            "active_events": active_count,
+            "future_events": future_count,
+            "events": all_events[:5],  # First 5 events as sample
+            "collections": db.list_collection_names()
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in debug route: {e}")
+        return jsonify({"error": str(e)}), 500

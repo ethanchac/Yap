@@ -51,53 +51,94 @@ class Event:
         if not include_past:
             match_condition["event_datetime"] = {"$gte": datetime.utcnow()}
         
-        pipeline = [
-            {"$match": match_condition},
-            # Convert string user_id to ObjectId for lookup
-            {
-                "$addFields": {
-                    "user_object_id": {"$toObjectId": "$user_id"}
-                }
-            },
-            {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "user_object_id",
-                    "foreignField": "_id",
-                    "as": "user_info"
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$user_info",
-                    "preserveNullAndEmptyArrays": True
-                }
-            },
-            {
-                "$project": {
-                    "_id": {"$toString": "$_id"},
-                    "user_id": 1,
-                    "username": {"$ifNull": ["$user_info.username", "$username"]},
-                    "title": 1,
-                    "description": 1,
-                    "event_datetime": 1,
-                    "location": 1,
-                    "max_attendees": 1,
-                    "created_at": 1,
-                    "attendees_count": 1,
-                    "likes_count": 1,
-                    "comments_count": 1,
-                    "is_active": 1,
-                    "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
-                }
-            },
-            {"$sort": {"event_datetime": 1}},  # Sort by event date (upcoming first)
-            {"$skip": skip},
-            {"$limit": limit}
-        ]
-        
-        events = list(db.events.aggregate(pipeline))
-        return events
+        try:
+            # First try the aggregation pipeline approach
+            pipeline = [
+                {"$match": match_condition},
+                {
+                    "$addFields": {
+                        "user_object_id": {
+                            "$cond": {
+                                "if": {"$type": ["$user_id", "objectId"]},
+                                "then": "$user_id",
+                                "else": {"$toObjectId": "$user_id"}
+                            }
+                        }
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "user_object_id",
+                        "foreignField": "_id",
+                        "as": "user_info"
+                    }
+                },
+                {
+                    "$addFields": {
+                        "user_info": {"$arrayElemAt": ["$user_info", 0]}
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": {"$toString": "$_id"},
+                        "user_id": {"$toString": "$user_id"},
+                        "username": {"$ifNull": ["$user_info.username", "$username"]},
+                        "title": 1,
+                        "description": 1,
+                        "event_datetime": 1,
+                        "location": 1,
+                        "max_attendees": 1,
+                        "created_at": 1,
+                        "attendees_count": {"$ifNull": ["$attendees_count", 0]},
+                        "likes_count": {"$ifNull": ["$likes_count", 0]},
+                        "comments_count": {"$ifNull": ["$comments_count", 0]},
+                        "is_active": 1,
+                        "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
+                    }
+                },
+                {"$sort": {"event_datetime": 1}},  # Sort by event date (upcoming first)
+                {"$skip": skip},
+                {"$limit": limit}
+            ]
+            
+            events = list(db.events.aggregate(pipeline))
+            
+            # If aggregation returns no results, fall back to simple find
+            if not events:
+                print("Aggregation returned no results, trying simple find...")
+                cursor = db.events.find(match_condition).sort("event_datetime", 1).skip(skip).limit(limit)
+                events = []
+                for event in cursor:
+                    event["_id"] = str(event["_id"])
+                    event["user_id"] = str(event["user_id"]) if event.get("user_id") else None
+                    event["attendees_count"] = event.get("attendees_count", 0)
+                    event["likes_count"] = event.get("likes_count", 0)
+                    event["comments_count"] = event.get("comments_count", 0)
+                    events.append(event)
+            
+            print(f"Found {len(events)} events")
+            return events
+            
+        except Exception as e:
+            print(f"Error in aggregation pipeline: {e}")
+            # Fallback to simple query
+            try:
+                cursor = db.events.find(match_condition).sort("event_datetime", 1).skip(skip).limit(limit)
+                events = []
+                for event in cursor:
+                    event["_id"] = str(event["_id"])
+                    event["user_id"] = str(event["user_id"]) if event.get("user_id") else None
+                    event["attendees_count"] = event.get("attendees_count", 0)
+                    event["likes_count"] = event.get("likes_count", 0)
+                    event["comments_count"] = event.get("comments_count", 0)
+                    events.append(event)
+                
+                print(f"Fallback query found {len(events)} events")
+                return events
+            except Exception as fallback_error:
+                print(f"Fallback query also failed: {fallback_error}")
+                return []
     
     @staticmethod
     def get_user_events(user_id, limit=50, skip=0, include_past=False):
@@ -111,50 +152,21 @@ class Event:
         if not include_past:
             match_condition["event_datetime"] = {"$gte": datetime.utcnow()}
         
-        pipeline = [
-            {"$match": match_condition},
-            # Convert string user_id to ObjectId for lookup
-            {
-                "$lookup": {
-                    "from": "users",
-                    "let": {"user_id": {"$toObjectId": "$user_id"}},
-                    "pipeline": [
-                        {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
-                    ],
-                    "as": "user_info"
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$user_info",
-                    "preserveNullAndEmptyArrays": True
-                }
-            },
-            {
-                "$project": {
-                    "_id": {"$toString": "$_id"},
-                    "user_id": 1,
-                    "username": {"$ifNull": ["$user_info.username", "$username"]},
-                    "title": 1,
-                    "description": 1,
-                    "event_datetime": 1,
-                    "location": 1,
-                    "max_attendees": 1,
-                    "created_at": 1,
-                    "attendees_count": 1,
-                    "likes_count": 1,
-                    "comments_count": 1,
-                    "is_active": 1,
-                    "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
-                }
-            },
-            {"$sort": {"event_datetime": 1}},
-            {"$skip": skip},
-            {"$limit": limit}
-        ]
-        
-        events = list(db.events.aggregate(pipeline))
-        return events
+        try:
+            cursor = db.events.find(match_condition).sort("event_datetime", 1).skip(skip).limit(limit)
+            events = []
+            for event in cursor:
+                event["_id"] = str(event["_id"])
+                event["user_id"] = str(event["user_id"]) if event.get("user_id") else None
+                event["attendees_count"] = event.get("attendees_count", 0)
+                event["likes_count"] = event.get("likes_count", 0)
+                event["comments_count"] = event.get("comments_count", 0)
+                events.append(event)
+            
+            return events
+        except Exception as e:
+            print(f"Error getting user events: {e}")
+            return []
     
     @staticmethod
     def get_event_by_id(event_id):
@@ -168,106 +180,33 @@ class Event:
             
             # First try with ObjectId
             try:
-                pipeline = [
-                    {"$match": {"_id": ObjectId(event_id)}},
-                    {
-                        "$lookup": {
-                            "from": "users",
-                            "let": {"user_id": {"$toObjectId": "$user_id"}},
-                            "pipeline": [
-                                {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
-                            ],
-                            "as": "user_info"
-                        }
-                    },
-                    {
-                        "$unwind": {
-                            "path": "$user_info",
-                            "preserveNullAndEmptyArrays": True
-                        }
-                    },
-                    {
-                        "$project": {
-                            "_id": {"$toString": "$_id"},
-                            "user_id": 1,
-                            "username": {"$ifNull": ["$user_info.username", "$username"]},
-                            "title": 1,
-                            "description": 1,
-                            "event_datetime": 1,
-                            "location": 1,
-                            "max_attendees": 1,
-                            "created_at": 1,
-                            "attendees_count": 1,
-                            "likes_count": 1,
-                            "comments_count": 1,
-                            "is_active": 1,
-                            "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
-                        }
-                    }
-                ]
-                
-                result = list(db.events.aggregate(pipeline))
-                if result:
-                    event = result[0]
-                    print(f"Found event with ObjectId: {event['_id']}")
-                    
+                event = db.events.find_one({"_id": ObjectId(event_id)})
+                if event:
+                    print(f"Found event with ObjectId")
             except Exception as e:
                 print(f"ObjectId lookup failed: {e}")
             
             # If not found with ObjectId, try with string ID
             if not event:
                 try:
-                    pipeline = [
-                        {"$match": {"_id": event_id}},
-                        {
-                            "$lookup": {
-                                "from": "users",
-                                "let": {"user_id": {"$toObjectId": "$user_id"}},
-                                "pipeline": [
-                                    {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
-                                ],
-                                "as": "user_info"
-                            }
-                        },
-                        {
-                            "$unwind": {
-                                "path": "$user_info",
-                                "preserveNullAndEmptyArrays": True
-                            }
-                        },
-                        {
-                            "$project": {
-                                "_id": 1,
-                                "user_id": 1,
-                                "username": {"$ifNull": ["$user_info.username", "$username"]},
-                                "title": 1,
-                                "description": 1,
-                                "event_datetime": 1,
-                                "location": 1,
-                                "max_attendees": 1,
-                                "created_at": 1,
-                                "attendees_count": 1,
-                                "likes_count": 1,
-                                "comments_count": 1,
-                                "is_active": 1,
-                                "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
-                            }
-                        }
-                    ]
-                    
-                    result = list(db.events.aggregate(pipeline))
-                    if result:
-                        event = result[0]
-                        print(f"Found event with string ID: {event['_id']}")
-                        
+                    event = db.events.find_one({"_id": event_id})
+                    if event:
+                        print(f"Found event with string ID")
                 except Exception as e:
                     print(f"String ID lookup failed: {e}")
             
             if event:
-                print(f"Successfully found event: {event['title']} - {event['description'][:50]}...")
+                # Convert IDs to strings and ensure required fields exist
+                event["_id"] = str(event["_id"])
+                event["user_id"] = str(event["user_id"]) if event.get("user_id") else None
+                event["attendees_count"] = event.get("attendees_count", 0)
+                event["likes_count"] = event.get("likes_count", 0)
+                event["comments_count"] = event.get("comments_count", 0)
+                
+                print(f"Successfully found event: {event['title']}")
                 return event
             else:
-                print(f"Event not found with either ObjectId or string ID: {event_id}")
+                print(f"Event not found: {event_id}")
                 return None
                 
         except Exception as e:
@@ -440,33 +379,23 @@ class Event:
         db = current_app.config["DB"]
         
         try:
-            pipeline = [
-                {"$match": {"event_id": event_id}},
-                {"$sort": {"created_at": -1}},
-                {"$skip": skip},
-                {"$limit": limit},
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "let": {"user_id": {"$toObjectId": "$user_id"}},
-                        "pipeline": [
-                            {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
-                        ],
-                        "as": "user_info"
-                    }
-                },
-                {"$unwind": "$user_info"},
-                {
-                    "$project": {
-                        "_id": "$user_info._id",
-                        "username": "$user_info.username",
-                        "profile_picture": "$user_info.profile_picture",
-                        "joined_at": "$created_at"
-                    }
-                }
-            ]
+            cursor = db.attendances.find({"event_id": event_id}).sort("created_at", -1).skip(skip).limit(limit)
+            attendees = []
             
-            attendees = list(db.attendances.aggregate(pipeline))
+            for attendance in cursor:
+                # Get user info
+                try:
+                    user = db.users.find_one({"_id": ObjectId(attendance["user_id"])})
+                    if user:
+                        attendees.append({
+                            "_id": str(user["_id"]),
+                            "username": user.get("username", "Unknown"),
+                            "profile_picture": user.get("profile_picture"),
+                            "joined_at": attendance["created_at"]
+                        })
+                except:
+                    continue
+            
             return attendees
             
         except Exception as e:
@@ -479,71 +408,22 @@ class Event:
         db = current_app.config["DB"]
         
         try:
-            # Base pipeline for getting user's attendances
-            pipeline = [
-                {"$match": {"user_id": user_id}},
-                {"$sort": {"created_at": -1}},
-                {"$skip": skip},
-                {"$limit": limit},
-                {
-                    "$addFields": {
-                        "event_object_id": {"$toObjectId": "$event_id"}
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "events",
-                        "localField": "event_object_id",
-                        "foreignField": "_id",
-                        "as": "event_details"
-                    }
-                },
-                {"$unwind": "$event_details"},
-                # Filter out past events if not requested
-                {"$match": {"event_details.is_active": True}},
-            ]
+            # Get user's attendances
+            cursor = db.attendances.find({"user_id": user_id}).sort("created_at", -1).skip(skip).limit(limit)
+            attending_events = []
             
-            # Add past event filter if needed
-            if not include_past:
-                pipeline.append({
-                    "$match": {"event_details.event_datetime": {"$gte": datetime.utcnow()}}
-                })
+            for attendance in cursor:
+                # Get event details
+                event = Event.get_event_by_id(attendance["event_id"])
+                if event and event.get("is_active", True):
+                    # Filter past events if not requested
+                    if not include_past and event.get("event_datetime"):
+                        if event["event_datetime"] <= datetime.utcnow():
+                            continue
+                    
+                    event["joined_at"] = attendance["created_at"]
+                    attending_events.append(event)
             
-            # Add user lookup and final projection
-            pipeline.extend([
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "let": {"user_id": {"$toObjectId": "$event_details.user_id"}},
-                        "pipeline": [
-                            {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
-                        ],
-                        "as": "user_info"
-                    }
-                },
-                {"$unwind": "$user_info"},
-                {
-                    "$project": {
-                        "_id": {"$toString": "$event_details._id"},
-                        "user_id": "$event_details.user_id",
-                        "username": "$user_info.username",
-                        "title": "$event_details.title",
-                        "description": "$event_details.description",
-                        "event_datetime": "$event_details.event_datetime",
-                        "location": "$event_details.location",
-                        "max_attendees": "$event_details.max_attendees",
-                        "created_at": "$event_details.created_at",
-                        "attendees_count": "$event_details.attendees_count",
-                        "likes_count": "$event_details.likes_count",
-                        "comments_count": "$event_details.comments_count",
-                        "is_active": "$event_details.is_active",
-                        "profile_picture": "$user_info.profile_picture",
-                        "joined_at": "$created_at"
-                    }
-                }
-            ])
-            
-            attending_events = list(db.attendances.aggregate(pipeline))
             return attending_events
             
         except Exception as e:
