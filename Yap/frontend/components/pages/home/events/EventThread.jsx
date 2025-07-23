@@ -17,7 +17,6 @@ const EventThread = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [error, setError] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
-  const postsEndRef = useRef(null);
   const mainContentRef = useRef(null);
 
   // Get current user from token
@@ -60,13 +59,6 @@ const EventThread = () => {
     }
   }, [eventId, currentUser]);
 
-  // Auto-scroll to bottom when new posts are added
-  useEffect(() => {
-    if (postsEndRef.current) {
-      postsEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [posts]);
-
   const fetchThreadInfo = async () => {
     try {
       const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/info`, {
@@ -91,7 +83,8 @@ const EventThread = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/posts?limit=50&sort_order=1`, {
+      // Changed sort_order to -1 for descending order (newest first)
+      const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/posts?limit=50&sort_order=-1`, {
         headers: getAuthHeaders()
       });
 
@@ -148,12 +141,13 @@ const EventThread = () => {
           setPosts(prevPosts => 
             prevPosts.map(post => 
               post._id === replyingTo._id 
-                ? { ...post, replies: [...post.replies, newPost], replies_count: post.replies_count + 1 }
+                ? { ...post, replies: [newPost, ...post.replies], replies_count: post.replies_count + 1 }
                 : post
             )
           );
         } else {
-          setPosts(prevPosts => [...prevPosts, newPost]);
+          // Add new posts to the beginning of the array (top)
+          setPosts(prevPosts => [newPost, ...prevPosts]);
         }
 
         // Clear form
@@ -396,9 +390,6 @@ const EventThread = () => {
           formatTime={formatTime}
           canEditOrDelete={canEditOrDelete}
         />
-        
-        {/* Scroll anchor */}
-        <div ref={postsEndRef} />
       </div>
     </div>
   );
