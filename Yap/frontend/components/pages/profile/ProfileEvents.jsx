@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import EventCard from './EventCard';
-import EventModal from '../../posts/EventModal';
+import EventModal from '../home/events/EventModal';
 import { Calendar, Users, Loader2 } from 'lucide-react';
 
 const ProfileEvents = ({ userId, isOwnProfile }) => {

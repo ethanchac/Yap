@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Sidebar from '../sidebar/Sidebar';
-import PostItem from '../posts/PostItem';
-import Header from '../header/Header';
-import EventItem from '../posts/EventItem';
-import HomepageActivities from '../posts/HomepageActivities';
+import Sidebar from '../../sidebar/Sidebar';
+import PostItem from './posts/PostItem';
+import Header from '../../header/Header';
+import EventItem from './events/EventItem';
+import HomepageActivities from './activities/HomepageActivities';
 
 function Home() {
     const [posts, setPosts] = useState([]);

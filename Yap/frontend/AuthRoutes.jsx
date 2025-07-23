@@ -2,7 +2,7 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/authentication/LoginForm.jsx';
 import Signup from './components/authentication/RegisterForm.jsx';
 import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx';
-import Home from './components/pages/Home.jsx';
+import Home from './components/pages/home/Home.jsx';
 import Create from './components/pages/create/Create.jsx';
 import Users from './components/pages/Users.jsx';
 import Messages from './components/pages/Messages.jsx';

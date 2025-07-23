@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Header from '../../header/Header';
 import Sidebar from '../../sidebar/Sidebar';
-import PostItem from '../../posts/PostItem';
+import PostItem from '../home/posts/PostItem';
 
 function Likes() {
     const [likedPosts, setLikedPosts] = useState([]);

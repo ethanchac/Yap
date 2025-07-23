@@ -1,6 +1,6 @@
 import Header from '../../header/Header';
 import Sidebar from '../../sidebar/Sidebar';
-import PostItem from '../../posts/PostItem';
+import PostItem from '../home/posts/PostItem';
 import Program from './Program';
 import FriendList from './FriendList'; // Add this import
 import ProfileEvents from './ProfileEvents'; // Add this import

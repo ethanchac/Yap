@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import Header from '../header/Header'
 import Sidebar from '../sidebar/Sidebar';
-import PostItem from '../posts/PostItem';
+import PostItem from './home/posts/PostItem';
 
 function CommentsPage() {
     const { postId } = useParams();
