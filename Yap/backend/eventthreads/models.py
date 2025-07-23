@@ -8,6 +8,8 @@ class EventThread:
         """Create a new post in an event thread"""
         db = current_app.config["DB"]
         
+        print(f"Creating thread post: event_id={event_id}, user_id={user_id}, content='{content[:50]}...'")
+        
         # Verify user is attending the event
         attendance = db.attendances.find_one({
             "event_id": event_id,
@@ -15,7 +17,10 @@ class EventThread:
         })
         
         if not attendance:
+            print(f"User {user_id} is not attending event {event_id}")
             raise ValueError("You must be attending the event to post in its thread")
+        
+        print(f"User attendance verified")
         
         # Verify event exists and is active
         try:
@@ -24,7 +29,10 @@ class EventThread:
             event = db.events.find_one({"_id": event_id, "is_active": True})
         
         if not event:
+            print(f"Event {event_id} not found or not active")
             raise ValueError("Event not found or is no longer active")
+        
+        print(f"Event verified: {event['title']}")
         
         # Create the thread post document
         thread_post = {
@@ -42,8 +50,23 @@ class EventThread:
             "is_deleted": False
         }
         
+        print(f"Thread post document created: {thread_post}")
+        
         # Insert the post
-        result = db.event_threads.insert_one(thread_post)
+        try:
+            result = db.event_threads.insert_one(thread_post)
+            print(f"Post inserted successfully with ID: {result.inserted_id}")
+            
+            # Verify the post was actually saved
+            saved_post = db.event_threads.find_one({"_id": result.inserted_id})
+            if saved_post:
+                print(f"Post verification successful: {saved_post['_id']}")
+            else:
+                print("ERROR: Post was not found after insertion!")
+                
+        except Exception as e:
+            print(f"ERROR inserting post: {e}")
+            raise e
         
         # If this is a reply, increment the parent post's reply count
         if reply_to:
@@ -52,20 +75,25 @@ class EventThread:
                     {"_id": ObjectId(reply_to)},
                     {"$inc": {"replies_count": 1}}
                 )
+                print(f"Updated reply count for parent post {reply_to}")
             except:
                 db.event_threads.update_one(
                     {"_id": reply_to},
                     {"$inc": {"replies_count": 1}}
                 )
+                print(f"Updated reply count for parent post {reply_to} (string ID)")
         
         # Return the created post with its ID
         thread_post["_id"] = str(result.inserted_id)
+        print(f"Returning thread post: {thread_post['_id']}")
         return thread_post
     
     @staticmethod
     def get_thread_posts(event_id, user_id, limit=50, skip=0, sort_by="created_at", sort_order=-1):
-        """Get posts from an event thread (only for attendees)"""
+        """Get posts from an event thread (only for attendees) - FIXED VERSION"""
         db = current_app.config["DB"]
+        
+        print(f"Getting thread posts: event_id={event_id}, user_id={user_id}")
         
         # Verify user is attending the event
         attendance = db.attendances.find_one({
@@ -74,96 +102,83 @@ class EventThread:
         })
         
         if not attendance:
+            print(f"User {user_id} is not attending event {event_id}")
             return {"error": "You must be attending the event to view its thread"}
         
         try:
-            # Create aggregation pipeline to get posts with user info and like status
-            pipeline = [
-                {
-                    "$match": {
-                        "event_id": event_id,
-                        "is_deleted": False,
-                        "reply_to": None  # Only get top-level posts, not replies
-                    }
-                },
-                {
-                    "$addFields": {
-                        "user_object_id": {
-                            "$cond": {
-                                "if": {"$type": ["$user_id", "objectId"]},
-                                "then": "$user_id",
-                                "else": {"$toObjectId": "$user_id"}
-                            }
-                        }
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "user_object_id",
-                        "foreignField": "_id",
-                        "as": "user_info"
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "thread_likes",
-                        "let": {"post_id": {"$toString": "$_id"}},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$post_id", "$$post_id"]},
-                                            {"$eq": ["$user_id", user_id]}
-                                        ]
-                                    }
-                                }
-                            }
-                        ],
-                        "as": "user_like"
-                    }
-                },
-                {
-                    "$addFields": {
-                        "user_info": {"$arrayElemAt": ["$user_info", 0]},
-                        "is_liked_by_user": {"$gt": [{"$size": "$user_like"}, 0]}
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": {"$toString": "$_id"},
-                        "event_id": 1,
-                        "user_id": {"$toString": "$user_id"},
-                        "username": {"$ifNull": ["$user_info.username", "$username"]},
-                        "content": 1,
-                        "post_type": 1,
-                        "media_url": 1,
-                        "created_at": 1,
-                        "updated_at": 1,
-                        "likes_count": {"$ifNull": ["$likes_count", 0]},
-                        "replies_count": {"$ifNull": ["$replies_count", 0]},
-                        "is_liked_by_user": 1,
-                        "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]},
-                        "user_full_name": {"$ifNull": ["$user_info.full_name", None]}
-                    }
-                },
-                {"$sort": {sort_by: sort_order}},
-                {"$skip": skip},
-                {"$limit": limit}
-            ]
+            # OPTION 1: Use simple find instead of complex aggregation
+            posts_cursor = db.event_threads.find({
+                "event_id": event_id,
+                "is_deleted": False,
+                "reply_to": None  # Only top-level posts
+            }).sort(sort_by, sort_order).skip(skip).limit(limit)
             
-            posts = list(db.event_threads.aggregate(pipeline))
+            posts = []
+            for post in posts_cursor:
+                # Convert to expected format
+                formatted_post = {
+                    "_id": str(post["_id"]),
+                    "event_id": post["event_id"],
+                    "user_id": str(post["user_id"]) if post.get("user_id") else None,
+                    "username": post.get("username", "Unknown User"),
+                    "content": post["content"],
+                    "post_type": post.get("post_type", "text"),
+                    "media_url": post.get("media_url"),
+                    "created_at": post["created_at"],
+                    "updated_at": post.get("updated_at", post["created_at"]),
+                    "likes_count": post.get("likes_count", 0),
+                    "replies_count": post.get("replies_count", 0),
+                    "is_liked_by_user": False,
+                    "profile_picture": None,
+                    "user_full_name": None,
+                    "replies": []
+                }
+                
+                # Check if user liked this post
+                try:
+                    user_like = db.thread_likes.find_one({
+                        "post_id": formatted_post["_id"],
+                        "user_id": user_id
+                    })
+                    formatted_post["is_liked_by_user"] = user_like is not None
+                except Exception as e:
+                    print(f"Error checking like status: {e}")
+                
+                # Get user info - try both ObjectId and string
+                try:
+                    from bson import ObjectId
+                    # Try with ObjectId first
+                    try:
+                        user_object_id = ObjectId(formatted_post["user_id"])
+                        user_info = db.users.find_one({"_id": user_object_id})
+                    except:
+                        # If ObjectId fails, try with string
+                        user_info = db.users.find_one({"_id": formatted_post["user_id"]})
+                    
+                    if user_info:
+                        formatted_post["username"] = user_info.get("username", formatted_post["username"])
+                        formatted_post["profile_picture"] = user_info.get("profile_picture")
+                        formatted_post["user_full_name"] = user_info.get("full_name")
+                except Exception as e:
+                    print(f"Error getting user info: {e}")
+                
+                # Get replies for this post
+                try:
+                    replies = EventThread.get_post_replies(formatted_post["_id"], user_id, limit=10)
+                    formatted_post["replies"] = replies if isinstance(replies, list) else []
+                except Exception as e:
+                    print(f"Error getting replies: {e}")
+                    formatted_post["replies"] = []
+                
+                posts.append(formatted_post)
             
-            # Get replies for each post
-            for post in posts:
-                replies = EventThread.get_post_replies(post["_id"], user_id, limit=10)
-                post["replies"] = replies
-            
+            print(f"Successfully retrieved {len(posts)} posts")
             return posts
             
         except Exception as e:
             print(f"Error getting thread posts: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     @staticmethod
@@ -172,81 +187,48 @@ class EventThread:
         db = current_app.config["DB"]
         
         try:
-            pipeline = [
-                {
-                    "$match": {
-                        "reply_to": post_id,
-                        "is_deleted": False
-                    }
-                },
-                {
-                    "$addFields": {
-                        "user_object_id": {
-                            "$cond": {
-                                "if": {"$type": ["$user_id", "objectId"]},
-                                "then": "$user_id",
-                                "else": {"$toObjectId": "$user_id"}
-                            }
-                        }
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "user_object_id",
-                        "foreignField": "_id",
-                        "as": "user_info"
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "thread_likes",
-                        "let": {"post_id": {"$toString": "$_id"}},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$and": [
-                                            {"$eq": ["$post_id", "$$post_id"]},
-                                            {"$eq": ["$user_id", user_id]}
-                                        ]
-                                    }
-                                }
-                            }
-                        ],
-                        "as": "user_like"
-                    }
-                },
-                {
-                    "$addFields": {
-                        "user_info": {"$arrayElemAt": ["$user_info", 0]},
-                        "is_liked_by_user": {"$gt": [{"$size": "$user_like"}, 0]}
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": {"$toString": "$_id"},
-                        "event_id": 1,
-                        "user_id": {"$toString": "$user_id"},
-                        "username": {"$ifNull": ["$user_info.username", "$username"]},
-                        "content": 1,
-                        "post_type": 1,
-                        "media_url": 1,
-                        "reply_to": 1,
-                        "created_at": 1,
-                        "updated_at": 1,
-                        "likes_count": {"$ifNull": ["$likes_count", 0]},
-                        "is_liked_by_user": 1,
-                        "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]},
-                        "user_full_name": {"$ifNull": ["$user_info.full_name", None]}
-                    }
-                },
-                {"$sort": {"created_at": 1}},  # Replies in chronological order
-                {"$skip": skip},
-                {"$limit": limit}
-            ]
+            # Use simple find instead of complex aggregation
+            replies_cursor = db.event_threads.find({
+                "reply_to": post_id,
+                "is_deleted": False
+            }).sort("created_at", 1).skip(skip).limit(limit)
             
-            replies = list(db.event_threads.aggregate(pipeline))
+            replies = []
+            for reply in replies_cursor:
+                # Convert ObjectId to string
+                reply["_id"] = str(reply["_id"])
+                reply["user_id"] = str(reply["user_id"]) if reply.get("user_id") else None
+                
+                # Set default values
+                reply["likes_count"] = reply.get("likes_count", 0)
+                reply["is_liked_by_user"] = False
+                reply["profile_picture"] = None
+                reply["user_full_name"] = None
+                
+                # Check if user liked this reply
+                try:
+                    user_like = db.thread_likes.find_one({
+                        "post_id": reply["_id"],
+                        "user_id": user_id
+                    })
+                    reply["is_liked_by_user"] = user_like is not None
+                except Exception as like_error:
+                    print(f"Error checking reply like status: {like_error}")
+                
+                # Try to get user info
+                try:
+                    if reply["user_id"]:
+                        from bson import ObjectId
+                        user_info = db.users.find_one({"_id": ObjectId(reply["user_id"])})
+                        if user_info:
+                            reply["profile_picture"] = user_info.get("profile_picture")
+                            reply["user_full_name"] = user_info.get("full_name")
+                            reply["username"] = user_info.get("username", reply.get("username"))
+                except Exception as user_error:
+                    print(f"Error getting reply user info: {user_error}")
+                
+                replies.append(reply)
+            
             return replies
             
         except Exception as e:

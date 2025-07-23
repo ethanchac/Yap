@@ -278,7 +278,58 @@ def get_thread_attendees(current_user, event_id):
         print(f"Error getting thread attendees: {e}")
         return jsonify({"error": "Failed to get thread attendees"}), 500
 
-@eventthreads_bp.route('/<event_id>/stats', methods=['GET'])
+@eventthreads_bp.route('/<event_id>/debug', methods=['GET'])
+@token_required
+def debug_thread(current_user, event_id):
+    """Debug route to check thread posts in database"""
+    try:
+        db = current_app.config["DB"]
+        
+        # Check attendance
+        attendance = db.attendances.find_one({
+            "event_id": event_id,
+            "user_id": current_user['_id']
+        })
+        
+        if not attendance:
+            return jsonify({"error": "You must be attending this event to debug its thread"}), 403
+        
+        # Get all posts for this event (including deleted)
+        all_posts = list(db.event_threads.find({"event_id": event_id}))
+        
+        # Convert ObjectIds to strings for JSON serialization
+        for post in all_posts:
+            post["_id"] = str(post["_id"])
+            if "user_id" in post:
+                post["user_id"] = str(post["user_id"])
+        
+        # Get collection stats
+        total_posts = db.event_threads.count_documents({"event_id": event_id})
+        active_posts = db.event_threads.count_documents({"event_id": event_id, "is_deleted": False})
+        deleted_posts = db.event_threads.count_documents({"event_id": event_id, "is_deleted": True})
+        
+        # Get collections list
+        collections = db.list_collection_names()
+        
+        return jsonify({
+            "event_id": event_id,
+            "user_id": current_user['_id'],
+            "attendance_found": attendance is not None,
+            "collections": collections,
+            "stats": {
+                "total_posts": total_posts,
+                "active_posts": active_posts,
+                "deleted_posts": deleted_posts
+            },
+            "all_posts": all_posts[:10],  # Limit to first 10 posts
+            "event_threads_collection_exists": "event_threads" in collections
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in debug route: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 @token_required
 def get_thread_stats(current_user, event_id):
     """Get statistics about the event thread"""
