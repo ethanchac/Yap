@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus, Map } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus, Map, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Assuming you're using React Router
 
 const EventModal = ({ event, isOpen, onClose, currentUser }) => {
@@ -12,7 +12,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [likesCount, setLikesCount] = useState(0);
   const [actionLoading, setActionLoading] = useState({ like: false, attend: false });
   
-  const navigate = useNavigate(); // For navigation to waypoint map
+  const navigate = useNavigate(); // For navigation to waypoint map and thread
 
   const fetchEventDetails = async () => {
     if (!event || !isOpen || !currentUser) return;
@@ -124,6 +124,14 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
         
         // Refresh friends attending list since attendance changed
         await refreshFriendsAttending();
+
+        // If user just joined the event, navigate to the thread
+        if (data.attending) {
+          // Close modal first
+          onClose();
+          // Navigate to the event thread
+          navigate(`/events/${event._id}/thread`);
+        }
       } else {
         const errorData = await response.json();
         alert(errorData.error || 'Failed to update attendance');
@@ -161,6 +169,12 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     } finally {
       setActionLoading(prev => ({ ...prev, like: false }));
     }
+  };
+
+  // Handle viewing event thread (for users already attending)
+  const handleViewThread = () => {
+    onClose();
+    navigate(`/events/${event._id}/thread`);
   };
 
   // Handle viewing event on waypoint map
@@ -390,11 +404,12 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
 
               {/* Action buttons - only show if user is logged in */}
               {currentUser && (
-                <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                <div className="space-y-3 pt-4 border-t border-gray-200">
+                  {/* Main action button - Join/Attending */}
                   <button
                     onClick={toggleAttendance}
                     disabled={actionLoading.attend}
-                    className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                    className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
                       isAttending
                         ? 'bg-green-100 text-green-700 hover:bg-green-200'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -405,30 +420,49 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                     ) : (
                       <UserPlus className="w-5 h-5" />
                     )}
-                    <span>{isAttending ? 'Attending' : 'Join Event'}</span>
+                    <span>
+                      {isAttending 
+                        ? 'Attending' 
+                        : 'Join Event'
+                      }
+                    </span>
                   </button>
 
-                  <button
-                    onClick={toggleLike}
-                    disabled={actionLoading.like}
-                    className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
-                      isLiked
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {actionLoading.like ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                    )}
-                    <span>{likesCount}</span>
-                  </button>
+                  {/* If already attending, show thread access button */}
+                  {isAttending && (
+                    <button
+                      onClick={handleViewThread}
+                      className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg font-medium transition-colors"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      <span>View Event Discussion</span>
+                    </button>
+                  )}
 
-                  <button className="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
-                    <Share2 className="w-5 h-5" />
-                    <span>Share</span>
-                  </button>
+                  {/* Secondary action buttons */}
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={toggleLike}
+                      disabled={actionLoading.like}
+                      className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                        isLiked
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {actionLoading.like ? (
+                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                      )}
+                      <span>{likesCount}</span>
+                    </button>
+
+                    <button className="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
+                      <Share2 className="w-5 h-5" />
+                      <span>Share</span>
+                    </button>
+                  </div>
                 </div>
               )}
 

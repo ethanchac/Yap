@@ -12,6 +12,7 @@ import Profile from './components/pages/profile/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
 import Feedback from './components/pages/Feedback.jsx';
 import CommentsPage from './components/pages/CommentsPage.jsx';
+import EventThread from './components/pages/home/events/EventThread.jsx';
 import PageTransition from './components/common/PageTransition.jsx';
 
 const PrivateRoute = ({ children }) => {
@@ -154,6 +155,16 @@ function AuthRoutes() {
                     <PrivateRoute>
                         <PageTransition>
                             <CommentsPage />
+                        </PageTransition>
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/events/:eventId/thread"
+                element={
+                    <PrivateRoute>
+                        <PageTransition>
+                            <EventThread />
                         </PageTransition>
                     </PrivateRoute>
                 }

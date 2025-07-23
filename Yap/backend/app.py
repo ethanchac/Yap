@@ -15,6 +15,7 @@ from password_reset.routes import password_reset_bp
 from feedback.routes import feedback_bp
 from activities.routes import activities_bp
 from waypoint.routes import waypoint_bp
+from eventthreads.routes import eventthreads_bp
 import os
 import sys
 import logging
@@ -196,6 +197,7 @@ app.register_blueprint(password_reset_bp, url_prefix="/password-reset")
 app.register_blueprint(feedback_bp, url_prefix="/api") 
 app.register_blueprint(activities_bp, url_prefix='/api/activities')  
 app.register_blueprint(waypoint_bp, url_prefix='/waypoint')
+app.register_blueprint(eventthreads_bp, url_prefix='/eventthreads')
 
 # ===== SOCKETIO EVENT HANDLERS =====
 
