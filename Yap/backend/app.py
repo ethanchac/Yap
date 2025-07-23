@@ -33,18 +33,30 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# CORS Configuration - Allow all origins for development
-# For production, replace "*" with your specific domains
+# CORS Configuration - Updated for Render deployment
+# Add your Vercel domain here once deployed
 CORS(app, 
-     origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+     origins=[
+         "http://localhost:5173", 
+         "http://127.0.0.1:5173", 
+         "http://localhost:3000",
+         "https://your-vercel-app.vercel.app",  # Replace with your actual Vercel URL
+         os.getenv("FRONTEND_URL", "")  # Add this to your Render environment variables
+     ],
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "Accept", "X-User-ID"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# SOCKETIO CONFIGURATION with proper CORS
+# SOCKETIO CONFIGURATION with proper CORS - Updated for production
 socketio = SocketIO(
     app, 
-    cors_allowed_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    cors_allowed_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173", 
+        "http://localhost:3000",
+        "https://your-vercel-app.vercel.app",  # Replace with your actual Vercel URL
+        os.getenv("FRONTEND_URL", "")
+    ],
     async_mode='threading',
     ping_timeout=60,
     ping_interval=25,
@@ -61,12 +73,18 @@ app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
 # create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Enhanced CORS handling for complex requests
+# Enhanced CORS handling for complex requests - Updated for production
 @app.after_request
 def after_request(response):
     """Enhanced CORS handling"""
     origin = request.headers.get('Origin')
-    allowed_origins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000']
+    allowed_origins = [
+        'http://localhost:5173', 
+        'http://127.0.0.1:5173', 
+        'http://localhost:3000',
+        'https://your-vercel-app.vercel.app',  # Replace with your actual Vercel URL
+        os.getenv("FRONTEND_URL", "")
+    ]
     
     if origin in allowed_origins:
         response.headers['Access-Control-Allow-Origin'] = origin
@@ -82,7 +100,13 @@ def handle_options():
     """Handle preflight OPTIONS requests"""
     if request.method == 'OPTIONS':
         origin = request.headers.get('Origin')
-        allowed_origins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000']
+        allowed_origins = [
+            'http://localhost:5173', 
+            'http://127.0.0.1:5173', 
+            'http://localhost:3000',
+            'https://your-vercel-app.vercel.app',  # Replace with your actual Vercel URL
+            os.getenv("FRONTEND_URL", "")
+        ]
         
         response = jsonify({'status': 'OK'})
         
@@ -103,7 +127,7 @@ if TEST_MODE:
 else:
     mongo_uri = os.getenv("MONGO_URI")
     db_name = "unithread"
-    print("🚀 Running in DEV mode - using main database")
+    print("🚀 Running in production mode - using main database")
 
 # MongoDB setup
 client = MongoClient(mongo_uri)
@@ -311,20 +335,24 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "database": db_name,
-        "mode": "TEST" if TEST_MODE else "DEV"
+        "mode": "TEST" if TEST_MODE else "PRODUCTION"
     })
 
 if __name__ == "__main__":
     logger.info("🚀 Starting SocketIO server...")
-    logger.info(f"🌐 Server will be accessible at http://0.0.0.0:5000")
-    logger.info(f"🔌 WebSocket endpoint: ws://0.0.0.0:5000/socket.io/")
+    
+    # Get port from environment variable (Render provides this)
+    port = int(os.environ.get('PORT', 5000))
+    
+    logger.info(f"🌐 Server will be accessible at http://0.0.0.0:{port}")
+    logger.info(f"🔌 WebSocket endpoint: ws://0.0.0.0:{port}/socket.io/")
     
     # Use socketio.run instead of app.run for WebSocket support
     socketio.run(
         app, 
-        debug=True, 
+        debug=False,  # Set to False for production
         host='0.0.0.0',  # This allows external connections
-        port=5000,
+        port=port,  # Use the PORT environment variable
         use_reloader=False,  # Disable reloader in production
         log_output=True
     )
