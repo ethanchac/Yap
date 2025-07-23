@@ -97,63 +97,75 @@ const ProfileEvents = ({ userId, isOwnProfile }) => {
 
   if (loading) {
     return (
-      <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
-        <div className="flex items-center justify-between mb-4">
+      <>
+        {/* Header outside the container */}
+        <div className="flex items-center justify-between mb-6">
           <h3 className="text-white text-xl font-bold flex items-center">
             <Calendar className="w-5 h-5 mr-2" />
             Events
           </h3>
         </div>
-        <div className="flex justify-center items-center py-8">
-          <div className="flex items-center space-x-2 text-gray-400">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Loading events...</span>
+        
+        {/* Content container */}
+        <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
+          <div className="flex justify-center items-center py-8">
+            <div className="flex items-center space-x-2 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading events...</span>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
-        <div className="flex items-center justify-between mb-4">
+      <>
+        {/* Header outside the container */}
+        <div className="flex items-center justify-between mb-6">
           <h3 className="text-white text-xl font-bold flex items-center">
             <Calendar className="w-5 h-5 mr-2" />
             Events
           </h3>
         </div>
-        <div className="text-center py-8">
-          <p className="text-red-400 mb-4">Error: {error}</p>
-          <button 
-            onClick={fetchUserEvents}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
-          >
-            Try Again
-          </button>
+        
+        {/* Content container */}
+        <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
+          <div className="text-center py-8">
+            <p className="text-red-400 mb-4">Error: {error}</p>
+            <button 
+              onClick={fetchUserEvents}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
-      <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white text-xl font-bold flex items-center">
-            <Calendar className="w-5 h-5 mr-2" />
-            Events {events.length > 0 && `(${events.length})`}
-          </h3>
-          {events.length > 0 && (
-            <button 
-              onClick={refreshEvents}
-              className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
-            >
-              Refresh
-            </button>
-          )}
-        </div>
+      {/* Header outside the container */}
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-white text-xl font-bold flex items-center">
+          <Calendar className="w-5 h-5 mr-2" />
+          Events {events.length > 0 && `(${events.length})`}
+        </h3>
+        {events.length > 0 && (
+          <button 
+            onClick={refreshEvents}
+            className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+          >
+            Refresh
+          </button>
+        )}
+      </div>
 
+      {/* Content container */}
+      <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
         {events.length > 0 ? (
           <div className="space-y-3">
             {events.map((event) => (
@@ -211,4 +223,4 @@ const ProfileEvents = ({ userId, isOwnProfile }) => {
   );
 };
 
-export default ProfileEvents; 
+export default ProfileEvents;

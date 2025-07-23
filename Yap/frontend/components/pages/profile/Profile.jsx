@@ -570,46 +570,54 @@ const Profile = () => {
           {/* FriendList Component - Only show for own profile */}
           {isOwnProfile && <FriendList userId={userId} isOwnProfile={isOwnProfile} />}
 
-          {/* Events Section - Show for all profiles */}
-          <ProfileEvents userId={userId} isOwnProfile={isOwnProfile} />
-
-          {/* Posts Section Header with Liked Posts Button */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-white text-xl font-bold">
-              Recent Posts {profile.recent_posts && profile.recent_posts.length > 0 && `(${profile.recent_posts.length})`}
-            </h3>
-            
-            {/* Liked Posts Button - Only show for own profile */}
-            {isOwnProfile && (
-              <button 
-                onClick={handleViewLikedPosts}
-                className="flex items-center space-x-2 px-4 py-2 text-white rounded-lg font-bold transition-colors" style={{backgroundColor: '#171717'}}
-              >
-                <Heart className="w-4 h-4" />
-                <span>Liked Posts</span>
-              </button>
-            )}
-          </div>
-
-          {/* Recent Posts */}
-          {profile.recent_posts && profile.recent_posts.length > 0 && (
-            <div className="space-y-4">
-              {profile.recent_posts.map((post) => (
-                <PostItem key={post._id} post={post} />
-              ))}
-            </div>
-          )}
-          
-          {/* No posts message */}
-          {(!profile.recent_posts || profile.recent_posts.length === 0) && (
-            <div className="text-center py-12">
-              <div className="rounded-lg p-8" style={{backgroundColor: '#171717'}}>
-                <p className="text-gray-400">
-                  {isOwnProfile ? "You haven't posted anything yet." : `${profile.username} hasn't posted anything yet.`}
-                </p>
+          {/* Main Content Layout - Posts and Events Side by Side */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Posts Section - 60% width on large screens */}
+            <div className="flex-1 lg:w-3/5">
+              {/* Posts Section Header with Liked Posts Button */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-white text-xl font-bold">
+                  Recent Posts {profile.recent_posts && profile.recent_posts.length > 0 && `(${profile.recent_posts.length})`}
+                </h3>
+                
+                {/* Liked Posts Button - Only show for own profile */}
+                {isOwnProfile && (
+                  <button 
+                    onClick={handleViewLikedPosts}
+                    className="flex items-center space-x-2 px-4 py-2 text-white rounded-lg font-bold transition-colors" style={{backgroundColor: '#171717'}}
+                  >
+                    <Heart className="w-4 h-4" />
+                    <span>Liked Posts</span>
+                  </button>
+                )}
               </div>
+
+              {/* Recent Posts */}
+              {profile.recent_posts && profile.recent_posts.length > 0 && (
+                <div className="space-y-4">
+                  {profile.recent_posts.map((post) => (
+                    <PostItem key={post._id} post={post} />
+                  ))}
+                </div>
+              )}
+              
+              {/* No posts message */}
+              {(!profile.recent_posts || profile.recent_posts.length === 0) && (
+                <div className="text-center py-12">
+                  <div className="rounded-lg p-8" style={{backgroundColor: '#171717'}}>
+                    <p className="text-gray-400">
+                      {isOwnProfile ? "You haven't posted anything yet." : `${profile.username} hasn't posted anything yet.`}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Events Section - 40% width on large screens */}
+            <div className="lg:w-2/5">
+              <ProfileEvents userId={userId} isOwnProfile={isOwnProfile} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
