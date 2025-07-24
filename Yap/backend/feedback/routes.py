@@ -1,5 +1,6 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from .models import create_feedback, get_user_feedback, get_all_feedback, update_feedback_status
+from shared.email_sender import send_feedback_email, send_feedback_confirmation_email
 from shared.auth_utils import require_auth
 
 feedback_bp = Blueprint('feedback', __name__)
@@ -9,10 +10,17 @@ feedback_bp = Blueprint('feedback', __name__)
 def submit_feedback():
     """Submit new feedback"""
     try:
+        print("[DEBUG] Starting feedback submission")
         data = request.get_json()
+        print(f"[DEBUG] Received data: {data}")
         
         # Get user ID from Flask global context
         user_id = g.user.get('user_id')
+        print(f"[DEBUG] User ID: {user_id}")
+        
+        # Add database access like your other routes
+        db = current_app.config["DB"]
+        print(f"[DEBUG] Database connection: {db}")
         
         # Validate required fields
         if not data.get('subject') or not data.get('message'):
@@ -37,15 +45,44 @@ def submit_feedback():
             'user_id': user_id
         }
         
-        feedback_id = create_feedback(feedback_data)
+        print(f"[DEBUG] About to create feedback: {feedback_data}")
         
-        return jsonify({
+        # Create feedback in database
+        feedback_id = create_feedback(feedback_data)
+        print(f"[DEBUG] Feedback created with ID: {feedback_id}")
+        
+        # Add feedback_id to the data for email
+        feedback_data['feedback_id'] = feedback_id
+        
+        # Send email notification to yappTMU@gmail.com
+        print("[DEBUG] Sending email notification...")
+        email_sent = send_feedback_email(feedback_data)
+        print(f"[DEBUG] Email sent: {email_sent}")
+        
+        # Optionally send confirmation email to user (if they provided email)
+        confirmation_sent = False
+        if feedback_data.get('email'):
+            print("[DEBUG] Sending confirmation email...")
+            confirmation_sent = send_feedback_confirmation_email(feedback_data.get('email'), feedback_data)
+            print(f"[DEBUG] Confirmation sent: {confirmation_sent}")
+        
+        # Prepare response
+        response_data = {
             'message': 'Feedback submitted successfully',
             'feedback_id': feedback_id
-        }), 201
+        }
+        
+        # Add email status to response (for debugging purposes)
+        if not email_sent:
+            response_data['warning'] = 'Feedback saved but email notification failed'
+        
+        return jsonify(response_data), 201
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"[ERROR] Error in submit_feedback: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'An error occurred while submitting feedback'}), 500
 
 @feedback_bp.route('/feedback/user', methods=['GET'])
 @require_auth
