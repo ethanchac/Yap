@@ -80,7 +80,7 @@ def create_thread_post(current_user, event_id):
         media_url = data.get('media_url')
         reply_to = data.get('reply_to')  # For replies to other posts
         
-        # Validate post type
+        # Validate post type - don't allow manual creation of notification posts
         valid_post_types = ['text', 'image', 'link', 'announcement']
         if post_type not in valid_post_types:
             return jsonify({"error": f"Invalid post type. Must be one of: {valid_post_types}"}), 400
@@ -125,6 +125,47 @@ def create_thread_post(current_user, event_id):
         traceback.print_exc()
         return jsonify({"error": "Failed to create post"}), 500
 
+@eventthreads_bp.route('/<event_id>/join-notification', methods=['POST'])
+@token_required
+def create_join_notification_manually(current_user, event_id):
+    """Manually create a join notification (for testing or admin purposes)"""
+    try:
+        data = request.get_json() or {}
+        
+        # Allow override of user for admin purposes, otherwise use current user
+        target_user_id = data.get('user_id', current_user['_id'])
+        target_username = data.get('username', current_user['username'])
+        
+        # Verify the target user is actually attending
+        db = current_app.config["DB"]
+        attendance = db.attendances.find_one({
+            "event_id": event_id,
+            "user_id": target_user_id
+        })
+        
+        if not attendance:
+            return jsonify({"error": "User must be attending the event"}), 400
+        
+        # Create the join notification
+        notification = EventThread.create_join_notification(
+            event_id=event_id,
+            user_id=target_user_id,
+            username=target_username
+        )
+        
+        if notification:
+            return jsonify({
+                "success": True,
+                "message": "Join notification created",
+                "notification": notification
+            }), 201
+        else:
+            return jsonify({"error": "Failed to create join notification"}), 500
+            
+    except Exception as e:
+        print(f"Error creating join notification: {e}")
+        return jsonify({"error": "Failed to create join notification"}), 500
+
 @eventthreads_bp.route('/posts/<post_id>/like', methods=['POST'])
 @token_required
 def like_thread_post(current_user, post_id):
@@ -133,7 +174,7 @@ def like_thread_post(current_user, post_id):
         result = EventThread.like_thread_post(post_id, current_user['_id'])
         
         if "error" in result:
-            return jsonify({"error": result["error"]}), 500
+            return jsonify({"error": result["error"]}), 400 if "Cannot like" in result["error"] else 500
         
         return jsonify(result), 200
         
@@ -307,6 +348,7 @@ def debug_thread(current_user, event_id):
         total_posts = db.event_threads.count_documents({"event_id": event_id})
         active_posts = db.event_threads.count_documents({"event_id": event_id, "is_deleted": False})
         deleted_posts = db.event_threads.count_documents({"event_id": event_id, "is_deleted": True})
+        join_notifications = db.event_threads.count_documents({"event_id": event_id, "post_type": "join_notification"})
         
         # Get collections list
         collections = db.list_collection_names()
@@ -319,7 +361,8 @@ def debug_thread(current_user, event_id):
             "stats": {
                 "total_posts": total_posts,
                 "active_posts": active_posts,
-                "deleted_posts": deleted_posts
+                "deleted_posts": deleted_posts,
+                "join_notifications": join_notifications
             },
             "all_posts": all_posts[:10],  # Limit to first 10 posts
             "event_threads_collection_exists": "event_threads" in collections
@@ -330,6 +373,8 @@ def debug_thread(current_user, event_id):
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@eventthreads_bp.route('/<event_id>/stats', methods=['GET'])
 @token_required
 def get_thread_stats(current_user, event_id):
     """Get statistics about the event thread"""
@@ -347,7 +392,8 @@ def get_thread_stats(current_user, event_id):
         # Get various statistics
         total_posts = db.event_threads.count_documents({
             "event_id": event_id,
-            "is_deleted": False
+            "is_deleted": False,
+            "post_type": {"$ne": "join_notification"}  # Exclude join notifications from regular post count
         })
         
         total_replies = db.event_threads.count_documents({
@@ -356,12 +402,18 @@ def get_thread_stats(current_user, event_id):
             "reply_to": {"$ne": None}
         })
         
+        join_notifications = db.event_threads.count_documents({
+            "event_id": event_id,
+            "post_type": "join_notification"
+        })
+        
         # Get most active users
         active_users_pipeline = [
             {
                 "$match": {
                     "event_id": event_id,
-                    "is_deleted": False
+                    "is_deleted": False,
+                    "post_type": {"$ne": "join_notification"}  # Exclude join notifications
                 }
             },
             {
@@ -383,12 +435,14 @@ def get_thread_stats(current_user, event_id):
         recent_posts = db.event_threads.count_documents({
             "event_id": event_id,
             "is_deleted": False,
-            "created_at": {"$gte": yesterday}
+            "created_at": {"$gte": yesterday},
+            "post_type": {"$ne": "join_notification"}
         })
         
         return jsonify({
             "total_posts": total_posts,
             "total_replies": total_replies,
+            "join_notifications": join_notifications,
             "posts_last_24h": recent_posts,
             "most_active_users": active_users
         }), 200

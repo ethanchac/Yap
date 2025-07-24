@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical, Edit, Trash2, UserPlus } from 'lucide-react';
 import ETReply from './ETReply';
 
 const ETPost = ({ 
@@ -22,6 +22,35 @@ const ETPost = ({
     setEditingPost(false);
   };
 
+  // Special rendering for join notifications
+  if (post.post_type === 'join_notification') {
+    return (
+      <div className="rounded-lg p-4 bg-gradient-to-r from-green-900/20 to-emerald-900/20 border border-green-700/30">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-green-600 rounded-full">
+            <UserPlus className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex items-center space-x-3 flex-1">
+            <img
+              src={getProfilePictureUrl(post.profile_picture)}
+              alt={post.username}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+            <div className="flex items-center space-x-2">
+              <span className="font-medium text-green-400">
+                {post.user_full_name || post.username}
+              </span>
+              <span className="text-green-300">joined the event</span>
+              <span className="text-gray-500 text-sm">•</span>
+              <span className="text-gray-500 text-sm">{formatTime(post.created_at)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular post rendering
   return (
     <div className="rounded-lg p-4" style={{backgroundColor: '#171717'}}>
       {/* Post Header */}

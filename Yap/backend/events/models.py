@@ -485,7 +485,7 @@ class Event:
     
     @staticmethod
     def cancel_event(event_id, user_id):
-        """Cancel an event (only by the creator)"""
+        """Cancel an event and completely remove it from database along with thread posts"""
         db = current_app.config["DB"]
         
         try:
@@ -497,20 +497,56 @@ class Event:
             if event["user_id"] != user_id:
                 return {"error": "You can only cancel your own events"}
             
-            # Update event to inactive
-            try:
-                db.events.update_one(
-                    {"_id": ObjectId(event_id)},
-                    {"$set": {"is_active": False}}
-                )
-            except:
-                db.events.update_one(
-                    {"_id": event_id},
-                    {"$set": {"is_active": False}}
-                )
+            # Get all post IDs for this event before deletion
+            post_ids = []
+            posts_cursor = db.event_threads.find({"event_id": event_id}, {"_id": 1})
+            for post in posts_cursor:
+                post_ids.append(str(post["_id"]))
             
-            return {"message": "Event cancelled successfully"}
+            # Delete all thread likes for these posts first
+            likes_deleted = 0
+            if post_ids:
+                likes_result = db.thread_likes.delete_many({"post_id": {"$in": post_ids}})
+                likes_deleted = likes_result.deleted_count
+                print(f"Deleted {likes_deleted} thread likes for event {event_id}")
+            
+            # Delete all thread posts for this event
+            posts_result = db.event_threads.delete_many({"event_id": event_id})
+            posts_deleted = posts_result.deleted_count
+            print(f"Deleted {posts_deleted} thread posts for event {event_id}")
+            
+            # Delete all attendances for this event
+            attendances_result = db.attendances.delete_many({"event_id": event_id})
+            attendances_deleted = attendances_result.deleted_count
+            print(f"Deleted {attendances_deleted} attendances for event {event_id}")
+            
+            # Delete all event likes
+            event_likes_result = db.likes.delete_many({"post_id": event_id, "type": "event"})
+            event_likes_deleted = event_likes_result.deleted_count
+            print(f"Deleted {event_likes_deleted} event likes for event {event_id}")
+            
+            # Finally, DELETE the event itself from the database
+            try:
+                event_result = db.events.delete_one({"_id": ObjectId(event_id)})
+            except:
+                event_result = db.events.delete_one({"_id": event_id})
+            
+            event_deleted = event_result.deleted_count
+            print(f"Deleted event {event_id} from database")
+            
+            return {
+                "message": "Event and all associated data permanently deleted from database",
+                "deleted_counts": {
+                    "event": event_deleted,
+                    "posts": posts_deleted,
+                    "thread_likes": likes_deleted,
+                    "attendances": attendances_deleted,
+                    "event_likes": event_likes_deleted
+                }
+            }
             
         except Exception as e:
-            print(f"Error cancelling event: {e}")
+            print(f"Error deleting event: {e}")
+            import traceback
+            traceback.print_exc()
             return {"error": str(e)}

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from events.models import Event
+from eventthreads.models import EventThread
 from auth.service import token_required
 from datetime import datetime
 from waypoint.models import Waypoint
@@ -241,10 +242,36 @@ def attend_event(current_user, event_id):
         if event_datetime and event_datetime <= datetime.utcnow():
             return jsonify({"error": "Cannot attend past events"}), 400
         
+        # Call the original attend_event method
         result = Event.attend_event(event_id, current_user['_id'])
         
         if "error" in result:
             return jsonify({"error": result["error"]}), 500
+        
+        # If the user successfully joined (not unjoined), create a join notification
+        if result.get("attending") == True:  # User just joined
+            try:
+                print(f"User {current_user['username']} joined event {event_id}, creating join notification...")
+                
+                join_notification = EventThread.create_join_notification(
+                    event_id=event_id,
+                    user_id=current_user['_id'],
+                    username=current_user['username']
+                )
+                
+                if join_notification:
+                    print(f"✅ Join notification created successfully: {join_notification['_id']}")
+                    result["join_notification_created"] = True
+                else:
+                    print("❌ Failed to create join notification")
+                    result["join_notification_created"] = False
+                    
+            except Exception as e:
+                print(f"❌ Error creating join notification: {e}")
+                import traceback
+                traceback.print_exc()
+                result["join_notification_created"] = False
+                # Don't fail the attendance if notification fails
         
         return jsonify(result), 200
         

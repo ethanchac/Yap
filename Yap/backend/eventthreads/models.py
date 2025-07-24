@@ -4,6 +4,57 @@ from flask import current_app
 
 class EventThread:
     @staticmethod
+    def create_join_notification(event_id, user_id, username):
+        """Create a join notification post when someone joins an event"""
+        db = current_app.config["DB"]
+        
+        print(f"Creating join notification: event_id={event_id}, user_id={user_id}, username={username}")
+        
+        # Verify event exists and is active
+        try:
+            event = db.events.find_one({"_id": ObjectId(event_id), "is_active": True})
+        except:
+            event = db.events.find_one({"_id": event_id, "is_active": True})
+        
+        if not event:
+            print(f"Event {event_id} not found or not active")
+            return None
+        
+        print(f"Event verified: {event['title']}")
+        
+        # Create the join notification document
+        join_notification = {
+            "event_id": event_id,
+            "user_id": user_id,
+            "username": username,
+            "content": f"{username} joined the event",
+            "post_type": "join_notification",  # Special type for join notifications
+            "media_url": None,
+            "reply_to": None,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "likes_count": 0,
+            "replies_count": 0,
+            "is_deleted": False
+        }
+        
+        print(f"Join notification document created: {join_notification}")
+        
+        # Insert the notification
+        try:
+            result = db.event_threads.insert_one(join_notification)
+            print(f"Join notification inserted successfully with ID: {result.inserted_id}")
+            
+            # Return the created notification with its ID
+            join_notification["_id"] = str(result.inserted_id)
+            print(f"Returning join notification: {join_notification['_id']}")
+            return join_notification
+            
+        except Exception as e:
+            print(f"ERROR inserting join notification: {e}")
+            return None
+
+    @staticmethod
     def create_thread_post(event_id, user_id, username, content, post_type='text', media_url=None, reply_to=None):
         """Create a new post in an event thread"""
         db = current_app.config["DB"]
@@ -40,7 +91,7 @@ class EventThread:
             "user_id": user_id,
             "username": username,
             "content": content,
-            "post_type": post_type,  # 'text', 'image', 'link', etc.
+            "post_type": post_type,  # 'text', 'image', 'link', 'join_notification', etc.
             "media_url": media_url,
             "reply_to": reply_to,  # For nested replies
             "created_at": datetime.utcnow(),
@@ -106,7 +157,7 @@ class EventThread:
             return {"error": "You must be attending the event to view its thread"}
         
         try:
-            # OPTION 1: Use simple find instead of complex aggregation
+            # Get all posts including join notifications
             posts_cursor = db.event_threads.find({
                 "event_id": event_id,
                 "is_deleted": False,
@@ -134,15 +185,25 @@ class EventThread:
                     "replies": []
                 }
                 
-                # Check if user liked this post
-                try:
-                    user_like = db.thread_likes.find_one({
-                        "post_id": formatted_post["_id"],
-                        "user_id": user_id
-                    })
-                    formatted_post["is_liked_by_user"] = user_like is not None
-                except Exception as e:
-                    print(f"Error checking like status: {e}")
+                # For join notifications, don't check likes or allow replies
+                if post.get("post_type") != "join_notification":
+                    # Check if user liked this post
+                    try:
+                        user_like = db.thread_likes.find_one({
+                            "post_id": formatted_post["_id"],
+                            "user_id": user_id
+                        })
+                        formatted_post["is_liked_by_user"] = user_like is not None
+                    except Exception as e:
+                        print(f"Error checking like status: {e}")
+                    
+                    # Get replies for this post
+                    try:
+                        replies = EventThread.get_post_replies(formatted_post["_id"], user_id, limit=10)
+                        formatted_post["replies"] = replies if isinstance(replies, list) else []
+                    except Exception as e:
+                        print(f"Error getting replies: {e}")
+                        formatted_post["replies"] = []
                 
                 # Get user info - try both ObjectId and string
                 try:
@@ -161,14 +222,6 @@ class EventThread:
                         formatted_post["user_full_name"] = user_info.get("full_name")
                 except Exception as e:
                     print(f"Error getting user info: {e}")
-                
-                # Get replies for this post
-                try:
-                    replies = EventThread.get_post_replies(formatted_post["_id"], user_id, limit=10)
-                    formatted_post["replies"] = replies if isinstance(replies, list) else []
-                except Exception as e:
-                    print(f"Error getting replies: {e}")
-                    formatted_post["replies"] = []
                 
                 posts.append(formatted_post)
             
@@ -241,6 +294,18 @@ class EventThread:
         db = current_app.config["DB"]
         
         try:
+            # Check if this is a join notification (can't be liked)
+            try:
+                post = db.event_threads.find_one({"_id": ObjectId(post_id)})
+            except:
+                post = db.event_threads.find_one({"_id": post_id})
+            
+            if not post:
+                return {"error": "Post not found"}
+            
+            if post.get("post_type") == "join_notification":
+                return {"error": "Cannot like join notifications"}
+            
             # Check if user already liked this post
             existing_like = db.thread_likes.find_one({
                 "post_id": post_id,
@@ -305,6 +370,10 @@ class EventThread:
             
             if not post:
                 return {"error": "Post not found"}
+            
+            # Don't allow deletion of join notifications
+            if post.get("post_type") == "join_notification":
+                return {"error": "Cannot delete join notifications"}
             
             # Check if user is the author
             if post["user_id"] != user_id:
@@ -424,6 +493,10 @@ class EventThread:
             
             if not post:
                 return {"error": "Post not found"}
+            
+            # Don't allow editing of join notifications
+            if post.get("post_type") == "join_notification":
+                return {"error": "Cannot edit join notifications"}
             
             # Check if user is the author
             if post["user_id"] != user_id:

@@ -361,35 +361,44 @@ const EventThread = () => {
     <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
       <Header />
       <Sidebar />
-      <div 
-        ref={mainContentRef}
-        className="ml-64 h-full overflow-y-auto p-6 scrollbar-custom"
-      >
-        <ETHeader threadInfo={threadInfo} />
+      <div className="ml-64 h-full flex flex-col">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0 p-6 pb-0">
+          <ETHeader threadInfo={threadInfo} />
+        </div>
         
-        <ETInput
-          newPostContent={newPostContent}
-          setNewPostContent={setNewPostContent}
-          onSubmit={handlePostSubmit}
-          posting={posting}
-          replyingTo={replyingTo}
-          setReplyingTo={setReplyingTo}
-          currentUser={currentUser}
-          getProfilePictureUrl={getProfilePictureUrl}
-        />
+        {/* Fixed Input */}
+        <div className="flex-shrink-0 px-6 pb-4">
+          <ETInput
+            newPostContent={newPostContent}
+            setNewPostContent={setNewPostContent}
+            onSubmit={handlePostSubmit}
+            posting={posting}
+            replyingTo={replyingTo}
+            setReplyingTo={setReplyingTo}
+            currentUser={currentUser}
+            getProfilePictureUrl={getProfilePictureUrl}
+          />
+        </div>
 
-        <ETPostsFeed
-          posts={posts}
-          loading={loading}
-          currentUser={currentUser}
-          onLike={handleLikePost}
-          onDelete={handleDeletePost}
-          onEdit={handleEditPost}
-          onReply={setReplyingTo}
-          getProfilePictureUrl={getProfilePictureUrl}
-          formatTime={formatTime}
-          canEditOrDelete={canEditOrDelete}
-        />
+        {/* Scrollable Posts Feed */}
+        <div 
+          ref={mainContentRef}
+          className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-custom"
+        >
+          <ETPostsFeed
+            posts={posts}
+            loading={loading}
+            currentUser={currentUser}
+            onLike={handleLikePost}
+            onDelete={handleDeletePost}
+            onEdit={handleEditPost}
+            onReply={setReplyingTo}
+            getProfilePictureUrl={getProfilePictureUrl}
+            formatTime={formatTime}
+            canEditOrDelete={canEditOrDelete}
+          />
+        </div>
       </div>
     </div>
   );
