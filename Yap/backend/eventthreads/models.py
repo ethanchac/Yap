@@ -55,6 +55,57 @@ class EventThread:
             return None
 
     @staticmethod
+    def create_leave_notification(event_id, user_id, username):
+        """Create a leave notification post when someone leaves an event"""
+        db = current_app.config["DB"]
+        
+        print(f"Creating leave notification: event_id={event_id}, user_id={user_id}, username={username}")
+        
+        # Verify event exists and is active
+        try:
+            event = db.events.find_one({"_id": ObjectId(event_id), "is_active": True})
+        except:
+            event = db.events.find_one({"_id": event_id, "is_active": True})
+        
+        if not event:
+            print(f"Event {event_id} not found or not active")
+            return None
+        
+        print(f"Event verified: {event['title']}")
+        
+        # Create the leave notification document
+        leave_notification = {
+            "event_id": event_id,
+            "user_id": user_id,
+            "username": username,
+            "content": f"{username} left the event",
+            "post_type": "leave_notification",  # Special type for leave notifications
+            "media_url": None,
+            "reply_to": None,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "likes_count": 0,
+            "replies_count": 0,
+            "is_deleted": False
+        }
+        
+        print(f"Leave notification document created: {leave_notification}")
+        
+        # Insert the notification
+        try:
+            result = db.event_threads.insert_one(leave_notification)
+            print(f"Leave notification inserted successfully with ID: {result.inserted_id}")
+            
+            # Return the created notification with its ID
+            leave_notification["_id"] = str(result.inserted_id)
+            print(f"Returning leave notification: {leave_notification['_id']}")
+            return leave_notification
+            
+        except Exception as e:
+            print(f"ERROR inserting leave notification: {e}")
+            return None
+
+    @staticmethod
     def create_thread_post(event_id, user_id, username, content, post_type='text', media_url=None, reply_to=None):
         """Create a new post in an event thread"""
         db = current_app.config["DB"]

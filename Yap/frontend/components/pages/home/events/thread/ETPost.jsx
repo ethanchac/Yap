@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, MoreVertical, Edit, Trash2, UserPlus } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical, Edit, Trash2, UserPlus, UserMinus } from 'lucide-react';
 import ETReply from './ETReply';
 
 const ETPost = ({ 
@@ -41,6 +41,34 @@ const ETPost = ({
                 {post.user_full_name || post.username}
               </span>
               <span className="text-green-300">joined the event</span>
+              <span className="text-gray-500 text-sm">•</span>
+              <span className="text-gray-500 text-sm">{formatTime(post.created_at)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Special rendering for leave notifications
+  if (post.post_type === 'leave_notification') {
+    return (
+      <div className="rounded-lg p-4 bg-gradient-to-r from-red-900/20 to-rose-900/20 border border-red-700/30">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-red-600 rounded-full">
+            <UserMinus className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex items-center space-x-3 flex-1">
+            <img
+              src={getProfilePictureUrl(post.profile_picture)}
+              alt={post.username}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+            <div className="flex items-center space-x-2">
+              <span className="font-medium text-red-400">
+                {post.user_full_name || post.username}
+              </span>
+              <span className="text-red-300">left the event</span>
               <span className="text-gray-500 text-sm">•</span>
               <span className="text-gray-500 text-sm">{formatTime(post.created_at)}</span>
             </div>

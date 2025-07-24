@@ -83,7 +83,6 @@ const EventThread = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      // Changed sort_order to -1 for descending order (newest first)
       const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/posts?limit=50&sort_order=-1`, {
         headers: getAuthHeaders()
       });
@@ -102,6 +101,35 @@ const EventThread = () => {
       setError('Failed to load thread posts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLeaveEvent = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/events/${eventId}/attend`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // If the user successfully left the event (attending: false)
+        if (data.attending === false) {
+          return true; // Success
+        } else {
+          console.error('Unexpected response when leaving event:', data);
+          alert('Error leaving event. Please try again.');
+          return false;
+        }
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to leave event');
+        return false;
+      }
+    } catch (err) {
+      console.error('Error leaving event:', err);
+      alert('Network error. Please try again.');
+      return false;
     }
   };
 
@@ -127,7 +155,6 @@ const EventThread = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Add the new post to the posts array
         const newPost = {
           ...data.post,
           profile_picture: currentUser.profile_picture,
@@ -136,7 +163,6 @@ const EventThread = () => {
           replies: []
         };
 
-        // If it's a reply, update the parent post's replies
         if (replyingTo) {
           setPosts(prevPosts => 
             prevPosts.map(post => 
@@ -146,11 +172,9 @@ const EventThread = () => {
             )
           );
         } else {
-          // Add new posts to the beginning of the array (top)
           setPosts(prevPosts => [newPost, ...prevPosts]);
         }
 
-        // Clear form
         setNewPostContent('');
         setReplyingTo(null);
       } else {
@@ -176,7 +200,6 @@ const EventThread = () => {
         const data = await response.json();
         
         if (isReply && parentPostId) {
-          // Update reply within parent post
           setPosts(prevPosts =>
             prevPosts.map(post =>
               post._id === parentPostId
@@ -196,7 +219,6 @@ const EventThread = () => {
             )
           );
         } else {
-          // Update main post
           setPosts(prevPosts =>
             prevPosts.map(post =>
               post._id === postId
@@ -226,7 +248,6 @@ const EventThread = () => {
 
       if (response.ok) {
         if (isReply && parentPostId) {
-          // Remove reply from parent post
           setPosts(prevPosts =>
             prevPosts.map(post =>
               post._id === parentPostId
@@ -239,7 +260,6 @@ const EventThread = () => {
             )
           );
         } else {
-          // Remove main post
           setPosts(prevPosts => prevPosts.filter(post => post._id !== postId));
         }
       }
@@ -258,7 +278,6 @@ const EventThread = () => {
 
       if (response.ok) {
         if (isReply && parentPostId) {
-          // Update reply within parent post
           setPosts(prevPosts =>
             prevPosts.map(post =>
               post._id === parentPostId
@@ -274,7 +293,6 @@ const EventThread = () => {
             )
           );
         } else {
-          // Update main post
           setPosts(prevPosts =>
             prevPosts.map(post =>
               post._id === postId
@@ -362,9 +380,9 @@ const EventThread = () => {
       <Header />
       <Sidebar />
       <div className="ml-64 h-full flex flex-col">
-        {/* Fixed Header */}
+        {/* Fixed Header with Leave Button */}
         <div className="flex-shrink-0 p-6 pb-0">
-          <ETHeader threadInfo={threadInfo} />
+          <ETHeader threadInfo={threadInfo} onLeaveEvent={handleLeaveEvent} />
         </div>
         
         {/* Fixed Input */}

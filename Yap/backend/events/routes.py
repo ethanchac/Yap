@@ -248,7 +248,7 @@ def attend_event(current_user, event_id):
         if "error" in result:
             return jsonify({"error": result["error"]}), 500
         
-        # If the user successfully joined (not unjoined), create a join notification
+        # Handle notifications based on whether user joined or left
         if result.get("attending") == True:  # User just joined
             try:
                 print(f"User {current_user['username']} joined event {event_id}, creating join notification...")
@@ -271,7 +271,29 @@ def attend_event(current_user, event_id):
                 import traceback
                 traceback.print_exc()
                 result["join_notification_created"] = False
-                # Don't fail the attendance if notification fails
+                
+        elif result.get("attending") == False:  # User just left
+            try:
+                print(f"User {current_user['username']} left event {event_id}, creating leave notification...")
+                
+                leave_notification = EventThread.create_leave_notification(
+                    event_id=event_id,
+                    user_id=current_user['_id'],
+                    username=current_user['username']
+                )
+                
+                if leave_notification:
+                    print(f"✅ Leave notification created successfully: {leave_notification['_id']}")
+                    result["leave_notification_created"] = True
+                else:
+                    print("❌ Failed to create leave notification")
+                    result["leave_notification_created"] = False
+                    
+            except Exception as e:
+                print(f"❌ Error creating leave notification: {e}")
+                import traceback
+                traceback.print_exc()
+                result["leave_notification_created"] = False
         
         return jsonify(result), 200
         
