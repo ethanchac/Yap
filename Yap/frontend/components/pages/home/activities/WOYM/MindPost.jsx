@@ -40,56 +40,46 @@ export default function MindPost({ post, onDelete, isDeleting }) {
     setShowDeleteConfirm(false);
   };
 
-  // Generate a consistent color for each user based on their ID
-  const getUserColor = (userId) => {
-    // Simple hash function to generate consistent colors
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  const getProfilePictureUrl = () => {
+    if (post.profile_picture) {
+      if (post.profile_picture.startsWith('http')) {
+        return post.profile_picture;
+      }
+      return `http://localhost:5000/uploads/profile_pictures/${post.profile_picture}`;
     }
-    
-    const colors = [
-      'from-blue-400 to-blue-600',
-      'from-green-400 to-green-600',
-      'from-purple-400 to-purple-600',
-      'from-pink-400 to-pink-600',
-      'from-indigo-400 to-indigo-600',
-      'from-red-400 to-red-600',
-      'from-yellow-400 to-yellow-600',
-      'from-teal-400 to-teal-600',
-    ];
-    
-    return colors[Math.abs(hash) % colors.length];
-  };
-
-  // Get user initials from user ID (you might want to use actual username/name later)
-  const getUserInitials = (userId) => {
-    // For now, just use first 2 characters of user ID
-    // Later you can fetch actual user data and use real initials
-    return userId.slice(0, 2).toUpperCase();
+    return `http://localhost:5000/static/default/default-avatar.png`;
   };
 
   return (
-    <div className="flex gap-3 group">
+    <div className="flex items-end gap-3 group mb-6">
       {/* User Avatar */}
-      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${
-        post.is_own_post ? 'from-orange-400 to-orange-600' : getUserColor(post.created_by)
-      } flex items-center justify-center flex-shrink-0`}>
-        <span className="text-white font-bold text-sm">
-          {post.is_own_post ? 'You' : getUserInitials(post.created_by)}
-        </span>
-      </div>
+      <img 
+        src={getProfilePictureUrl()}
+        alt={`${post.username || 'User'}'s profile`}
+        onError={(e) => {
+          e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+        }}
+        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+      />
 
-      {/* Post Content */}
-      <div className="flex-1 min-w-0">
+      {/* Post Content Container */}
+      <div className="flex-1 min-w-0 relative">
+        {/* Username */}
+        <div className="text-sm text-gray-300 mb-1 font-medium ml-4">
+          @{post.username || 'Unknown User'}
+        </div>
+
         {/* Speech Bubble */}
-        <div className="relative bg-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+        <div className="relative bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm max-w-md">
+          {/* Speech bubble tail pointing to bottom-left */}
+          <div className="absolute bottom-0 left-0 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-gray-700 border-t-[12px] border-t-gray-700 transform -translate-x-3 translate-y-3"></div>
+          
           {/* Delete Button - Only show for own posts */}
           {post.is_own_post && (
             <button
               onClick={handleDeleteClick}
               disabled={isDeleting}
-              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1"
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-gray-600"
               title="Delete this post"
             >
               {isDeleting ? (
@@ -106,11 +96,11 @@ export default function MindPost({ post, onDelete, isDeleting }) {
           <p className="text-white text-base leading-relaxed whitespace-pre-wrap break-words pr-8">
             {post.content}
           </p>
-        </div>
 
-        {/* Timestamp */}
-        <div className="text-xs text-gray-400 mt-1 ml-2">
-          {formatDate(post.created_at)}
+          {/* Timestamp inside bubble */}
+          <div className="text-xs text-gray-400 mt-2 text-right">
+            {formatDate(post.created_at)}
+          </div>
         </div>
       </div>
 

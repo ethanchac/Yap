@@ -1,92 +1,33 @@
 from flask import Blueprint, request, jsonify, current_app
 from bson import ObjectId
 from datetime import datetime
-import jwt
 import traceback
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+from activities.models import WhatsOnMind
+from auth.service import token_required
 
 activities_bp = Blueprint('activities', __name__)
 
-def get_current_user_id():
-    """Extract real user ID from JWT token"""
-    try:
-        # Get token from Authorization header
-        auth_header = request.headers.get('Authorization', '')
-        print(f"🔍 DEBUG: Auth header received: {auth_header[:50]}..." if len(auth_header) > 50 else f"🔍 DEBUG: Auth header received: {auth_header}")
-        
-        if not auth_header.startswith('Bearer '):
-            print("🔍 DEBUG: No Bearer token found")
-            return None
-        
-        token = auth_header.replace('Bearer ', '')
-        print(f"🔍 DEBUG: Extracted token: {token[:20]}...")
-        
-        # Use the SAME JWT_SECRET that's used in auth/service.py
-        JWT_SECRET = os.getenv("JWT_SECRET")
-        print(f"🔍 DEBUG: Using JWT_SECRET from env: {JWT_SECRET[:10]}..." if JWT_SECRET and len(JWT_SECRET) > 10 else f"🔍 DEBUG: JWT_SECRET: {JWT_SECRET}")
-        
-        if not JWT_SECRET:
-            print("🔍 DEBUG: No JWT_SECRET found in environment variables!")
-            return None
-        
-        try:
-            decoded_token = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-            print(f"🔍 DEBUG: Decoded token payload: {decoded_token}")
-        except jwt.ExpiredSignatureError:
-            print("🔍 DEBUG: Token expired")
-            return None
-        except jwt.InvalidTokenError as e:
-            print(f"🔍 DEBUG: Invalid token error: {e}")
-            return None
-        
-        # Based on your auth/service.py, the token contains 'user_id'
-        user_id = decoded_token.get('user_id')
-        
-        print(f"🔍 DEBUG: Extracted user_id: {user_id}")
-        
-        if not user_id:
-            print("🔍 DEBUG: No user_id found in token payload")
-            print(f"🔍 DEBUG: Available fields in token: {list(decoded_token.keys())}")
-            return None
-            
-        return str(user_id)
-        
-    except Exception as e:
-        print(f"🔍 DEBUG: Exception in get_current_user_id: {e}")
-        traceback.print_exc()
-        return None
-
 # ------------------------------------------------------
-
 #                         Would you rather
-
 # --------------------------------------------------------
 
 @activities_bp.route('/wouldyourather', methods=['GET'])
-def get_would_you_rather():
+@token_required
+def get_would_you_rather(current_user):
+    """Get all Would You Rather questions with user's vote status"""
     print("🔍 DEBUG: get_would_you_rather route called")
+    print(f"🔍 DEBUG: Current user: {current_user}")
+    
     db = current_app.config["DB"]
-    
-    # Get real user ID from JWT token
-    current_user_id = get_current_user_id()
-    print(f"🔍 DEBUG: Current user ID: {current_user_id}")
-    
-    if not current_user_id:
-        print("🔍 DEBUG: Authentication failed, returning 401")
-        return jsonify({'error': 'Authentication required'}), 401
     
     # Get all questions
     questions = list(db['would_you_rather'].find())
     print(f"🔍 DEBUG: Found {len(questions)} questions")
     
-    # Get user's votes for these questions using REAL user ID
+    # Get user's votes for these questions using current_user['_id']
     question_ids = [q['_id'] for q in questions]
     user_votes = list(db['wyr_votes'].find({
-        'user_id': current_user_id,
+        'user_id': current_user['_id'],
         'question_id': {'$in': question_ids}
     }))
     
@@ -104,17 +45,15 @@ def get_would_you_rather():
     return jsonify(questions)
 
 @activities_bp.route('/wouldyourather/create', methods=['POST'])
-def create_would_you_rather():
+@token_required
+def create_would_you_rather(current_user):
     """Create a new Would You Rather question with only two options"""
     
     print("🔍 DEBUG: create_would_you_rather route called")
+    print(f"🔍 DEBUG: Current user: {current_user}")
+    
     try:
         db = current_app.config["DB"]
-        
-        # Get real user ID from JWT token
-        current_user_id = get_current_user_id()
-        if not current_user_id:
-            return jsonify({'error': 'Authentication required'}), 401
         
         data = request.json
         print(f"🔍 DEBUG: Received data: {data}")
@@ -140,14 +79,14 @@ def create_would_you_rather():
         if len(option_a) > 100 or len(option_b) > 100:
             return jsonify({'error': 'Options cannot exceed 100 characters'}), 400
         
-        # Create new question document
+        # Create new question document using authenticated user's info
         new_question = {
             'option_a': option_a,
             'option_b': option_b,
             'votes_a': 0,
             'votes_b': 0,
             'created_at': datetime.utcnow(),
-            'created_by': current_user_id
+            'created_by': current_user['_id']
         }
         
         print(f"🔍 DEBUG: Creating question: {new_question}")
@@ -171,19 +110,16 @@ def create_would_you_rather():
         return jsonify({'error': 'Failed to create question'}), 500
 
 @activities_bp.route('/wouldyourather/vote', methods=['POST'])
-def vote_would_you_rather():
+@token_required
+def vote_would_you_rather(current_user):
+    """Vote on a Would You Rather question"""
     print("🔍 DEBUG: vote_would_you_rather route called")
-    db = current_app.config["DB"]
+    print(f"🔍 DEBUG: Current user: {current_user}")
     
-    # Get real user ID from JWT token
-    current_user_id = get_current_user_id()
-    if not current_user_id:
-        print("🔍 DEBUG: Authentication failed in vote route")
-        return jsonify({'error': 'Authentication required'}), 401
+    db = current_app.config["DB"]
     
     data = request.json
     print(f"🔍 DEBUG: Vote data: {data}")
-    print(f"🔍 DEBUG: Current user: {current_user_id}")
     
     option = data.get('option')
     question_id = data.get('question_id')
@@ -203,19 +139,19 @@ def vote_would_you_rather():
     if not wyr:
         return jsonify({'error': 'No question found'}), 404
     
-    # Check if user has already voted on this question (using REAL user ID)
+    # Check if user has already voted on this question
     existing_vote = db['wyr_votes'].find_one({
-        'user_id': current_user_id,
+        'user_id': current_user['_id'],
         'question_id': question_obj_id
     })
     
     if existing_vote:
-        print(f"🔍 DEBUG: User {current_user_id} already voted on question {question_id}")
+        print(f"🔍 DEBUG: User {current_user['_id']} already voted on question {question_id}")
         return jsonify({'error': 'You have already voted on this question'}), 400
     
     # Record the vote in the votes collection
     vote_record = {
-        'user_id': current_user_id,
+        'user_id': current_user['_id'],
         'question_id': question_obj_id,
         'option': option,
         'voted_at': datetime.utcnow()
@@ -240,17 +176,15 @@ def vote_would_you_rather():
     return jsonify(wyr)
 
 @activities_bp.route('/wouldyourather/<question_id>', methods=['DELETE'])
-def delete_would_you_rather(question_id):
+@token_required
+def delete_would_you_rather(current_user, question_id):
     """Delete a Would You Rather question"""
     
     print(f"🔍 DEBUG: delete_would_you_rather route called for ID: {question_id}")
+    print(f"🔍 DEBUG: Current user: {current_user}")
+    
     try:
         db = current_app.config["DB"]
-        
-        # Get real user ID from JWT token
-        current_user_id = get_current_user_id()
-        if not current_user_id:
-            return jsonify({'error': 'Authentication required'}), 401
         
         # Validate ObjectId format
         try:
@@ -263,9 +197,9 @@ def delete_would_you_rather(question_id):
         if not question:
             return jsonify({'error': 'Question not found'}), 404
         
-        # Check if user is the creator of this question (optional - you can remove this check)
-        if question.get('created_by') != current_user_id:
-            print(f"🔍 DEBUG: User {current_user_id} trying to delete question created by {question.get('created_by')}")
+        # Check if user is the creator of this question
+        if question.get('created_by') != current_user['_id']:
+            print(f"🔍 DEBUG: User {current_user['_id']} trying to delete question created by {question.get('created_by')}")
             return jsonify({'error': 'Not authorized to delete this question'}), 403
         
         # Delete associated votes first
@@ -286,25 +220,6 @@ def delete_would_you_rather(question_id):
         traceback.print_exc()
         return jsonify({'error': 'Failed to delete question'}), 500
 
-# Optional: Add a test route to check JWT decoding
-@activities_bp.route('/test-auth', methods=['GET'])
-def test_auth():
-    """Test route to check if JWT authentication is working"""
-    current_user_id = get_current_user_id()
-    
-    if current_user_id:
-        return jsonify({
-            'authenticated': True,
-            'user_id': current_user_id,
-            'message': 'JWT authentication working!'
-        })
-    else:
-        return jsonify({
-            'authenticated': False,
-            'message': 'JWT authentication failed'
-        }), 401
-    
-
 # ------------------------------------------------------
 
 #                         Whats on your mind
@@ -312,31 +227,22 @@ def test_auth():
 # --------------------------------------------------------
 
 @activities_bp.route('/whatsonmind', methods=['GET'])
-def get_whats_on_mind():
-    """Get all 'What's on Your Mind' posts"""
+@token_required
+def get_whats_on_mind(current_user):
+    """Get all 'What's on Your Mind' posts with user profile data"""
     print("🔍 DEBUG: get_whats_on_mind route called")
-    db = current_app.config["DB"]
-    
-    # Get real user ID from JWT token
-    current_user_id = get_current_user_id()
-    print(f"🔍 DEBUG: Current user ID: {current_user_id}")
-    
-    if not current_user_id:
-        print("🔍 DEBUG: Authentication failed, returning 401")
-        return jsonify({'error': 'Authentication required'}), 401
+    print(f"🔍 DEBUG: Current user: {current_user}")
     
     try:
-        # Get all posts, sorted by creation date (newest first)
-        posts = list(db['whats_on_mind'].find().sort('created_at', -1))
-        print(f"🔍 DEBUG: Found {len(posts)} posts")
+        # Get all posts with user profile data
+        posts = WhatsOnMind.get_all_posts()
+        print(f"🔍 DEBUG: Found {len(posts)} posts with user data")
         
-        # Convert ObjectId to string for JSON serialization
+        # Add user flags
         for post in posts:
-            post['_id'] = str(post['_id'])
-            # Add a flag to identify if this post belongs to current user
-            post['is_own_post'] = post.get('created_by') == current_user_id
+            post['is_own_post'] = post.get('created_by') == current_user['_id']
         
-        print(f"🔍 DEBUG: Returning {len(posts)} posts")
+        print(f"🔍 DEBUG: Returning {len(posts)} posts with user profile data")
         return jsonify(posts)
         
     except Exception as e:
@@ -345,18 +251,13 @@ def get_whats_on_mind():
         return jsonify({'error': 'Failed to fetch posts'}), 500
 
 @activities_bp.route('/whatsonmind/create', methods=['POST'])
-def create_whats_on_mind():
+@token_required
+def create_whats_on_mind(current_user):
     """Create a new 'What's on Your Mind' post"""
     print("🔍 DEBUG: create_whats_on_mind route called")
+    print(f"🔍 DEBUG: Current user: {current_user}")
     
     try:
-        db = current_app.config["DB"]
-        
-        # Get real user ID from JWT token
-        current_user_id = get_current_user_id()
-        if not current_user_id:
-            return jsonify({'error': 'Authentication required'}), 401
-        
         data = request.json
         print(f"🔍 DEBUG: Received data: {data}")
         
@@ -378,23 +279,16 @@ def create_whats_on_mind():
         if len(content) > 500:
             return jsonify({'error': 'Content cannot exceed 500 characters'}), 400
         
-        # Create new post document
-        new_post = {
-            'content': content,
-            'created_at': datetime.utcnow(),
-            'created_by': current_user_id
-        }
+        # Create new post using the model with authenticated user's info
+        created_post = WhatsOnMind.create_post(
+            user_id=current_user['_id'],
+            username=current_user['username'],
+            content=content
+        )
         
-        print(f"🔍 DEBUG: Creating post: {new_post}")
-        
-        # Insert into database
-        result = db['whats_on_mind'].insert_one(new_post)
-        print(f"🔍 DEBUG: Insert result: {result.inserted_id}")
-        
-        # Get the created document
-        created_post = db['whats_on_mind'].find_one({'_id': result.inserted_id})
-        created_post['_id'] = str(created_post['_id'])
-        created_post['is_own_post'] = True  # User just created this post
+        # Add user flags and profile data
+        created_post['is_own_post'] = True
+        created_post['profile_picture'] = current_user.get('profile_picture')
         
         print(f"🔍 DEBUG: Created post: {created_post}")
         
@@ -406,44 +300,37 @@ def create_whats_on_mind():
         return jsonify({'error': 'Failed to create post'}), 500
 
 @activities_bp.route('/whatsonmind/<post_id>', methods=['DELETE'])
-def delete_whats_on_mind(post_id):
+@token_required
+def delete_whats_on_mind(current_user, post_id):
     """Delete a 'What's on Your Mind' post"""
     print(f"🔍 DEBUG: delete_whats_on_mind route called for ID: {post_id}")
+    print(f"🔍 DEBUG: Current user: {current_user}")
     
     try:
-        db = current_app.config["DB"]
+        # Use the model to delete the post
+        result = WhatsOnMind.delete_post(post_id, current_user['_id'])
         
-        # Get real user ID from JWT token
-        current_user_id = get_current_user_id()
-        if not current_user_id:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        # Validate ObjectId format
-        try:
-            obj_id = ObjectId(post_id)
-        except:
-            return jsonify({'error': 'Invalid post ID format'}), 400
-        
-        # Check if post exists
-        post = db['whats_on_mind'].find_one({'_id': obj_id})
-        if not post:
-            return jsonify({'error': 'Post not found'}), 404
-        
-        # Check if user is the creator of this post
-        if post.get('created_by') != current_user_id:
-            print(f"🔍 DEBUG: User {current_user_id} trying to delete post created by {post.get('created_by')}")
-            return jsonify({'error': 'Not authorized to delete this post'}), 403
-        
-        # Delete the post
-        result = db['whats_on_mind'].delete_one({'_id': obj_id})
-        
-        if result.deleted_count == 0:
-            return jsonify({'error': 'Failed to delete post'}), 500
+        if "error" in result:
+            status_code = 404 if "not found" in result["error"].lower() else 403
+            return jsonify({"error": result["error"]}), status_code
         
         print(f"🔍 DEBUG: Post {post_id} deleted successfully")
-        return jsonify({'message': 'Post deleted successfully'}), 200
+        return jsonify(result), 200
         
     except Exception as e:
         print(f"❌ Error deleting post: {e}")
         traceback.print_exc()
         return jsonify({'error': 'Failed to delete post'}), 500
+# Optional: Add a test route to check authentication
+@activities_bp.route('/test-auth', methods=['GET'])
+@token_required
+def test_auth(current_user):
+    """Test route to check if authentication is working"""
+    return jsonify({
+        'authenticated': True,
+        'user': {
+            'id': current_user['_id'],
+            'username': current_user['username']
+        },
+        'message': 'Authentication working!'
+    })

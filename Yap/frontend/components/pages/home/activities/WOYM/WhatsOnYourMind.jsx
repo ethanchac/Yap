@@ -9,13 +9,15 @@ export default function WhatsOnYourMind() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   
   // Create post state
   const [newPost, setNewPost] = useState('');
   const [posting, setPosting] = useState(false);
 
-  // Load posts on component mount
+  // Load posts and current user on component mount
   useEffect(() => {
+    fetchCurrentUser();
     fetchPosts();
   }, []);
 
@@ -39,6 +41,36 @@ export default function WhatsOnYourMind() {
     
     console.log('🔍 Frontend: Sending headers:', headers);
     return headers;
+  };
+
+  const fetchCurrentUser = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await fetch('http://localhost:5000/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data.profile || data);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
+
+  const getCurrentUserProfilePicture = () => {
+    if (currentUser?.profile_picture) {
+      if (currentUser.profile_picture.startsWith('http')) {
+        return currentUser.profile_picture;
+      }
+      return `http://localhost:5000/uploads/profile_pictures/${currentUser.profile_picture}`;
+    }
+    return `http://localhost:5000/static/default/default-avatar.png`;
   };
 
   const fetchPosts = async () => {
@@ -113,6 +145,10 @@ export default function WhatsOnYourMind() {
 
       const createdPost = await response.json();
       
+      // Add user profile data to the created post
+      createdPost.username = currentUser?.username || 'You';
+      createdPost.profile_picture = currentUser?.profile_picture;
+      
       // Add the new post to the beginning of the list (newest first)
       setPosts(prev => [createdPost, ...prev]);
       
@@ -186,10 +222,15 @@ export default function WhatsOnYourMind() {
         {/* Create Post Form */}
         <form onSubmit={handleCreatePost} className="space-y-3">
           <div className="flex gap-3">
-            {/* User Avatar Placeholder */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-sm">You</span>
-            </div>
+            {/* Current User Avatar */}
+            <img 
+              src={getCurrentUserProfilePicture()}
+              alt="Your profile"
+              onError={(e) => {
+                e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+              }}
+              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+            />
             
             {/* Input Field */}
             <div className="flex-1">
