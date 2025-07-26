@@ -31,6 +31,7 @@ def create_feedback(feedback_data):
 def get_feedback_by_id(feedback_id):
     """Get a specific feedback entry by ID"""
     try:
+        db = current_app.config["DB"]  # Added missing db connection
         feedback = db.feedback.find_one({'_id': ObjectId(feedback_id)})
         if feedback:
             feedback['_id'] = str(feedback['_id'])
@@ -41,22 +42,37 @@ def get_feedback_by_id(feedback_id):
 
 def get_all_feedback():
     """Get all feedback entries (admin only)"""
-    feedback_list = list(db.feedback.find().sort('created_at', -1))
-    for feedback in feedback_list:
-        feedback['_id'] = str(feedback['_id'])
-    return feedback_list
+    try:
+        db = current_app.config["DB"]  # Added missing db connection
+        feedback_list = list(db.feedback.find().sort('created_at', -1))
+        for feedback in feedback_list:
+            feedback['_id'] = str(feedback['_id'])
+        return feedback_list
+    except Exception as e:
+        print(f"Error getting all feedback: {str(e)}")
+        return []
 
 def get_user_feedback(user_id):
     """Get feedback entries for a specific user"""
-    feedback_list = list(db.feedback.find({'user_id': user_id}).sort('created_at', -1))
-    for feedback in feedback_list:
-        feedback['_id'] = str(feedback['_id'])
-    return feedback_list
+    try:
+        db = current_app.config["DB"]  # Added missing db connection
+        feedback_list = list(db.feedback.find({'user_id': user_id}).sort('created_at', -1))
+        for feedback in feedback_list:
+            feedback['_id'] = str(feedback['_id'])
+        return feedback_list
+    except Exception as e:
+        print(f"Error getting user feedback: {str(e)}")
+        return []
 
 def update_feedback_status(feedback_id, status):
     """Update feedback status (admin only)"""
-    result = db.feedback.update_one(
-        {'_id': ObjectId(feedback_id)},
-        {'$set': {'status': status, 'updated_at': datetime.utcnow()}}
-    )
-    return result.modified_count > 0
+    try:
+        db = current_app.config["DB"]  # Added missing db connection
+        result = db.feedback.update_one(
+            {'_id': ObjectId(feedback_id)},
+            {'$set': {'status': status, 'updated_at': datetime.utcnow()}}
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error updating feedback status: {str(e)}")
+        return False
