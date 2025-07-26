@@ -137,7 +137,7 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                     {/* Duration Info */}
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                         <p className="text-sm text-orange-800">
-                            <span className="font-semibold">⏰ Duration:</span> This waypoint will automatically expire after 24 hours
+                            <span className="font-semibold">⏰ Duration:</span> This waypoint will automatically expire after 1 week
                         </p>
                     </div>
                     

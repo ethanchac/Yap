@@ -46,15 +46,18 @@ def create_waypoint(current_user):
         if len(data['description']) > 500:
             return jsonify({"error": "Description too long (max 500 characters)"}), 400
         
-        # Handle optional expiration
+        # Handle optional expiration - changed from 72 hours max to 168 hours (1 week) max
         expires_at = None
         if 'expires_in_hours' in data:
             try:
                 hours = int(data['expires_in_hours'])
-                if 1 <= hours <= 72:  # Max 3 days
+                if 1 <= hours <= 168:  # Max 1 week (168 hours)
                     expires_at = datetime.utcnow() + timedelta(hours=hours)
             except (ValueError, TypeError):
                 pass
+        else:
+            # Default expiration: 1 week from now
+            expires_at = datetime.utcnow() + timedelta(weeks=1)
         
         # Create waypoint
         waypoint = Waypoint.create_waypoint(
