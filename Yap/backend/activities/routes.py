@@ -60,6 +60,12 @@ def get_current_user_id():
         traceback.print_exc()
         return None
 
+# ------------------------------------------------------
+
+#                         Would you rather
+
+# --------------------------------------------------------
+
 @activities_bp.route('/wouldyourather', methods=['GET'])
 def get_would_you_rather():
     print("🔍 DEBUG: get_would_you_rather route called")
@@ -297,3 +303,147 @@ def test_auth():
             'authenticated': False,
             'message': 'JWT authentication failed'
         }), 401
+    
+
+# ------------------------------------------------------
+
+#                         Whats on your mind
+
+# --------------------------------------------------------
+
+@activities_bp.route('/whatsonmind', methods=['GET'])
+def get_whats_on_mind():
+    """Get all 'What's on Your Mind' posts"""
+    print("🔍 DEBUG: get_whats_on_mind route called")
+    db = current_app.config["DB"]
+    
+    # Get real user ID from JWT token
+    current_user_id = get_current_user_id()
+    print(f"🔍 DEBUG: Current user ID: {current_user_id}")
+    
+    if not current_user_id:
+        print("🔍 DEBUG: Authentication failed, returning 401")
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        # Get all posts, sorted by creation date (newest first)
+        posts = list(db['whats_on_mind'].find().sort('created_at', -1))
+        print(f"🔍 DEBUG: Found {len(posts)} posts")
+        
+        # Convert ObjectId to string for JSON serialization
+        for post in posts:
+            post['_id'] = str(post['_id'])
+            # Add a flag to identify if this post belongs to current user
+            post['is_own_post'] = post.get('created_by') == current_user_id
+        
+        print(f"🔍 DEBUG: Returning {len(posts)} posts")
+        return jsonify(posts)
+        
+    except Exception as e:
+        print(f"❌ Error fetching posts: {e}")
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to fetch posts'}), 500
+
+@activities_bp.route('/whatsonmind/create', methods=['POST'])
+def create_whats_on_mind():
+    """Create a new 'What's on Your Mind' post"""
+    print("🔍 DEBUG: create_whats_on_mind route called")
+    
+    try:
+        db = current_app.config["DB"]
+        
+        # Get real user ID from JWT token
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        data = request.json
+        print(f"🔍 DEBUG: Received data: {data}")
+        
+        # Validation
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        content = data.get('content', '').strip()
+        print(f"🔍 DEBUG: Content: {content}")
+        
+        # Validate required fields
+        if not content:
+            return jsonify({'error': 'Content is required'}), 400
+        
+        # Validate length
+        if len(content) < 1:
+            return jsonify({'error': 'Content must be at least 1 character long'}), 400
+        
+        if len(content) > 500:
+            return jsonify({'error': 'Content cannot exceed 500 characters'}), 400
+        
+        # Create new post document
+        new_post = {
+            'content': content,
+            'created_at': datetime.utcnow(),
+            'created_by': current_user_id
+        }
+        
+        print(f"🔍 DEBUG: Creating post: {new_post}")
+        
+        # Insert into database
+        result = db['whats_on_mind'].insert_one(new_post)
+        print(f"🔍 DEBUG: Insert result: {result.inserted_id}")
+        
+        # Get the created document
+        created_post = db['whats_on_mind'].find_one({'_id': result.inserted_id})
+        created_post['_id'] = str(created_post['_id'])
+        created_post['is_own_post'] = True  # User just created this post
+        
+        print(f"🔍 DEBUG: Created post: {created_post}")
+        
+        return jsonify(created_post), 201
+        
+    except Exception as e:
+        print(f"❌ Error creating post: {e}")
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to create post'}), 500
+
+@activities_bp.route('/whatsonmind/<post_id>', methods=['DELETE'])
+def delete_whats_on_mind(post_id):
+    """Delete a 'What's on Your Mind' post"""
+    print(f"🔍 DEBUG: delete_whats_on_mind route called for ID: {post_id}")
+    
+    try:
+        db = current_app.config["DB"]
+        
+        # Get real user ID from JWT token
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        # Validate ObjectId format
+        try:
+            obj_id = ObjectId(post_id)
+        except:
+            return jsonify({'error': 'Invalid post ID format'}), 400
+        
+        # Check if post exists
+        post = db['whats_on_mind'].find_one({'_id': obj_id})
+        if not post:
+            return jsonify({'error': 'Post not found'}), 404
+        
+        # Check if user is the creator of this post
+        if post.get('created_by') != current_user_id:
+            print(f"🔍 DEBUG: User {current_user_id} trying to delete post created by {post.get('created_by')}")
+            return jsonify({'error': 'Not authorized to delete this post'}), 403
+        
+        # Delete the post
+        result = db['whats_on_mind'].delete_one({'_id': obj_id})
+        
+        if result.deleted_count == 0:
+            return jsonify({'error': 'Failed to delete post'}), 500
+        
+        print(f"🔍 DEBUG: Post {post_id} deleted successfully")
+        return jsonify({'message': 'Post deleted successfully'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error deleting post: {e}")
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to delete post'}), 500

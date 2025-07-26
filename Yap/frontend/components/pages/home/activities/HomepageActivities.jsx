@@ -1,5 +1,7 @@
+// HomepageActivities.jsx - Updated to include What's on Your Mind
 import { useState, useRef, useEffect } from "react";
-import WouldYouRather from "../activities/WouldYouRather";
+import WouldYouRather from "./WYR/WouldYouRather";
+import WhatsOnYourMind from "./WOYM/WhatsOnYourMind";
 
 function PlaceholderActivity({ title }) {
     return (
@@ -16,17 +18,17 @@ const activities = [
         component: <WouldYouRather />,
     },
     {
-        key: "placeholder1",
-        component: <PlaceholderActivity title="Activity 2" />,
+        key: "whatsonmind",
+        component: <WhatsOnYourMind />,
     },
     {
-        key: "placeholder2",
+        key: "placeholder1",
         component: <PlaceholderActivity title="Activity 3" />,
     },
 ];
 
 function HomepageActivities() {
-    const [current, setCurrent] = useState(0); // Start on WouldYouRather (now index 0)
+    const [current, setCurrent] = useState(0); // Start on WouldYouRather (index 0)
     const [prev, setPrev] = useState(0);
     const [isAnimating, setIsAnimating] = useState(false);
     const [containerHeight, setContainerHeight] = useState(240);

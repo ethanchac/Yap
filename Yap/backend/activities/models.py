@@ -12,3 +12,4 @@ class WouldYouRather:
             'votes_a': self.votes_a,
             'votes_b': self.votes_b
         }
+    
