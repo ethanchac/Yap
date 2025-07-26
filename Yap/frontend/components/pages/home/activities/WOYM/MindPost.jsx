@@ -4,56 +4,46 @@ import { useState } from 'react';
 export default function MindPost({ post, onDelete, isDeleting }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Format the date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    
-    // For older posts, show the actual date
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
   };
 
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
-
+  const handleDeleteClick = () => setShowDeleteConfirm(true);
   const handleConfirmDelete = () => {
     onDelete(post._id);
     setShowDeleteConfirm(false);
   };
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false);
-  };
+  const handleCancelDelete = () => setShowDeleteConfirm(false);
 
   const getProfilePictureUrl = () => {
     if (post.profile_picture) {
-      if (post.profile_picture.startsWith('http')) {
-        return post.profile_picture;
-      }
+      if (post.profile_picture.startsWith('http')) return post.profile_picture;
       return `http://localhost:5000/uploads/profile_pictures/${post.profile_picture}`;
     }
     return `http://localhost:5000/static/default/default-avatar.png`;
   };
 
   return (
-    <div className="flex items-end gap-3 group mb-6">
+    <div className="flex items-start gap-3 group mb-6">
       {/* User Avatar */}
-      <img 
+      <img
         src={getProfilePictureUrl()}
         alt={`${post.username || 'User'}'s profile`}
         onError={(e) => {
@@ -62,42 +52,52 @@ export default function MindPost({ post, onDelete, isDeleting }) {
         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
       />
 
-      {/* Post Content Container */}
+      {/* Post Content */}
       <div className="flex-1 min-w-0 relative">
         {/* Username */}
-        <div className="text-sm text-gray-300 mb-1 font-medium ml-4">
+        <div className="text-sm text-gray-300 mb-1 font-medium ml-2">
           @{post.username || 'Unknown User'}
         </div>
 
         {/* Speech Bubble */}
-        <div className="relative bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm max-w-md">
-          {/* Speech bubble tail pointing to bottom-left */}
-          <div className="absolute bottom-0 left-0 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-gray-700 border-t-[12px] border-t-gray-700 transform -translate-x-3 translate-y-3"></div>
-          
-          {/* Delete Button - Only show for own posts */}
+        <div className="relative bg-gray-700 text-white rounded-2xl px-4 py-3 shadow-md max-w-lg ml-2">
+          {/* Tail */}
+          <div className="absolute -left-2 bottom-2 w-0 h-0 border-t-[10px] border-t-gray-700 border-l-[10px] border-l-transparent"></div>
+
+          {/* Delete Button (hover) */}
           {post.is_own_post && (
             <button
               onClick={handleDeleteClick}
               disabled={isDeleting}
-              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-gray-600"
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 transition-opacity opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-gray-600"
               title="Delete this post"
             >
               {isDeleting ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
               ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               )}
             </button>
           )}
 
           {/* Post Content */}
-          <p className="text-white text-base leading-relaxed whitespace-pre-wrap break-words pr-8">
+          <p className="text-base leading-snug whitespace-pre-wrap break-words pr-8">
             {post.content}
           </p>
 
-          {/* Timestamp inside bubble */}
+          {/* Timestamp */}
           <div className="text-xs text-gray-400 mt-2 text-right">
             {formatDate(post.created_at)}
           </div>
