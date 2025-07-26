@@ -1,6 +1,9 @@
 from datetime import datetime
 from bson import ObjectId
 from flask import current_app
+import os
+from werkzeug.utils import secure_filename
+import uuid
 
 class EventThread:
     @staticmethod
@@ -30,6 +33,7 @@ class EventThread:
             "content": f"{username} joined the event",
             "post_type": "join_notification",  # Special type for join notifications
             "media_url": None,
+            "media_urls": [],
             "reply_to": None,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
@@ -81,6 +85,7 @@ class EventThread:
             "content": f"{username} left the event",
             "post_type": "leave_notification",  # Special type for leave notifications
             "media_url": None,
+            "media_urls": [],
             "reply_to": None,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
@@ -106,11 +111,51 @@ class EventThread:
             return None
 
     @staticmethod
-    def create_thread_post(event_id, user_id, username, content, post_type='text', media_url=None, reply_to=None):
-        """Create a new post in an event thread"""
+    def upload_thread_image(file, event_id):
+        """Upload and save thread image with event-specific naming"""
+        try:
+            if not file or file.filename == '':
+                return None
+            
+            # Check file extension
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            if not ('.' in file.filename and 
+                    file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+                raise ValueError("Invalid file type. Only PNG, JPG, JPEG, GIF, and WEBP are allowed.")
+            
+            # Check file size (max 10MB)
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
+            
+            if file_size > 10 * 1024 * 1024:  # 10MB
+                raise ValueError("File too large. Maximum size is 10MB.")
+            
+            # Generate unique filename with event prefix
+            filename = secure_filename(file.filename)
+            file_extension = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{event_id}_{uuid.uuid4().hex}.{file_extension}"
+            
+            # Create upload directory if it doesn't exist
+            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Save file
+            file_path = os.path.join(upload_dir, unique_filename)
+            file.save(file_path)
+            
+            return unique_filename
+            
+        except Exception as e:
+            print(f"Error uploading thread image: {e}")
+            raise e
+
+    @staticmethod
+    def create_thread_post(event_id, user_id, username, content, post_type='text', media_url=None, reply_to=None, image_files=None):
+        """Create a new post in an event thread - Updated to handle multiple image uploads"""
         db = current_app.config["DB"]
         
-        print(f"Creating thread post: event_id={event_id}, user_id={user_id}, content='{content[:50]}...'")
+        print(f"Creating thread post: event_id={event_id}, user_id={user_id}, content='{content[:50] if content else 'No content'}...', post_type={post_type}")
         
         # Verify user is attending the event
         attendance = db.attendances.find_one({
@@ -136,14 +181,61 @@ class EventThread:
         
         print(f"Event verified: {event['title']}")
         
+        # Handle multiple image uploads if provided
+        uploaded_images = []
+        media_urls = []
+        
+        if image_files and len(image_files) > 0:
+            # Limit to 4 images maximum
+            if len(image_files) > 4:
+                raise ValueError("Maximum 4 images allowed per post")
+            
+            try:
+                for image_file in image_files:
+                    if image_file and image_file.filename:  # Skip empty files
+                        uploaded_filename = EventThread.upload_thread_image(image_file, event_id)
+                        if uploaded_filename:
+                            uploaded_images.append(uploaded_filename)
+                            media_urls.append(f"/eventthreads/images/{uploaded_filename}")
+                
+                print(f"Successfully uploaded {len(uploaded_images)} images: {uploaded_images}")
+                
+                if uploaded_images:
+                    if post_type == 'text':  # Auto-detect image post type
+                        post_type = 'image'
+                    # For backward compatibility, set media_url to first image
+                    if not media_url and media_urls:
+                        media_url = media_urls[0]
+                        
+            except Exception as e:
+                # Clean up any uploaded images if there's an error
+                for uploaded_file in uploaded_images:
+                    try:
+                        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
+                        file_path = os.path.join(upload_dir, uploaded_file)
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                    except Exception as cleanup_error:
+                        print(f"Error cleaning up uploaded image {uploaded_file}: {cleanup_error}")
+                
+                print(f"Error uploading images: {e}")
+                raise ValueError(f"Failed to upload images: {str(e)}")
+        
+        # For image posts, content can be optional (just caption)
+        if post_type == 'image' and not content:
+            content = ""  # Allow empty content for image-only posts
+        elif post_type != 'image' and (not content or not content.strip()):
+            raise ValueError("Post content is required for non-image posts")
+        
         # Create the thread post document
         thread_post = {
             "event_id": event_id,
             "user_id": user_id,
             "username": username,
-            "content": content,
+            "content": content or "",
             "post_type": post_type,  # 'text', 'image', 'link', 'join_notification', etc.
-            "media_url": media_url,
+            "media_url": media_url,  # First image URL for backward compatibility
+            "media_urls": media_urls,  # Array of all image URLs
             "reply_to": reply_to,  # For nested replies
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
@@ -168,6 +260,16 @@ class EventThread:
                 
         except Exception as e:
             print(f"ERROR inserting post: {e}")
+            # If database insertion fails and we uploaded images, clean them up
+            for uploaded_file in uploaded_images:
+                try:
+                    upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
+                    file_path = os.path.join(upload_dir, uploaded_file)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                        print(f"Cleaned up uploaded image after DB error: {uploaded_file}")
+                except Exception as cleanup_error:
+                    print(f"Error cleaning up uploaded image: {cleanup_error}")
             raise e
         
         # If this is a reply, increment the parent post's reply count
@@ -226,6 +328,7 @@ class EventThread:
                     "content": post["content"],
                     "post_type": post.get("post_type", "text"),
                     "media_url": post.get("media_url"),
+                    "media_urls": post.get("media_urls", []),  # Include multiple images
                     "created_at": post["created_at"],
                     "updated_at": post.get("updated_at", post["created_at"]),
                     "likes_count": post.get("likes_count", 0),
@@ -237,7 +340,7 @@ class EventThread:
                 }
                 
                 # For join notifications, don't check likes or allow replies
-                if post.get("post_type") != "join_notification":
+                if post.get("post_type") not in ["join_notification", "leave_notification"]:
                     # Check if user liked this post
                     try:
                         user_like = db.thread_likes.find_one({
@@ -308,6 +411,7 @@ class EventThread:
                 reply["is_liked_by_user"] = False
                 reply["profile_picture"] = None
                 reply["user_full_name"] = None
+                reply["media_urls"] = reply.get("media_urls", [])  # Include multiple images for replies too
                 
                 # Check if user liked this reply
                 try:
@@ -354,8 +458,8 @@ class EventThread:
             if not post:
                 return {"error": "Post not found"}
             
-            if post.get("post_type") == "join_notification":
-                return {"error": "Cannot like join notifications"}
+            if post.get("post_type") in ["join_notification", "leave_notification"]:
+                return {"error": "Cannot like notifications"}
             
             # Check if user already liked this post
             existing_like = db.thread_likes.find_one({
@@ -409,7 +513,7 @@ class EventThread:
     
     @staticmethod
     def delete_thread_post(post_id, user_id):
-        """Delete a thread post (only by the author)"""
+        """Delete a thread post (only by the author) - Updated to handle multiple image cleanup"""
         db = current_app.config["DB"]
         
         try:
@@ -423,12 +527,42 @@ class EventThread:
                 return {"error": "Post not found"}
             
             # Don't allow deletion of join notifications
-            if post.get("post_type") == "join_notification":
-                return {"error": "Cannot delete join notifications"}
+            if post.get("post_type") in ["join_notification", "leave_notification"]:
+                return {"error": "Cannot delete notifications"}
             
             # Check if user is the author
             if post["user_id"] != user_id:
                 return {"error": "You can only delete your own posts"}
+            
+            # Clean up image files if they exist
+            if post.get("post_type") == "image":
+                # Clean up multiple images
+                media_urls = post.get("media_urls", [])
+                if media_urls:
+                    for media_url in media_urls:
+                        try:
+                            if media_url.startswith("/eventthreads/images/"):
+                                filename = media_url.split("/")[-1]
+                                upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
+                                file_path = os.path.join(upload_dir, filename)
+                                if os.path.exists(file_path):
+                                    os.remove(file_path)
+                                    print(f"Deleted image file: {filename}")
+                        except Exception as e:
+                            print(f"Error deleting image file: {e}")
+                
+                # Also clean up single image for backward compatibility
+                if post.get("media_url"):
+                    try:
+                        if post["media_url"].startswith("/eventthreads/images/"):
+                            filename = post["media_url"].split("/")[-1]
+                            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
+                            file_path = os.path.join(upload_dir, filename)
+                            if os.path.exists(file_path):
+                                os.remove(file_path)
+                                print(f"Deleted image file: {filename}")
+                    except Exception as e:
+                        print(f"Error deleting image file: {e}")
             
             # Mark as deleted instead of actually deleting
             try:
@@ -545,9 +679,9 @@ class EventThread:
             if not post:
                 return {"error": "Post not found"}
             
-            # Don't allow editing of join notifications
-            if post.get("post_type") == "join_notification":
-                return {"error": "Cannot edit join notifications"}
+            # Don't allow editing of notifications
+            if post.get("post_type") in ["join_notification", "leave_notification"]:
+                return {"error": "Cannot edit notifications"}
             
             # Check if user is the author
             if post["user_id"] != user_id:

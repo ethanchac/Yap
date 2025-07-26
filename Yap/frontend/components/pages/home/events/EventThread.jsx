@@ -46,7 +46,6 @@ const EventThread = () => {
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     };
   };
@@ -108,7 +107,10 @@ const EventThread = () => {
     try {
       const response = await fetch(`http://localhost:5000/events/${eventId}/attend`, {
         method: 'POST',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
       });
 
       if (response.ok) {
@@ -133,23 +135,31 @@ const EventThread = () => {
     }
   };
 
-  const handlePostSubmit = async (e) => {
+  const handlePostSubmit = async (e, selectedImages = []) => {
     e.preventDefault();
     
-    if (!newPostContent.trim() || posting) return;
+    if ((!newPostContent.trim() && selectedImages.length === 0) || posting) return;
 
     setPosting(true);
     try {
-      const postData = {
-        content: newPostContent.trim(),
-        post_type: 'text',
-        reply_to: replyingTo?._id || null
-      };
+      // Create FormData for multipart upload if images are selected
+      const formData = new FormData();
+      formData.append('content', newPostContent.trim());
+      formData.append('post_type', selectedImages.length > 0 ? 'image' : 'text');
+      
+      if (replyingTo) {
+        formData.append('reply_to', replyingTo._id);
+      }
+      
+      // Append multiple images
+      selectedImages.forEach((image, index) => {
+        formData.append('image', image);  // All with same name for getlist()
+      });
 
       const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/posts`, {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(postData)
+        headers: getAuthHeaders(), // Don't set Content-Type for FormData
+        body: formData
       });
 
       if (response.ok) {
@@ -272,7 +282,10 @@ const EventThread = () => {
     try {
       const response = await fetch(`http://localhost:5000/eventthreads/posts/${postId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({ content: newContent })
       });
 

@@ -22,6 +22,23 @@ const ETPost = ({
     setEditingPost(false);
   };
 
+  const getImageUrl = (mediaUrl) => {
+    if (!mediaUrl) return null;
+    
+    // If it's already a full URL, return as is
+    if (mediaUrl.startsWith('http')) {
+      return mediaUrl;
+    }
+    
+    // If it's a relative path, prepend the base URL
+    if (mediaUrl.startsWith('/eventthreads/images/')) {
+      return `http://localhost:5000${mediaUrl}`;
+    }
+    
+    // If it's just a filename, construct the full URL
+    return `http://localhost:5000/eventthreads/images/${mediaUrl}`;
+  };
+
   // Special rendering for join notifications
   if (post.post_type === 'join_notification') {
     return (
@@ -170,7 +187,60 @@ const ETPost = ({
         </div>
       ) : (
         <div className="mb-3">
-          <p className="text-gray-300 whitespace-pre-wrap">{post.content}</p>
+          {/* Text Content */}
+          {post.content && (
+            <p className="text-gray-300 whitespace-pre-wrap mb-3">{post.content}</p>
+          )}
+          
+          {/* Image Content */}
+          {post.post_type === 'image' && (post.media_url || post.media_urls) && (
+            <div className="mt-3">
+              {post.media_urls && post.media_urls.length > 0 ? (
+                // Multiple images
+                <div className={`grid gap-2 rounded-lg overflow-hidden ${
+                  post.media_urls.length === 1 ? 'grid-cols-1 max-w-sm' :
+                  post.media_urls.length === 2 ? 'grid-cols-2 max-w-lg' :
+                  post.media_urls.length === 3 ? 'grid-cols-2 max-w-lg' :
+                  'grid-cols-2 max-w-lg'
+                }`}>
+                  {post.media_urls.map((url, index) => (
+                    <div key={index} className={`${
+                      post.media_urls.length === 3 && index === 0 ? 'col-span-2' : ''
+                    }`}>
+                      <img
+                        src={getImageUrl(url)}
+                        alt={`Post image ${index + 1}`}
+                        className="w-full h-32 object-cover cursor-pointer hover:opacity-95 transition-opacity bg-gray-800 rounded-lg"
+                        onClick={() => {
+                          window.open(getImageUrl(url), '_blank');
+                        }}
+                        onError={(e) => {
+                          console.error('Failed to load image:', getImageUrl(url));
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : post.media_url ? (
+                // Single image (backward compatibility)
+                <div className="rounded-lg overflow-hidden max-w-sm">
+                  <img
+                    src={getImageUrl(post.media_url)}
+                    alt="Post image"
+                    className="w-full max-h-48 object-contain cursor-pointer hover:opacity-95 transition-opacity bg-gray-800 rounded-lg"
+                    onClick={() => {
+                      window.open(getImageUrl(post.media_url), '_blank');
+                    }}
+                    onError={(e) => {
+                      console.error('Failed to load image:', getImageUrl(post.media_url));
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       )}
 
