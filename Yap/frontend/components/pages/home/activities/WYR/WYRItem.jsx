@@ -30,6 +30,27 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
   const percentageA = getVotePercentage(question.votes_a, totalVotes);
   const percentageB = getVotePercentage(question.votes_b, totalVotes);
 
+  // Format the creation date
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return '';
+    }
+  };
+
+  // Get creator display name
+  const getCreatorName = () => {
+    // Backend now provides creator_name, so we can use it directly
+    return question.creator_name || 'Anonymous';
+  };
+
   useEffect(() => {
     if (!showResults) return;
 
@@ -74,12 +95,23 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
   return (
     <div className="rounded-lg p-4 border border-gray-700 mb-6" style={{ backgroundColor: '#171717' }}>
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
-        <h3 className="text-white text-lg font-bold">Would You Rather</h3>
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+          <h3 className="text-white text-lg font-bold mb-1">Would You Rather</h3>
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <span>by {getCreatorName()}</span>
+            {question.created_at && (
+              <>
+                <span>•</span>
+                <span>{formatDate(question.created_at)}</span>
+              </>
+            )}
+          </div>
+        </div>
         {canDelete && (
           <button
             onClick={() => onDelete(question._id)}
-            className="text-gray-400 hover:text-red-400 transition-colors p-1"
+            className="text-gray-400 hover:text-red-400 transition-colors p-1 ml-2"
             title="Delete this question"
           >
             🗑️

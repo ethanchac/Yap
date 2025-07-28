@@ -20,8 +20,8 @@ def get_would_you_rather(current_user):
     
     db = current_app.config["DB"]
     
-    # Get all questions
-    questions = list(db['would_you_rather'].find())
+    # Get all questions first
+    questions = list(db['would_you_rather'].find().sort("created_at", -1))
     print(f"🔍 DEBUG: Found {len(questions)} questions")
     
     # Get user's votes for these questions using current_user['_id']
@@ -35,13 +35,49 @@ def get_would_you_rather(current_user):
     vote_mapping = {str(vote['question_id']): vote['option'] for vote in user_votes}
     print(f"🔍 DEBUG: User vote mapping: {vote_mapping}")
     
-    # Add user vote info to each question
+    # Process each question and add creator info
     for q in questions:
         q['_id'] = str(q['_id'])
         q['user_vote'] = vote_mapping.get(q['_id'])
-        print(f"🔍 DEBUG: Question {q['_id']} has user_vote: {q['user_vote']}")
+        
+        # Get creator information
+        if q.get('created_by'):
+            print(f"🔍 DEBUG: Looking up creator with ID: {q['created_by']} (type: {type(q['created_by'])})")
+            
+            # Try to find user - handle both ObjectId and string cases
+            creator = None
+            try:
+                # First try direct lookup (if it's already ObjectId)
+                creator = db['users'].find_one({'_id': q['created_by']})
+                if not creator and isinstance(q['created_by'], str):
+                    # If not found and it's a string, try converting to ObjectId
+                    creator = db['users'].find_one({'_id': ObjectId(q['created_by'])})
+            except Exception as e:
+                print(f"🔍 DEBUG: Error looking up creator: {e}")
+                creator = None
+            
+            print(f"🔍 DEBUG: Creator found: {creator is not None}")
+            if creator:
+                # Add creator info to the question
+                username = creator.get('username')
+                if username:
+                    q['creator_name'] = username
+                elif creator.get('email'):
+                    q['creator_name'] = creator.get('email').split('@')[0]
+                else:
+                    q['creator_name'] = 'Unknown User'
+                q['creator_email'] = creator.get('email')
+                print(f"🔍 DEBUG: Added creator info for question {q['_id']}: {q['creator_name']}")
+            else:
+                q['creator_name'] = 'Unknown User' 
+                print(f"🔍 DEBUG: Creator not found for question {q['_id']} with created_by: {q['created_by']}")
+        else:
+            q['creator_name'] = 'Anonymous'
+            print(f"🔍 DEBUG: No created_by field for question {q['_id']}")
+        
+        print(f"🔍 DEBUG: Question {q['_id']} has user_vote: {q['user_vote']}, creator: {q.get('creator_name')}")
     
-    print(f"🔍 DEBUG: Returning {len(questions)} questions with user votes")
+    print(f"🔍 DEBUG: Returning {len(questions)} questions with user votes and creator info")
     return jsonify(questions)
 
 @activities_bp.route('/wouldyourather/create', methods=['POST'])
@@ -100,7 +136,17 @@ def create_would_you_rather(current_user):
         created_question['_id'] = str(created_question['_id'])
         created_question['user_vote'] = None  # User hasn't voted on their own question yet
         
-        print(f"🔍 DEBUG: Created question: {created_question}")
+        # Add creator info to the newly created question
+        username = current_user.get('username') or current_user.get('name')
+        if username:
+            created_question['creator_name'] = username
+        elif current_user.get('email'):
+            created_question['creator_name'] = current_user.get('email').split('@')[0]
+        else:
+            created_question['creator_name'] = 'Unknown User'
+        created_question['creator_email'] = current_user.get('email')
+        
+        print(f"🔍 DEBUG: Created question with creator info: {created_question}")
         
         return jsonify(created_question), 201
         
