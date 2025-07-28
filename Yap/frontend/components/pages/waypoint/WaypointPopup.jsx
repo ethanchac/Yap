@@ -57,42 +57,16 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
     };
 
     return (
-        <div style={{ fontFamily: 'Albert Sans, sans-serif', minWidth: '200px' }}>
+        <div className="font-sans min-w-[200px]">
             {/* Header with optional delete button */}
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start',
-                marginBottom: '8px'
-            }}>
-                <h3 style={{ 
-                    margin: '0', 
-                    color: '#1f2937', 
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    flex: 1,
-                    paddingRight: isOwner ? '8px' : '0'
-                }}>
+            <div className="flex justify-between items-start mb-2">
+                <h3 className={`m-0 text-gray-800 text-base font-bold flex-1 ${isOwner ? 'pr-2' : ''}`}>
                     {waypoint.title}
                 </h3>
                 {isOwner && (
                     <button
                         onClick={() => onDelete(waypoint.id, waypoint.title)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#ef4444',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            padding: '2px',
-                            borderRadius: '4px',
-                            lineHeight: 1,
-                            minWidth: '20px',
-                            height: '20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
+                        className="bg-transparent border-none text-red-500 cursor-pointer text-base p-0.5 rounded leading-none min-w-[20px] h-5 flex items-center justify-center hover:bg-red-50"
                         title="Delete waypoint"
                     >
                         🗑️
@@ -102,36 +76,25 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
 
             {/* Event-specific information */}
             {isEventWaypoint && eventDetails && (
-                <div style={{
-                    backgroundColor: eventDetails.isUpcoming ? '#dbeafe' : '#fef3c7',
-                    border: `1px solid ${eventDetails.isUpcoming ? '#93c5fd' : '#fcd34d'}`,
-                    borderRadius: '6px',
-                    padding: '8px',
-                    marginBottom: '8px'
-                }}>
-                    <div style={{ 
-                        fontSize: '12px', 
-                        fontWeight: 'bold',
-                        color: eventDetails.isUpcoming ? '#1e40af' : '#92400e',
-                        marginBottom: '4px'
-                    }}>
+                <div className={`rounded-md p-2 mb-2 border ${
+                    eventDetails.isUpcoming 
+                        ? 'bg-blue-50 border-blue-300' 
+                        : 'bg-yellow-50 border-yellow-300'
+                }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                        eventDetails.isUpcoming ? 'text-blue-800' : 'text-yellow-800'
+                    }`}>
                         {eventDetails.isUpcoming ? '🔜 UPCOMING EVENT' : '⏰ PAST EVENT'}
                     </div>
-                    <div style={{ 
-                        fontSize: '12px', 
-                        color: eventDetails.isUpcoming ? '#1e40af' : '#92400e'
-                    }}>
+                    <div className={`text-xs ${
+                        eventDetails.isUpcoming ? 'text-blue-800' : 'text-yellow-800'
+                    }`}>
                         📅 {eventDetails.date} at {eventDetails.time}
                     </div>
                 </div>
             )}
 
-            <p style={{ 
-                margin: '0 0 12px 0', 
-                color: '#6b7280', 
-                fontSize: '14px',
-                lineHeight: '1.4'
-            }}>
+            <p className="m-0 mb-3 text-gray-500 text-sm leading-relaxed">
                 {/* For event waypoints, show only the description part (after the date line) */}
                 {isEventWaypoint 
                     ? waypoint.description.split('\n').slice(2).join('\n').trim() || waypoint.description
@@ -139,35 +102,18 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                 }
             </p>
             
-            <div style={{ 
-                fontSize: '12px', 
-                color: '#9ca3af',
-                marginBottom: '12px'
-            }}>
-                <div style={{ marginBottom: '4px' }}>📅 {waypoint.time}</div>
-                <div style={{ 
-                    marginBottom: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
+            <div className="text-xs text-gray-400 mb-3">
+                <div className="mb-1">📅 {waypoint.time}</div>
+                <div className="mb-1 flex items-center justify-between">
                     <span>👤 {waypoint.author}</span>
                     {isOwner && (
-                        <span style={{ 
-                            color: '#10b981', 
-                            fontSize: '10px',
-                            fontWeight: 'bold',
-                            background: '#10b981',
-                            color: 'white',
-                            padding: '1px 6px',
-                            borderRadius: '8px'
-                        }}>
+                        <span className="text-white text-[10px] font-bold bg-emerald-500 px-1.5 py-0.5 rounded-lg">
                             YOUR WAYPOINT
                         </span>
                     )}
                 </div>
                 {waypoint.distance_km && (
-                    <div style={{ marginBottom: '4px' }}>📍 {waypoint.distance_km}km away</div>
+                    <div className="mb-1">📍 {waypoint.distance_km}km away</div>
                 )}
                 <div className="flex items-center space-x-3 mt-2">
                     <span>👍 {waypoint.interactions?.likes || 0}</span>
@@ -176,58 +122,20 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
             </div>
             
             {/* Action buttons - only Like and Save */}
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div className="flex gap-1.5">
                 <button 
                     onClick={handleLike}
-                    style={{
-                        flex: 1,
-                        padding: '6px 12px',
-                        backgroundColor: isLiked ? '#10b981' : '#f97316',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        if (!isLiked) {
-                            e.target.style.backgroundColor = '#ea580c';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (!isLiked) {
-                            e.target.style.backgroundColor = '#f97316';
-                        }
-                    }}
+                    className={`flex-1 px-3 py-1.5 text-white border-none rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${
+                        isLiked ? 'bg-emerald-500' : 'bg-orange-500 hover:bg-orange-600'
+                    }`}
                 >
                     {isLiked ? '❤️ Liked' : '🤍 Like'}
                 </button>
                 <button 
                     onClick={handleBookmark}
-                    style={{
-                        flex: 1,
-                        padding: '6px 12px',
-                        backgroundColor: isBookmarked ? '#8b5cf6' : '#f97316',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        if (!isBookmarked) {
-                            e.target.style.backgroundColor = '#ea580c';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (!isBookmarked) {
-                            e.target.style.backgroundColor = '#f97316';
-                        }
-                    }}
+                    className={`flex-1 px-3 py-1.5 text-white border-none rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${
+                        isBookmarked ? 'bg-violet-500' : 'bg-orange-500 hover:bg-orange-600'
+                    }`}
                 >
                     {isBookmarked ? '🔖 Saved' : '📖 Save'}
                 </button>
