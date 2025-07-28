@@ -4,6 +4,8 @@ import { useState } from 'react';
 export default function MindPost({ post, onDelete, isDeleting }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // format the date
+  
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
