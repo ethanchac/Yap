@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function RegisterForm() {
     const [form, setForm] = useState({
@@ -10,6 +11,7 @@ function RegisterForm() {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const { isDarkMode } = useTheme();
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -48,48 +50,69 @@ function RegisterForm() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#121212] relative overflow-hidden" style={{ fontFamily: 'Albert Sans' }}>
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
+            backgroundColor: isDarkMode ? '#121212' : '#ffffff',
+            fontFamily: 'Albert Sans' 
+        }}>
             {/* Animated Background Blobs */}
             <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-orange-500/20 to-orange-400/20 rounded-full blur-3xl animate-pulse z-0"></div>
             <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-orange-600/20 to-orange-300/20 rounded-full blur-3xl animate-pulse z-0"></div>
-            <div className="w-full max-w-md bg-[#181818] rounded-2xl shadow-xl p-8 flex flex-col items-center relative z-10">
-                <h2 className="text-2xl font-bold text-white mb-2 text-center">Welcome to Yapp</h2>
+            <div className={`w-full max-w-md rounded-2xl shadow-xl p-8 flex flex-col items-center relative z-10 ${
+                isDarkMode ? 'bg-[#181818]' : 'bg-white border border-gray-200'
+            }`}>
+                <h2 className={`text-2xl font-bold mb-2 text-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Welcome to Yapp</h2>
                 <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 mt-4">
-                    <label className="text-gray-300 text-sm font-semibold">Username</label>
+                    <label className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Username</label>
                     <input
                         type="text"
                         name="username"
-                        className="w-full px-4 py-3 rounded-lg bg-[#232323] text-white border border-gray-700 focus:border-orange-500 focus:outline-none transition-colors"
+                        className={`w-full px-4 py-3 rounded-lg border focus:border-orange-500 focus:outline-none transition-colors ${
+                            isDarkMode 
+                                ? 'bg-[#232323] text-white border-gray-700' 
+                                : 'bg-white text-gray-900 border-gray-300'
+                        }`}
                         placeholder="Username"
                         value={form.username}
                         onChange={handleChange}
                         required
                     />
-                    <label className="text-gray-300 text-sm font-semibold">Email</label>
+                    <label className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
                     <input
                         type="email"
                         name="email"
-                        className="w-full px-4 py-3 rounded-lg bg-[#232323] text-white border border-gray-700 focus:border-orange-500 focus:outline-none transition-colors"
+                        className={`w-full px-4 py-3 rounded-lg border focus:border-orange-500 focus:outline-none transition-colors ${
+                            isDarkMode 
+                                ? 'bg-[#232323] text-white border-gray-700' 
+                                : 'bg-white text-gray-900 border-gray-300'
+                        }`}
                         placeholder="Email"
                         value={form.email}
                         onChange={handleChange}
                         required
                     />
-                    <label className="text-gray-300 text-sm font-semibold">Password</label>
+                    <label className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
                     <input
                         type="password"
                         name="password"
-                        className="w-full px-4 py-3 rounded-lg bg-[#232323] text-white border border-gray-700 focus:border-orange-500 focus:outline-none transition-colors"
+                        className={`w-full px-4 py-3 rounded-lg border focus:border-orange-500 focus:outline-none transition-colors ${
+                            isDarkMode 
+                                ? 'bg-[#232323] text-white border-gray-700' 
+                                : 'bg-white text-gray-900 border-gray-300'
+                        }`}
                         placeholder="Password"
                         value={form.password}
                         onChange={handleChange}
                         required
                     />
-                    <label className="text-gray-300 text-sm font-semibold">Confirm Password</label>
+                    <label className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Confirm Password</label>
                     <input
                         type="password"
                         name="confirmPassword"
-                        className="w-full px-4 py-3 rounded-lg bg-[#232323] text-white border border-gray-700 focus:border-orange-500 focus:outline-none transition-colors"
+                        className={`w-full px-4 py-3 rounded-lg border focus:border-orange-500 focus:outline-none transition-colors ${
+                            isDarkMode 
+                                ? 'bg-[#232323] text-white border-gray-700' 
+                                : 'bg-white text-gray-900 border-gray-300'
+                        }`}
                         placeholder="Confirm Password"
                         value={form.confirmPassword}
                         onChange={handleChange}

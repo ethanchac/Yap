@@ -4,12 +4,14 @@ import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import MessagesList from '../messages/MessagesList';
 import MessageChat from '../messages/MessageChat';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function Messages() {
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchParams] = useSearchParams();
+    const { isDarkMode } = useTheme();
 
     useEffect(() => {
         fetchConversations();
@@ -126,13 +128,20 @@ function Messages() {
     }, [loading, conversations, selectedConversation, searchParams]);
 
     return (
-        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="min-h-screen font-bold" style={{
+            backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+            fontFamily: 'Albert Sans'
+        }}>
             <Header />
             <div className="flex h-screen">
                 <Sidebar />
                 <div className="flex flex-1 h-full ml-64">
                     {/* Left side - Conversations list */}
-                    <div className="w-80 border-r border-gray-600 flex flex-col h-full" style={{backgroundColor: '#121212'}}>
+                    <div className={`w-80 border-r flex flex-col h-full ${
+                        isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                    }`} style={{
+                        backgroundColor: isDarkMode ? '#121212' : '#ffffff'
+                    }}>
                         <MessagesList 
                             conversations={conversations}
                             selectedConversation={selectedConversation}
@@ -142,7 +151,9 @@ function Messages() {
                     </div>
                     
                     {/* Right side - Chat interface */}
-                    <div className="flex-1 flex flex-col h-full" style={{backgroundColor: '#121212'}}>
+                    <div className="flex-1 flex flex-col h-full" style={{
+                        backgroundColor: isDarkMode ? '#121212' : '#ffffff'
+                    }}>
                         {selectedConversation ? (
                             <MessageChat 
                                 conversation={selectedConversation}
@@ -150,7 +161,10 @@ function Messages() {
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                                <div className="rounded-lg p-8 mb-6" style={{backgroundColor: '#171717'}}>
+                                <div className="rounded-lg p-8 mb-6" style={{
+                                    backgroundColor: isDarkMode ? '#171717' : '#f8f9fa',
+                                    border: isDarkMode ? 'none' : '1px solid #e5e7eb'
+                                }}>
                                     <div className="mb-6">
                                         <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-500 mx-auto">
                                             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
@@ -159,8 +173,8 @@ function Messages() {
                                             <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                                         </svg>
                                     </div>
-                                    <h2 className="text-white text-2xl font-bold mb-4">Your messages</h2>
-                                    <p className="text-gray-400 mb-6">Send a message to start a chat.</p>
+                                    <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your messages</h2>
+                                    <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Send a message to start a chat.</p>
                                     <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">
                                         Send message
                                     </button>

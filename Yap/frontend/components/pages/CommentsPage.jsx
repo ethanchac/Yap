@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2 } from 'lucide-react';
-import Header from '../header/Header'
+import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from './home/posts/PostItem';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function CommentsPage() {
     const { postId } = useParams();
@@ -14,6 +15,7 @@ function CommentsPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const { isDarkMode } = useTheme();
 
     useEffect(() => {
         console.log('PostId from params:', postId); // Debug log
@@ -148,11 +150,14 @@ function CommentsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+            <div className="min-h-screen font-bold" style={{
+                backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+                fontFamily: 'Albert Sans'
+            }}>
                 <Header />
                 <Sidebar />
                 <div className="ml-64 p-6">
-                    <p className="text-white">Loading...</p>
+                    <p className={isDarkMode ? 'text-white' : 'text-gray-900'}>Loading...</p>
                 </div>
             </div>
         );
@@ -160,13 +165,16 @@ function CommentsPage() {
 
     if (error && !post) {
         return (
-            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+            <div className="min-h-screen font-bold" style={{
+                backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+                fontFamily: 'Albert Sans'
+            }}>
                 <Header />
                 <Sidebar />
                 <div className="ml-64 p-6">
                     <div className="text-center py-12">
                         <p className="text-red-400 mb-4">Error: {error}</p>
-                        <p className="text-gray-400 mb-6">Post ID: {postId}</p>
+                        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6>Post ID: {postId}</p>
                         <div className="space-x-4">
                             <button 
                                 onClick={() => navigate(-1)}
@@ -189,12 +197,15 @@ function CommentsPage() {
 
     if (!post) {
         return (
-            <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+            <div className="min-h-screen font-bold" style={{
+                backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+                fontFamily: 'Albert Sans'
+            }}>
                 <Header />
                 <Sidebar />
                 <div className="ml-64 p-6">
                     <div className="text-center py-12">
-                        <p className="text-gray-400 mb-6">Post not found</p>
+                        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6>Post not found</p>
                         <button 
                             onClick={() => navigate(-1)}
                             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
@@ -208,7 +219,10 @@ function CommentsPage() {
     }
 
     return (
-        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="min-h-screen font-bold" style={{
+            backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+            fontFamily: 'Albert Sans'
+        }}>
             <Sidebar />
             <div className="ml-64 p-6">
                 <button 
@@ -219,14 +233,17 @@ function CommentsPage() {
                     <span>Back</span>
                 </button>
 
-                <h1 className="text-white text-2xl font-bold mb-6">Post</h1>
+                <h1 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Post</h1>
 
                 {/* Use PostItem component instead of recreating the post */}
                 {post && <PostItem post={post} />}
 
                 {/* comment form */}
-                <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
-                    <h3 className="text-white text-lg font-bold mb-4">Add a Comment</h3>
+                <div className="rounded-lg p-6 mb-6" style={{
+                    backgroundColor: isDarkMode ? '#171717' : '#f8f9fa',
+                    border: isDarkMode ? 'none' : '1px solid #e5e7eb'
+                }}>
+                    <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Add a Comment</h3>
                     <form onSubmit={handleSubmitComment} className="space-y-4">
                         <textarea
                             value={newComment}
@@ -234,7 +251,11 @@ function CommentsPage() {
                             placeholder="Write your comment..."
                             maxLength={500}
                             disabled={submitting}
-                            className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 resize-none h-24"
+                            className={`w-full p-3 border rounded-lg focus:outline-none resize-none h-24 ${
+                                isDarkMode 
+                                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-gray-400' 
+                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-500'
+                            }`}
                         />
                         
                         <div className="flex items-center justify-between">

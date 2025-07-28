@@ -1,4 +1,7 @@
+import { useTheme } from '../../contexts/ThemeContext';
+
 function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
+    const { isDarkMode } = useTheme();
     const { other_participant, last_message, last_message_at } = conversation || {};
     
     // Fallback for missing participant data
@@ -39,8 +42,10 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
     return (
         <div 
             onClick={onClick}
-            className={`flex items-center p-3 hover:bg-gray-600 cursor-pointer transition-colors ${
-                isSelected ? 'bg-gray-600' : ''
+            className={`flex items-center p-3 cursor-pointer transition-colors ${
+                isSelected 
+                    ? isDarkMode ? 'bg-gray-600' : 'bg-gray-100' 
+                    : isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-50'
             }`}
         >
             <div className="relative">
@@ -55,21 +60,23 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
                 />
                 
                 {/* Online status indicator */}
-                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-700"></div>
+                <div className={`absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 ${
+                    isDarkMode ? 'border-gray-700' : 'border-white'
+                }`}></div>
             </div>
             
             <div className="ml-3 flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-white font-medium truncate">{participantName}</h3>
+                    <h3 className={`font-medium truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{participantName}</h3>
                     {last_message_at && (
-                        <span className="text-gray-400 text-xs ml-2 flex-shrink-0">
+                        <span className={`text-xs ml-2 flex-shrink-0 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             {formatTime(last_message_at)}
                         </span>
                     )}
                 </div>
                 
                 <div className="flex items-center justify-between mt-1">
-                    <p className="text-gray-400 text-sm truncate pr-2">{getLastMessagePreview()}</p>
+                    <p className={`text-sm truncate pr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{getLastMessagePreview()}</p>
                     {hasUnreadMessages && (
                         <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
                     )}

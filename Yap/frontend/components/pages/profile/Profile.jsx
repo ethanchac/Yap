@@ -7,6 +7,7 @@ import ProfileEvents from './ProfileEvents'; // Add this import
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap, Heart } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 const Profile = () => {
   const { userId } = useParams(); // Get userId from URL
@@ -26,6 +27,7 @@ const Profile = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
   const mainContentRef = useRef(null);
+  const { isDarkMode } = useTheme();
 
   const API_BASE_URL = 'http://localhost:5000';
   const isOwnProfile = !userId; // if no userId in URL, it's own profile
@@ -312,17 +314,23 @@ const Profile = () => {
   };
 
   if (loading) return (
-    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{
+      backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+      fontFamily: 'Albert Sans'
+    }}>
       <Header />
       <Sidebar />
       <div className="ml-64 h-full overflow-y-auto p-6">
-        <p className="text-white">Loading...</p>
+        <p className={isDarkMode ? 'text-white' : 'text-gray-900'}>Loading...</p>
       </div>
     </div>
   );
   
   if (error) return (
-    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{
+      backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+      fontFamily: 'Albert Sans'
+    }}>
       <Header />
       <Sidebar />
       <div className="ml-64 h-full overflow-y-auto p-6">
@@ -340,17 +348,23 @@ const Profile = () => {
   );
   
   if (!profile) return (
-    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{
+      backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+      fontFamily: 'Albert Sans'
+    }}>
       <Header />
       <Sidebar />
       <div className="ml-64 h-full overflow-y-auto p-6">
-        <p className="text-white">Profile not found</p>
+        <p className={isDarkMode ? 'text-white' : 'text-gray-900'}>Profile not found</p>
       </div>
     </div>
   );
 
   return (
-    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{
+      backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+      fontFamily: 'Albert Sans'
+    }}>
       <Header />
       <Sidebar />
       <div 
@@ -359,7 +373,10 @@ const Profile = () => {
       >
         <div className="max-w-7xl mx-auto">
           {/* Profile Header */}
-          <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
+          <div className="rounded-lg p-6 mb-6" style={{
+            backgroundColor: isDarkMode ? '#171717' : '#f8f9fa',
+            border: isDarkMode ? 'none' : '1px solid #e5e7eb'
+          }}>
             <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-6">
               {/* Profile Picture */}
               <div className="relative">

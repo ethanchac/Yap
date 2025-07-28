@@ -6,6 +6,7 @@ import {
     sortMessagesByTime, 
     shouldShowDateSeparator 
 } from './utils/easternTimeUtils';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function MessageChat({ conversation, onNewMessage }) {
     const [messages, setMessages] = useState([]);
@@ -19,6 +20,7 @@ function MessageChat({ conversation, onNewMessage }) {
     const typingTimeoutRef = useRef(null);
     const emojiPickerRef = useRef(null);
     const inputRef = useRef(null);
+    const { isDarkMode } = useTheme();
 
     // Common emojis for the picker
     const emojis = [
@@ -319,7 +321,7 @@ function MessageChat({ conversation, onNewMessage }) {
     if (!conversation) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="text-gray-400">No conversation selected</div>
+                <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>No conversation selected</div>
             </div>
         );
     }
@@ -327,7 +329,7 @@ function MessageChat({ conversation, onNewMessage }) {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="text-gray-400">Loading messages...</div>
+                <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Loading messages...</div>
             </div>
         );
     }
@@ -335,7 +337,9 @@ function MessageChat({ conversation, onNewMessage }) {
     return (
         <div className="flex flex-col h-full">
             {/* Chat Header */}
-            <div className="bg-gray-700 border-b border-gray-600 p-4 flex items-center justify-between">
+            <div className={`border-b p-4 flex items-center justify-between ${
+                isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'
+            }`}>
                 <div className="flex items-center">
                     <img 
                         src={getProfilePictureUrl(conversation.other_participant?.profile_picture)}
@@ -346,7 +350,7 @@ function MessageChat({ conversation, onNewMessage }) {
                         }}
                     />
                     <div className="ml-3">
-                        <h3 className="text-white font-semibold">{conversation.other_participant?.username || 'Unknown User'}</h3>
+                        <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{conversation.other_participant?.username || 'Unknown User'}</h3>
                         <p className="text-green-400 text-sm">Active now</p>
                     </div>
                 </div>

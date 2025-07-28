@@ -3,6 +3,7 @@ import Sidebar from '../../sidebar/Sidebar.jsx';
 import WaypointModal from './WaypointModal.jsx';
 import WaypointHeader from './WaypointHeader.jsx';
 import WaypointMap from './WaypointMap.jsx';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 // Import Leaflet CSS - make sure this is in your main CSS file
 import 'leaflet/dist/leaflet.css';
@@ -23,6 +24,7 @@ function Waypoint() {
     const [currentSavedIndex, setCurrentSavedIndex] = useState(-1);
     const [isNavigatingSaved, setIsNavigatingSaved] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false); // Prevent rapid navigation
+    const { isDarkMode } = useTheme();
 
     // TMU Campus coordinates
     const TMU_COORDS = [43.6577, -79.3788];
@@ -489,14 +491,17 @@ function Waypoint() {
     // Loading state
     if (loading) {
         return (
-            <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+            <div className="h-screen overflow-hidden font-bold" style={{
+                backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+                fontFamily: 'Albert Sans'
+            }}>
                 <Sidebar />
                 <div className="ml-64 h-full overflow-y-auto p-6">
                     <div className="max-w-full mx-auto h-full flex items-center justify-center">
                         <div className="text-center">
                             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
-                            <h2 className="text-white text-xl font-bold mb-2">Loading Waypoints...</h2>
-                            <p className="text-gray-400">Fetching campus community data</p>
+                            <h2 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Loading Waypoints...</h2>
+                            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Fetching campus community data</p>
                         </div>
                     </div>
                 </div>
@@ -505,7 +510,10 @@ function Waypoint() {
     }
 
     return (
-        <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="h-screen overflow-hidden font-bold" style={{
+            backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+            fontFamily: 'Albert Sans'
+        }}>
             <Sidebar />
             <div className="ml-64 h-full overflow-y-auto p-6">
                 <div className="max-w-full mx-auto h-full flex flex-col">

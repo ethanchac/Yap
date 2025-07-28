@@ -1,16 +1,27 @@
 import { BrowserRouter } from 'react-router-dom';
 import AuthRoutes from './AuthRoutes'; // Import AuthRoutes
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
-function App() {
+function AppContent() {
+  const { isDarkMode } = useTheme();
+  
   return (
     <div className="app-container" style={{ 
       minHeight: '100vh',
-      backgroundColor: '#121212',
+      backgroundColor: isDarkMode ? '#121212' : '#ffffff',
       fontFamily: 'Albert Sans',
       overflow: 'hidden' // Prevent scrollbars during transitions
     }}>
       <AuthRoutes />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

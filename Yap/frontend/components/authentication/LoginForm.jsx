@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Lock, Sparkles, ArrowRight } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ export default function LoginForm() {
   const [isFormFocused, setIsFormFocused] = useState(false);
   const [animationClass, setAnimationClass] = useState("translate-y-4 opacity-0");
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     // Entrance animation
@@ -62,7 +64,10 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden" style={{
+      backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+      fontFamily: 'Albert Sans'
+    }}>
       
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
@@ -74,10 +79,10 @@ export default function LoginForm() {
         
         {/* Header with Animation */}
         <div className="text-center mb-10">
-          <h1 className="text-white text-4xl font-bold mb-3 bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">
+          <h1 className={`text-4xl font-bold mb-3 bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             Welcome Back!
           </h1>
-          <p className="text-gray-400 text-lg">
+          <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Sign in to continue to your account
           </p>
         </div>

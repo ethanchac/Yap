@@ -2,10 +2,17 @@
 import { useState, useRef, useEffect } from "react";
 import WouldYouRather from "./WYR/WouldYouRather";
 import WhatsOnYourMind from "./WOYM/WhatsOnYourMind";
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 function PlaceholderActivity({ title }) {
+    const { isDarkMode } = useTheme();
     return (
-        <div className="flex flex-col items-center justify-center h-40 rounded-lg text-gray-400 font-bold text-xl shadow-md w-full" style={{ backgroundColor: '#171717' }}>
+        <div className={`flex flex-col items-center justify-center h-40 rounded-lg font-bold text-xl shadow-md w-full ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`} style={{ 
+            backgroundColor: isDarkMode ? '#171717' : '#f8f9fa',
+            border: isDarkMode ? 'none' : '1px solid #e5e7eb'
+        }}>
             <span>{title}</span>
             <span className="mt-2 text-sm">(Coming soon)</span>
         </div>

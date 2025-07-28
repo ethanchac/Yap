@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import Sidebar from '../sidebar/Sidebar';
-import Header from '../header/Header'
+import Header from '../header/Header';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function Create() {
     // Toggle between post and event creation
     const [activeTab, setActiveTab] = useState('post'); // 'post' or 'event'
+    const { isDarkMode } = useTheme();
     
     // Post state
     const [content, setContent] = useState('');
@@ -258,23 +260,31 @@ function Create() {
     };
 
     return (
-        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="min-h-screen font-bold" style={{
+            backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+            fontFamily: 'Albert Sans'
+        }}>
             <Header />
             <Sidebar />
             <div className="ml-64 p-6">
                 <div className="max-w-6xl mx-auto">
-                    <h1 className="text-white text-2xl font-bold mb-6">
+                    <h1 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                         Create New {activeTab === 'post' ? 'Post' : 'Event'}
                     </h1>
                     
                     {/* Tab Navigation */}
-                    <div className="flex mb-6 rounded-lg overflow-hidden" style={{backgroundColor: '#171717'}}>
+                    <div className="flex mb-6 rounded-lg overflow-hidden" style={{
+                        backgroundColor: isDarkMode ? '#171717' : '#f8f9fa',
+                        border: isDarkMode ? 'none' : '1px solid #e5e7eb'
+                    }}>
                         <button
                             onClick={() => handleTabChange('post')}
                             className={`flex-1 py-3 px-4 text-center font-semibold transition-colors ${
                                 activeTab === 'post'
                                     ? 'bg-orange-500 text-white'
-                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    : isDarkMode 
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
                             Create Post
@@ -284,14 +294,19 @@ function Create() {
                             className={`flex-1 py-3 px-4 text-center font-semibold transition-colors ${
                                 activeTab === 'event'
                                     ? 'bg-orange-500 text-white'
-                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    : isDarkMode 
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
                             Create Event
                         </button>
                     </div>
                     
-                    <div className="rounded-lg p-6" style={{backgroundColor: '#171717'}}>
+                    <div className="rounded-lg p-6" style={{
+                        backgroundColor: isDarkMode ? '#171717' : '#f8f9fa',
+                        border: isDarkMode ? 'none' : '1px solid #e5e7eb'
+                    }}>
                         {activeTab === 'post' ? (
                             /* Post Creation Form with Image Upload */
                             <form onSubmit={handlePostSubmit} className="space-y-4">

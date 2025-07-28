@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Send, Star, MessageSquare, CheckCircle, ArrowLeft } from 'lucide-react';
 import Sidebar from '../sidebar/Sidebar';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function Feedback() {
     const [feedback, setFeedback] = useState({
@@ -14,6 +15,7 @@ function Feedback() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const { isDarkMode } = useTheme();
 
     const handleRatingClick = (rating) => {
         setFeedback(prev => ({ ...prev, rating }));
@@ -135,13 +137,16 @@ function Feedback() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white flex">
+        <div className="min-h-screen flex" style={{
+            backgroundColor: isDarkMode ? '#000000' : '#ffffff',
+            color: isDarkMode ? '#ffffff' : '#000000'
+        }}>
             <Sidebar />
             <div className="flex-1 p-8 flex justify-center">
                 <div className="max-w-2xl w-full">
                     <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-bold mb-2">Feedback</h1>
-                        <p className="text-gray-400">
+                        <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Feedback</h1>
+                        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                             Help us improve Yapp by sharing your thoughts, suggestions, or reporting issues.
                         </p>
                     </div>

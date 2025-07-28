@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Add this import
 import Sidebar from '../sidebar/Sidebar';
-import Header from '../header/Header'
+import Header from '../header/Header';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function Users() {
     const navigate = useNavigate(); // Add this hook
@@ -10,6 +11,7 @@ function Users() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const { isDarkMode } = useTheme();
 
     // search function using debouncing; used AI for all this
     const debouncedSearch = useCallback(
@@ -76,12 +78,15 @@ function Users() {
     };
 
     return (
-        <div className="min-h-screen font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="min-h-screen font-bold" style={{
+            backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+            fontFamily: 'Albert Sans'
+        }}>
             <Header />
             <Sidebar />
             <div className="ml-64 p-6">
                 <div className="max-w-6xl mx-auto">
-                    <h1 className="text-white text-2xl font-bold mb-6">Search Users</h1>
+                    <h1 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Search Users</h1>
                     
                     {/* Search bar */}
                     <div className="mb-6">
@@ -95,8 +100,14 @@ function Users() {
                                 onChange={handleInputChange}
                                 placeholder="Search for users..."
                                 autoComplete="off"
-                                className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
-                                style={{ backgroundColor: '#171717' }}
+                                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none transition-colors ${
+                                    isDarkMode 
+                                        ? 'border-gray-600 text-white placeholder-gray-400 focus:border-gray-400' 
+                                        : 'border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-500'
+                                }`}
+                                style={{ 
+                                    backgroundColor: isDarkMode ? '#171717' : '#ffffff' 
+                                }}
                             />
                         </div>
                     </div>
