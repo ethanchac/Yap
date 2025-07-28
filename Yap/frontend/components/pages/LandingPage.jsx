@@ -148,7 +148,7 @@ const LandingPage = () => {
             to="/signup"
             className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 sm:px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 text-sm sm:text-base"
           >
-            Join Early Access
+            Join Now!
           </Link>
         </div>
       </nav>
@@ -193,19 +193,9 @@ const LandingPage = () => {
               to="/signup"
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-200 transform hover:scale-105 flex items-center animate-glow"
             >
-              Join Early Access
+              Join Now!
               <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
             </Link>
-            <button className="flex items-center text-gray-300 hover:text-white transition-colors text-sm sm:text-base">
-              <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-              See How It Works
-            </button>
-          </div>
-
-          {/* Launch Status */}
-          <div className="mt-8 p-4 bg-gradient-to-r from-orange-500/10 to-purple-500/10 backdrop-blur-lg border border-orange-500/20 rounded-xl max-w-md mx-auto">
-            <p className="text-orange-400 font-semibold text-sm">🚀 Coming Soon - Join the Waitlist</p>
-            <p className="text-gray-400 text-xs mt-1">Be among the first to experience the future of campus social networking</p>
           </div>
         </div>
       </section>
@@ -294,7 +284,7 @@ const LandingPage = () => {
                 to="/signup"
                 className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 transform hover:scale-105 flex items-center"
               >
-                Join Early Access
+                Join Now!
                 <ChevronRight className="w-5 h-5 ml-2" />
               </Link>
               <Link 
