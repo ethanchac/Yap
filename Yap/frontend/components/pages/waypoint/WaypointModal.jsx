@@ -80,15 +80,16 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                         <select 
                             value={type} 
                             onChange={(e) => setType(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                            style={{ color: '#111827' }}
                             disabled={submitting}
                         >
-                            <option value="food">🍕 Food & Events</option>
-                            <option value="study">📚 Study Spot</option>
-                            <option value="group">👥 Study Group</option>
-                            <option value="social">🎉 Social</option>
-                            <option value="event">📅 Event</option>
-                            <option value="other">📍 Other</option>
+                            <option value="food" style={{ color: '#111827', backgroundColor: 'white' }}>🍕 Food & Events</option>
+                            <option value="study" style={{ color: '#111827', backgroundColor: 'white' }}>📚 Study Spot</option>
+                            <option value="group" style={{ color: '#111827', backgroundColor: 'white' }}>👥 Study Group</option>
+                            <option value="social" style={{ color: '#111827', backgroundColor: 'white' }}>🎉 Social</option>
+                            <option value="event" style={{ color: '#111827', backgroundColor: 'white' }}>📅 Event</option>
+                            <option value="other" style={{ color: '#111827', backgroundColor: 'white' }}>📍 Other</option>
                         </select>
                     </div>
                     
@@ -103,7 +104,8 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="e.g., Free coffee here!"
                             maxLength={100}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                            style={{ color: '#111827' }}
                             disabled={submitting}
                             required
                         />
@@ -124,7 +126,8 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             placeholder="Tell others what's happening here..."
                             maxLength={500}
                             rows={4}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none text-gray-900 bg-white"
+                            style={{ color: '#111827' }}
                             disabled={submitting}
                             required
                         />

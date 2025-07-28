@@ -175,138 +175,63 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                 </div>
             </div>
             
-            {/* Action buttons */}
-            {isOwner ? (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                    <button 
-                        onClick={() => onDelete(waypoint.id, waypoint.title)}
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Delete
-                    </button>
-                    <button 
-                        onClick={handleLike}
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            backgroundColor: isLiked ? '#10b981' : '#f97316',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (!isLiked) {
-                                e.target.style.backgroundColor = '#ea580c';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (!isLiked) {
-                                e.target.style.backgroundColor = '#f97316';
-                            }
-                        }}
-                    >
-                        {isLiked ? '❤️ Liked' : '🤍 Like'}
-                    </button>
-                    <button 
-                        onClick={handleBookmark}
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            backgroundColor: isBookmarked ? '#8b5cf6' : '#f97316',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (!isBookmarked) {
-                                e.target.style.backgroundColor = '#ea580c';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (!isBookmarked) {
-                                e.target.style.backgroundColor = '#f97316';
-                            }
-                        }}
-                    >
-                        {isBookmarked ? '🔖 Saved' : '📖 Save'}
-                    </button>
-                </div>
-            ) : (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                    <button 
-                        onClick={handleLike}
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            backgroundColor: isLiked ? '#10b981' : '#f97316',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (!isLiked) {
-                                e.target.style.backgroundColor = '#ea580c';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (!isLiked) {
-                                e.target.style.backgroundColor = '#f97316';
-                            }
-                        }}
-                    >
-                        {isLiked ? '❤️ Liked' : '🤍 Like'}
-                    </button>
-                    <button 
-                        onClick={handleBookmark}
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            backgroundColor: isBookmarked ? '#8b5cf6' : '#f97316',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (!isBookmarked) {
-                                e.target.style.backgroundColor = '#ea580c';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (!isBookmarked) {
-                                e.target.style.backgroundColor = '#f97316';
-                            }
-                        }}
-                    >
-                        {isBookmarked ? '🔖 Saved' : '📖 Save'}
-                    </button>
-                </div>
-            )}
+            {/* Action buttons - only Like and Save */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+                <button 
+                    onClick={handleLike}
+                    style={{
+                        flex: 1,
+                        padding: '6px 12px',
+                        backgroundColor: isLiked ? '#10b981' : '#f97316',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        if (!isLiked) {
+                            e.target.style.backgroundColor = '#ea580c';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (!isLiked) {
+                            e.target.style.backgroundColor = '#f97316';
+                        }
+                    }}
+                >
+                    {isLiked ? '❤️ Liked' : '🤍 Like'}
+                </button>
+                <button 
+                    onClick={handleBookmark}
+                    style={{
+                        flex: 1,
+                        padding: '6px 12px',
+                        backgroundColor: isBookmarked ? '#8b5cf6' : '#f97316',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        if (!isBookmarked) {
+                            e.target.style.backgroundColor = '#ea580c';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (!isBookmarked) {
+                            e.target.style.backgroundColor = '#f97316';
+                        }
+                    }}
+                >
+                    {isBookmarked ? '🔖 Saved' : '📖 Save'}
+                </button>
+            </div>
         </div>
     );
 }
