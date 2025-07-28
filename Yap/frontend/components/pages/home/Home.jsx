@@ -13,7 +13,7 @@ function Home() {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null); // Add currentUser state
+    const [currentUser, setCurrentUser] = useState(null); 
     const mainContentRef = useRef(null);
     const { isDarkMode } = useTheme();
 
