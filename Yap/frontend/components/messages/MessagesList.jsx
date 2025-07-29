@@ -1,8 +1,39 @@
+import { useEffect } from 'react';
 import MessagePerson from './MessagePerson';
 import { useTheme } from '../../contexts/ThemeContext';
+import { messageService } from '../../services/messageService';
 
-function MessagesList({ conversations, selectedConversation, onConversationSelect, loading }) {
+function MessagesList({ 
+    conversations, 
+    selectedConversation, 
+    onConversationSelect, 
+    loading,
+    onConversationsUpdate // Add this prop to refresh conversations
+}) {
     const { isDarkMode } = useTheme();
+    
+    // Mark conversation as read when selected
+    useEffect(() => {
+        if (selectedConversation?._id) {
+            const markAsRead = async () => {
+                try {
+                    const markedCount = await messageService.markConversationAsRead(selectedConversation._id);
+                    console.log('✅ Marked conversation as read:', selectedConversation._id, 'Count:', markedCount);
+                    
+                    // Refresh conversations to update unread counts
+                    if (onConversationsUpdate && markedCount > 0) {
+                        onConversationsUpdate();
+                    }
+                } catch (error) {
+                    console.error('❌ Error marking conversation as read:', error);
+                }
+            };
+            
+            // Small delay to ensure messages are loaded first
+            const timer = setTimeout(markAsRead, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [selectedConversation?._id, onConversationsUpdate]);
     
     const formatTime = (dateString) => {
         if (!dateString) return '';
@@ -51,9 +82,6 @@ function MessagesList({ conversations, selectedConversation, onConversationSelec
             return 0;
         }
     }) : [];
-
-    console.log('MessagesList - Conversations:', conversations);
-    console.log('MessagesList - Sorted conversations:', sortedConversations);
 
     if (loading) {
         return (
@@ -105,7 +133,6 @@ function MessagesList({ conversations, selectedConversation, onConversationSelec
             
             <div className="flex-1 overflow-y-auto">
                 {sortedConversations.map((conversation, index) => {
-                    console.log(`Conversation ${index}:`, conversation);
                     return (
                         <MessagePerson
                             key={conversation._id}

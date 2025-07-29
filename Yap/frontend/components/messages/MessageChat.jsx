@@ -532,12 +532,6 @@ function MessageChat({ conversation, onNewMessage }) {
                 </div>
             )}
 
-            {/* Debug Panel - Remove this in production */}
-            {process.env.NODE_ENV === 'development' && (
-                <div className="bg-gray-800 text-white p-2 text-xs border-b">
-                    <div>🔍 Debug: User ID: {currentUserIdentifier} | Conv: {conversation._id} | Messages: {messages.length} | Connection: {connectionStatus} | Retries: {retryCount}</div>
-                </div>
-            )}
 
             <ChatHeader 
                 conversation={conversation} 
