@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import WouldYouRather from "./WYR/WouldYouRather";
 import WhatsOnYourMind from "./WOYM/WhatsOnYourMind";
+import DailyMotivation from "./DailyMotivation/DailyMotivation";
 import { useTheme } from '../../../../contexts/ThemeContext';
 
 function PlaceholderActivity({ title }) {
@@ -29,8 +30,8 @@ const activities = [
         component: <WhatsOnYourMind />,
     },
     {
-        key: "placeholder1",
-        component: <PlaceholderActivity title="Activity 3" />,
+        key: "DailyMotivation",
+        component: <DailyMotivation />,
     },
 ];
 
