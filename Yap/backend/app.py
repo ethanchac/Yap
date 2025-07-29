@@ -19,6 +19,7 @@ from eventthreads.routes import eventthreads_bp
 import os
 import sys
 import logging
+import redis
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -34,8 +35,19 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
+# Redis Configuration
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+
+# Test Redis connection
+try:
+    redis_client.ping()
+    logger.info("✅ Redis connection successful")
+except redis.ConnectionError:
+    logger.error("❌ Redis connection failed. Make sure Redis is running.")
+    sys.exit(1)
+
 # CORS Configuration - Updated for Render deployment
-# Add your Vercel domain here once deployed
 CORS(app, 
      origins=[
          "http://localhost:5173", 
@@ -48,7 +60,7 @@ CORS(app,
      allow_headers=["Content-Type", "Authorization", "Accept", "X-User-ID"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# SOCKETIO CONFIGURATION with proper CORS - Updated for production
+# SOCKETIO CONFIGURATION with Redis message queue
 socketio = SocketIO(
     app, 
     cors_allowed_origins=[
@@ -64,8 +76,13 @@ socketio = SocketIO(
     transports=['websocket', 'polling'],
     logger=True,
     engineio_logger=True,
-    allow_upgrades=True
+    allow_upgrades=True,
+    # Redis configuration for scaling across multiple servers
+    message_queue=REDIS_URL
 )
+
+# Store Redis client in app config for use in other modules
+app.config['REDIS'] = redis_client
 
 # configuring file upload
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
@@ -74,7 +91,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
 # create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Enhanced CORS handling for complex requests - Updated for production
+# Enhanced CORS handling for complex requests
 @app.after_request
 def after_request(response):
     """Enhanced CORS handling"""
@@ -216,7 +233,7 @@ def handle_connect(auth):
     except ImportError:
         # Fallback if socket_handlers doesn't exist, try services
         try:
-            from messages.services import handle_connect
+            from Yap.backend.messages.socket_handlers import handle_connect
             handle_connect(socketio, auth)
         except ImportError as e:
             logger.error(f"Could not import socket handlers: {e}")
@@ -230,7 +247,7 @@ def handle_disconnect():
         handle_disconnect()
     except ImportError:
         try:
-            from messages.services import handle_disconnect
+            from Yap.backend.messages.socket_handlers import handle_disconnect
             handle_disconnect()
         except ImportError as e:
             logger.error(f"Could not import socket handlers: {e}")
@@ -244,7 +261,7 @@ def handle_join_conversation(data):
         handle_join_conversation(socketio, data)
     except ImportError:
         try:
-            from messages.services import handle_join_conversation
+            from Yap.backend.messages.socket_handlers import handle_join_conversation
             handle_join_conversation(socketio, data)
         except ImportError as e:
             logger.error(f"Could not import socket handlers: {e}")
@@ -258,7 +275,7 @@ def handle_leave_conversation(data):
         handle_leave_conversation(data)
     except ImportError:
         try:
-            from messages.services import handle_leave_conversation
+            from Yap.backend.messages.socket_handlers import handle_leave_conversation
             handle_leave_conversation(data)
         except ImportError as e:
             logger.error(f"Could not import socket handlers: {e}")
@@ -272,7 +289,7 @@ def handle_send_message(data):
         handle_send_message(socketio, data)
     except ImportError:
         try:
-            from messages.services import handle_send_message
+            from Yap.backend.messages.socket_handlers import handle_send_message
             handle_send_message(socketio, data)
         except ImportError as e:
             logger.error(f"Could not import socket handlers: {e}")
@@ -285,7 +302,7 @@ def handle_typing_start(data):
         handle_typing_start(socketio, data)
     except ImportError:
         try:
-            from messages.services import handle_typing_start
+            from Yap.backend.messages.socket_handlers import handle_typing_start
             handle_typing_start(socketio, data)
         except ImportError as e:
             logger.error(f"Could not import socket handlers: {e}")
@@ -298,7 +315,7 @@ def handle_typing_stop(data):
         handle_typing_stop(socketio, data)
     except ImportError:
         try:
-            from messages.services import handle_typing_stop
+            from Yap.backend.messages.socket_handlers import handle_typing_stop
             handle_typing_stop(socketio, data)
         except ImportError as e:
             logger.error(f"Could not import socket handlers: {e}")
@@ -334,20 +351,27 @@ def too_large(e):
 @app.route('/health')
 def health_check():
     """Health check endpoint"""
+    try:
+        redis_status = "connected" if redis_client.ping() else "disconnected"
+    except:
+        redis_status = "disconnected"
+    
     return jsonify({
         "status": "healthy",
         "database": db_name,
-        "mode": "TEST" if TEST_MODE else "PRODUCTION"
+        "mode": "TEST" if TEST_MODE else "PRODUCTION",
+        "redis": redis_status
     })
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting SocketIO server...")
+    logger.info("🚀 Starting SocketIO server with Redis...")
     
     # Get port from environment variable (Render provides this)
     port = int(os.environ.get('PORT', 5000))
     
     logger.info(f"🌐 Server will be accessible at http://0.0.0.0:{port}")
     logger.info(f"🔌 WebSocket endpoint: ws://0.0.0.0:{port}/socket.io/")
+    logger.info(f"🔴 Redis URL: {REDIS_URL}")
     
     # Use socketio.run instead of app.run for WebSocket support
     socketio.run(

@@ -1,321 +1,499 @@
-import { useState, useEffect, useRef } from 'react';
-import io from 'socket.io-client';
-import { 
-    formatMessageTime, 
-    formatDateSeparator, 
-    sortMessagesByTime, 
-    shouldShowDateSeparator 
-} from './utils/easternTimeUtils';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { messageService } from '../../services/messageService';
+import { sortMessagesByTime } from './utils/easternTimeUtils';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getCurrentUserIdentifier, getProfilePictureUrl, fetchUserInfo } from './utils/userUtils';
+import ChatHeader from './ChatHeader';
+import MessageList from './MessageList';
+import MessageInput from './MessageInput';
 
 function MessageChat({ conversation, onNewMessage }) {
     const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [socket, setSocket] = useState(null);
-    const [isTyping, setIsTyping] = useState(false);
-    const [otherUserTyping, setOtherUserTyping] = useState(false);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const messagesEndRef = useRef(null);
-    const typingTimeoutRef = useRef(null);
-    const emojiPickerRef = useRef(null);
-    const inputRef = useRef(null);
+    const [sending, setSending] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState('disconnected');
+    const [retryCount, setRetryCount] = useState(0);
+    const [showOfflineMessage, setShowOfflineMessage] = useState(false);
+    const [typingUsers, setTypingUsers] = useState([]);
     const { isDarkMode } = useTheme();
-
-    // Common emojis for the picker
-    const emojis = [
-        '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
-        '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '☺️', '😚',
-        '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭',
-        '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄',
-        '😬', '🤥', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢',
-        '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸',
-        '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲',
-        '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱',
-        '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠',
-        '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻',
-        '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽',
-        '🙀', '😿', '😾', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤',
-        '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘',
-        '💝', '💟', '👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟',
-        '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚',
-        '🖐️', '✋', '🖖', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️'
-    ];
-
-    const getCurrentUserIdentifier = () => {
-        try {
-            const userString = localStorage.getItem('user');
-            const token = localStorage.getItem('token');
-
-            if (userString) {
-                const user = JSON.parse(userString);
-                const userId = user._id || user.id || user.userId || user.user_id || user.username;
-                if (userId) return String(userId);
-            }
-
-            if (token) {
-                try {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    const tokenIdentifier = payload.userId || payload.id || payload._id || payload.user_id || payload.sub || payload.username;
-                    if (tokenIdentifier) return String(tokenIdentifier);
-                } catch (e) {}
-            }
-
-            const altKeys = ['userId', 'user_id', 'currentUserId', 'authUserId', 'username'];
-            for (const key of altKeys) {
-                const altId = localStorage.getItem(key);
-                if (altId) return String(altId);
-            }
-
-            return null;
-        } catch {
-            return null;
-        }
-    };
-
-    // Function to get profile picture URL or default
-    const getProfilePictureUrl = (profilePic) => {
-        if (profilePic) {
-            if (profilePic.startsWith('http')) {
-                return profilePic;
-            }
-            return `http://localhost:5000/uploads/profile_pictures/${profilePic}`;
-        }
-        return `http://localhost:5000/static/default/default-avatar.png`;
-    };
-
-    // Utility functions for timestamp handling (Eastern Time consistent)
-    const sortMessagesByTime = (messages) => {
-        if (!messages || !Array.isArray(messages)) return [];
-        
-        return [...messages].sort((a, b) => {
-            const dateA = new Date(a.created_at);
-            const dateB = new Date(b.created_at);
-            
-            // Sort in ascending order (oldest first for chat)
-            return dateA - dateB;
-        });
-    };
-
+    
     const currentUserIdentifier = getCurrentUserIdentifier();
+    const messagesRef = useRef(new Map()); // Track processed messages to prevent duplicates
+    const lastFetchTimeRef = useRef(0);
+    const reconnectTimeoutRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
+    const unsubscribeMessageRef = useRef(null);
+    const unsubscribeTypingRef = useRef(null);
 
-    // Handle clicking outside emoji picker to close it
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
-                setShowEmojiPicker(false);
-            }
-        };
+    // Connection status listener
+    const handleConnectionStatusChange = useCallback((status) => {
+        console.log('📡 Connection status changed:', status);
+        setConnectionStatus(status);
+        
+        if (status === 'connected' && retryCount > 0) {
+            console.log('✅ Reconnected successfully, refreshing messages');
+            setRetryCount(0);
+            setShowOfflineMessage(false);
+            // Refresh messages after reconnection
+            fetchMessages(true);
+        } else if (status === 'disconnected') {
+            setRetryCount(prev => prev + 1);
+            setShowOfflineMessage(true);
+        } else if (status === 'failed') {
+            setShowOfflineMessage(true);
+        }
+    }, [retryCount]);
 
-        if (showEmojiPicker) {
-            document.addEventListener('mousedown', handleClickOutside);
+    // Enhanced message handler with deduplication
+    const handleNewMessage = useCallback(async (newMessage) => {
+        console.log('📨 Processing new message:', newMessage);
+        
+        // Check if we've already processed this message
+        if (messagesRef.current.has(newMessage._id)) {
+            console.log('🔄 Message already processed, skipping:', newMessage._id);
+            return;
         }
 
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showEmojiPicker]);
+        // Mark message as processed
+        messagesRef.current.set(newMessage._id, true);
+        
+        console.log('📨 Current user identifier:', currentUserIdentifier);
+        console.log('📨 Message sender_id:', newMessage.sender_id);
+        console.log('📨 String comparison:', String(newMessage.sender_id) === String(currentUserIdentifier));
+        
+        // Handle messages from other users
+        if (String(newMessage.sender_id) !== String(currentUserIdentifier)) {
+            console.log('📨 Message from OTHER user - adding immediately');
+            
+            try {
+                // Use sender info from message if available, otherwise fetch
+                let senderInfo = newMessage.sender;
+                if (!senderInfo || !senderInfo.username) {
+                    senderInfo = await fetchUserInfo(newMessage.sender_id);
+                }
+                
+                const messageWithSender = {
+                    ...newMessage,
+                    sender: senderInfo || {
+                        _id: newMessage.sender_id,
+                        username: 'Unknown',
+                        profile_picture: ''
+                    }
+                };
+                
+                setMessages(prev => {
+                    console.log('📨 Current messages count:', prev.length);
+                    
+                    // Double-check for duplicates by ID
+                    const existsById = prev.some(msg => msg._id === messageWithSender._id);
+                    if (existsById) {
+                        console.log('📨 Message already exists by ID, skipping:', messageWithSender._id);
+                        return prev;
+                    }
+                    
+                    // Check for near-duplicate content (timing issues)
+                    const existsByContent = prev.some(msg => 
+                        msg.content === messageWithSender.content && 
+                        msg.sender_id === messageWithSender.sender_id &&
+                        Math.abs(new Date(msg.created_at) - new Date(messageWithSender.created_at)) < 5000
+                    );
+                    
+                    if (existsByContent) {
+                        console.log('📨 Similar message already exists, skipping to prevent duplicate');
+                        return prev;
+                    }
+                    
+                    console.log('📨 Adding new message from other user to UI');
+                    const updated = [...prev, messageWithSender];
+                    const sorted = sortMessagesByTime(updated);
+                    console.log('📨 New messages count:', sorted.length);
+                    return sorted;
+                });
+                
+                // Notify parent component
+                if (onNewMessage) {
+                    console.log('📨 Notifying parent component of new message');
+                    onNewMessage(conversation._id, messageWithSender);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error processing message:', error);
+                // Add message without sender info as fallback
+                setMessages(prev => {
+                    const existsById = prev.some(msg => msg._id === newMessage._id);
+                    if (existsById) return prev;
+                    
+                    const messageWithoutSender = {
+                        ...newMessage,
+                        sender: {
+                            _id: newMessage.sender_id,
+                            username: 'Unknown',
+                            profile_picture: ''
+                        }
+                    };
+                    
+                    const updated = [...prev, messageWithoutSender];
+                    return sortMessagesByTime(updated);
+                });
+            }
+        } else {
+            console.log('📨 Message from CURRENT user - handling optimistic update');
+            
+            // For current user's messages, replace optimistic with real
+            setMessages(prev => {
+                // Look for optimistic message with same content
+                const optimisticIndex = prev.findIndex(msg => 
+                    msg.isOptimistic && 
+                    msg.content === newMessage.content &&
+                    String(msg.sender_id) === String(newMessage.sender_id)
+                );
+                
+                if (optimisticIndex !== -1) {
+                    console.log('📨 Replacing optimistic message with real message');
+                    const updated = [...prev];
+                    updated[optimisticIndex] = {
+                        ...newMessage,
+                        sender: prev[optimisticIndex].sender,
+                        isOptimistic: false
+                    };
+                    return sortMessagesByTime(updated);
+                } else {
+                    // No optimistic message found, check if we already have this real message
+                    const existsById = prev.some(msg => msg._id === newMessage._id);
+                    if (existsById) {
+                        console.log('📨 Real message already exists, skipping');
+                        return prev;
+                    }
+                    
+                    // Add the message (backup case)
+                    console.log('📨 No optimistic message found, adding own message normally');
+                    const messageWithSender = {
+                        ...newMessage,
+                        sender: newMessage.sender || {
+                            _id: newMessage.sender_id,
+                            username: 'You',
+                            profile_picture: ''
+                        }
+                    };
+                    
+                    const updated = [...prev, messageWithSender];
+                    return sortMessagesByTime(updated);
+                }
+            });
+        }
+    }, [conversation._id, currentUserIdentifier, onNewMessage]);
 
+    // Typing indicator handler
+    const handleTypingEvent = useCallback((typingData) => {
+        console.log('⌨️ Typing event:', typingData);
+        
+        setTypingUsers(prev => {
+            const userId = typingData.user_id;
+            const isTyping = typingData.typing;
+            
+            if (isTyping) {
+                // Add user to typing list if not already there
+                if (!prev.find(user => user.user_id === userId)) {
+                    return [...prev, {
+                        user_id: userId,
+                        username: typingData.username || 'Someone'
+                    }];
+                }
+            } else {
+                // Remove user from typing list
+                return prev.filter(user => user.user_id !== userId);
+            }
+            
+            return prev;
+        });
+    }, []);
+
+    // Main effect for setting up WebSocket subscription
     useEffect(() => {
         if (!conversation || !conversation._id) {
             setLoading(false);
             return;
         }
 
-        console.log('🔌 Setting up WebSocket connection for conversation:', conversation._id);
-        const token = localStorage.getItem('token');
+        console.log('🔌 Setting up WebSocket subscription for conversation:', conversation._id);
+        console.log('🔌 Current user identifier:', currentUserIdentifier);
         
-        const newSocket = io('http://localhost:5000', {
-            auth: { token: token },
-            transports: ['websocket', 'polling'] // Ensure multiple transports
-        });
-
-        // Connection events
-        newSocket.on('connect', () => {
-            console.log('✅ WebSocket connected with ID:', newSocket.id);
-            newSocket.emit('join_conversation', { conversation_id: conversation._id });
-        });
-
-        newSocket.on('disconnect', (reason) => {
-            console.log('❌ WebSocket disconnected:', reason);
-        });
-
-        newSocket.on('connect_error', (error) => {
-            console.error('❌ WebSocket connection error:', error);
-        });
-
-        // Room events
-        newSocket.on('joined_conversation', (data) => {
-            console.log('✅ Joined conversation room:', data.conversation_id);
-        });
-
-        newSocket.on('left_conversation', (data) => {
-            console.log('🚪 Left conversation room:', data.conversation_id);
-        });
-
-        // Message events
-        newSocket.on('new_message', (message) => {
-            console.log('📨 Received new message:', message);
-            console.log('📨 Message conversation ID:', message.conversation_id);
-            console.log('📨 Current conversation ID:', conversation._id);
-            
-            // Only add message if it's for this conversation
-            if (message.conversation_id === conversation._id) {
-                setMessages(prev => {
-                    console.log('📨 Adding message to conversation');
-                    const updated = [...prev, message];
-                    return sortMessagesByTime(updated);
-                });
-                
-                if (onNewMessage) {
-                    onNewMessage(conversation._id, message);
+        // Reset state when conversation changes
+        setMessages([]);
+        setLoading(true);
+        setTypingUsers([]);
+        messagesRef.current.clear();
+        setShowOfflineMessage(false);
+        
+        // Ensure connection
+        const initializeConnection = async () => {
+            try {
+                if (!messageService.isConnected()) {
+                    console.log('🔌 Connecting to WebSocket...');
+                    await messageService.connect();
                 }
-            }
-        });
+                
+                // Set up connection status listener
+                messageService.addConnectionListener(handleConnectionStatusChange);
+                
+                // Update connection status
+                setConnectionStatus(messageService.getConnectionStatus());
+                
+                // Fetch initial messages
+                await fetchMessages();
 
-        newSocket.on('message_sent', (data) => {
-            console.log('✅ Message sent confirmation:', data);
-        });
+                // Subscribe to new messages
+                console.log('📡 Creating WebSocket subscription for conversation:', conversation._id);
+                unsubscribeMessageRef.current = messageService.subscribeToMessages(
+                    conversation._id,
+                    handleNewMessage
+                );
 
-        // Typing events
-        newSocket.on('user_typing', (data) => {
-            console.log('⌨️ Typing indicator:', data);
-            if (data.conversation_id === conversation._id && data.user_id !== currentUserIdentifier) {
-                setOtherUserTyping(data.typing);
-            }
-        });
+                // Subscribe to typing indicators
+                unsubscribeTypingRef.current = messageService.subscribeToTyping(
+                    conversation._id,
+                    handleTypingEvent
+                );
 
-        // Error events
-        newSocket.on('error', (error) => {
-            console.error('❌ WebSocket error:', error);
-        });
-
-        setSocket(newSocket);
-        fetchMessages();
-
-        return () => {
-            console.log('🔌 Cleaning up WebSocket connection');
-            if (newSocket) {
-                newSocket.emit('leave_conversation', { conversation_id: conversation._id });
-                newSocket.disconnect();
+                console.log('✅ WebSocket subscription created successfully for conversation:', conversation._id);
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize WebSocket connection:', error);
+                setConnectionStatus('failed');
+                setShowOfflineMessage(true);
             }
         };
-    }, [conversation._id, currentUserIdentifier]);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        initializeConnection();
 
-    const fetchMessages = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5000/messages/conversations/${conversation._id}/messages`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                // Sort messages to ensure proper chronological order
-                const sortedMessages = sortMessagesByTime(data.messages || []);
-                setMessages(sortedMessages);
+        return () => {
+            console.log('🔌 Cleaning up WebSocket subscription for conversation:', conversation._id);
+            
+            // Remove connection status listener
+            messageService.removeConnectionListener(handleConnectionStatusChange);
+            
+            // Clean up subscriptions
+            if (unsubscribeMessageRef.current) {
+                unsubscribeMessageRef.current();
+                unsubscribeMessageRef.current = null;
             }
-        } catch {
+            
+            if (unsubscribeTypingRef.current) {
+                unsubscribeTypingRef.current();
+                unsubscribeTypingRef.current = null;
+            }
+            
+            // Clear timeout if exists
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, [conversation._id, currentUserIdentifier, handleConnectionStatusChange, handleNewMessage, handleTypingEvent]);
+
+    // Enhanced message fetching with retry logic
+    const fetchMessages = async (isRefresh = false) => {
+        try {
+            console.log('📨 Fetching messages from API for conversation:', conversation._id);
+            
+            // Prevent too frequent fetches
+            const now = Date.now();
+            if (!isRefresh && now - lastFetchTimeRef.current < 1000) {
+                console.log('📨 Skipping fetch - too recent');
+                return;
+            }
+            lastFetchTimeRef.current = now;
+            
+            // Get messages from API
+            const messages = await messageService.getMessages(conversation._id);
+            console.log('📨 Raw messages from API:', messages.length, 'messages');
+            
+            // Clear the processed messages ref when fetching fresh
+            if (isRefresh) {
+                messagesRef.current.clear();
+            }
+            
+            // Populate sender info for each message
+            const messagesWithSenders = await Promise.all(
+                messages.map(async (message) => {
+                    // Mark as processed
+                    messagesRef.current.set(message._id, true);
+                    
+                    // Use existing sender info or fetch if missing
+                    let senderInfo = message.sender;
+                    if (!senderInfo || !senderInfo.username) {
+                        senderInfo = await fetchUserInfo(message.sender_id);
+                    }
+                    
+                    return {
+                        ...message,
+                        sender: senderInfo || {
+                            _id: message.sender_id,
+                            username: String(message.sender_id) === String(currentUserIdentifier) ? 'You' : 'Unknown',
+                            profile_picture: ''
+                        }
+                    };
+                })
+            );
+            
+            const sortedMessages = sortMessagesByTime(messagesWithSenders);
+            setMessages(sortedMessages);
+            console.log('✅ Loaded and sorted', sortedMessages.length, 'messages');
+            
+        } catch (error) {
+            console.error('❌ Error fetching messages:', error);
+            setRetryCount(prev => prev + 1);
+            
+            // Retry after delay if not too many attempts
+            if (retryCount < 3) {
+                console.log(`🔄 Retrying message fetch in ${(retryCount + 1) * 2000}ms`);
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    fetchMessages(isRefresh);
+                }, (retryCount + 1) * 2000);
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Enhanced message sending with WebSocket
+    const handleSendMessage = async (messageContent) => {
+        const tempId = `temp_${Date.now()}_${Math.random()}`;
+        console.log('📤 Preparing to send message:', messageContent);
+        console.log('📤 Temp ID for optimistic update:', tempId);
+        console.log('📤 Current user identifier:', currentUserIdentifier);
+
+        setSending(true);
+
+        // Stop typing indicator
+        messageService.stopTyping(conversation._id);
+
+        try {
+            // Get current user info for optimistic message
+            const currentUserInfo = await fetchUserInfo(currentUserIdentifier);
+            console.log('📤 Current user info for optimistic message:', currentUserInfo);
+            
+            // Optimistically add message to UI immediately
+            const tempMessage = {
+                _id: tempId,
+                conversation_id: conversation._id,
+                sender_id: currentUserIdentifier,
+                content: messageContent,
+                created_at: new Date().toISOString(),
+                sender: currentUserInfo || {
+                    _id: currentUserIdentifier,
+                    username: 'You',
+                    profile_picture: ''
+                },
+                isOptimistic: true
+            };
+
+            console.log('📤 Adding optimistic message to UI:', tempMessage);
+
+            // Add optimistic message
+            setMessages(prev => {
+                const updated = [...prev, tempMessage];
+                return sortMessagesByTime(updated);
+            });
+
+            // Send the actual message via WebSocket
+            console.log('📤 Sending message via WebSocket...');
+            const sentMessage = await messageService.sendMessage(
+                conversation._id,
+                currentUserIdentifier,
+                messageContent
+            );
+            
+            console.log('✅ Message sent successfully via WebSocket:', sentMessage);
+
+            // The WebSocket subscription should handle updating the optimistic message
+            // But we'll add a fallback timeout in case subscription is slow
+            setTimeout(() => {
+                console.log('🕐 Fallback: Checking if optimistic message was replaced...');
+                setMessages(prev => {
+                    const stillHasOptimistic = prev.some(msg => msg._id === tempId && msg.isOptimistic);
+                    if (stillHasOptimistic) {
+                        console.log('⚠️ Optimistic message still present, replacing manually');
+                        const realMessage = {
+                            ...sentMessage,
+                            sender: currentUserInfo || {
+                                _id: currentUserIdentifier,
+                                username: 'You',
+                                profile_picture: ''
+                            },
+                            isOptimistic: false
+                        };
+                        
+                        const withoutOptimistic = prev.filter(msg => msg._id !== tempId);
+                        const updated = [...withoutOptimistic, realMessage];
+                        return sortMessagesByTime(updated);
+                    }
+                    return prev;
+                });
+            }, 5000); // 5 second fallback
+
+            // Also notify parent component
+            if (onNewMessage) {
+                const realMessage = {
+                    ...sentMessage,
+                    sender: currentUserInfo || {
+                        _id: currentUserIdentifier,
+                        username: 'You',
+                        profile_picture: ''
+                    }
+                };
+                onNewMessage(conversation._id, realMessage);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error sending message:', error);
+            
+            // Remove optimistic message on error
+            setMessages(prev => prev.filter(msg => msg._id !== tempId));
+            
+            // Show error to user based on connection status
+            if (connectionStatus === 'disconnected') {
+                alert('You are offline. Please check your connection and try again.');
+            } else {
+                alert('Failed to send message. Please try again.');
+            }
+            
+            // Return the message content so it can be restored in the input
+            return messageContent;
+        } finally {
+            setSending(false);
+        }
     };
 
-    const handleSendMessage = (e) => {
-        e.preventDefault();
-        if (!newMessage.trim() || !socket) {
-            console.log('❌ Cannot send message: empty content or no socket');
-            return;
+    // Handle typing indicators
+    const handleTypingStart = () => {
+        if (messageService.isConnected()) {
+            messageService.startTyping(conversation._id);
         }
+    };
 
-        console.log('📤 Sending message:', newMessage.trim());
-        console.log('📤 Socket connected:', socket.connected);
-        console.log('📤 Conversation ID:', conversation._id);
+    const handleTypingStop = () => {
+        if (messageService.isConnected()) {
+            messageService.stopTyping(conversation._id);
+        }
+    };
 
-        socket.emit('send_message', {
-            conversation_id: conversation._id,
-            content: newMessage.trim()
-        });
-
-        setNewMessage('');
+    // Manual retry function
+    const handleRetry = async () => {
+        console.log('🔄 Manual retry triggered');
+        setRetryCount(0);
+        setShowOfflineMessage(false);
         
-        if (isTyping) {
-            socket.emit('typing_stop', { conversation_id: conversation._id });
-            setIsTyping(false);
+        try {
+            await messageService.reconnect();
+            await fetchMessages(true);
+        } catch (error) {
+            console.error('❌ Manual retry failed:', error);
+            setShowOfflineMessage(true);
         }
-    };
-
-    const handleTyping = (e) => {
-        setNewMessage(e.target.value);
-        if (!socket) return;
-        if (!isTyping) {
-            socket.emit('typing_start', { conversation_id: conversation._id });
-            setIsTyping(true);
-        }
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-        }
-        typingTimeoutRef.current = setTimeout(() => {
-            socket.emit('typing_stop', { conversation_id: conversation._id });
-            setIsTyping(false);
-        }, 2000);
-    };
-
-    const handleEmojiClick = (emoji) => {
-        const cursorPosition = inputRef.current?.selectionStart || newMessage.length;
-        const newText = newMessage.slice(0, cursorPosition) + emoji + newMessage.slice(cursorPosition);
-        setNewMessage(newText);
-        setShowEmojiPicker(false);
-        
-        // Focus back on input and set cursor position after emoji
-        setTimeout(() => {
-            inputRef.current?.focus();
-            inputRef.current?.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
-        }, 0);
-    };
-
-    const toggleEmojiPicker = () => {
-        setShowEmojiPicker(!showEmojiPicker);
-    };
-
-    // Use the Eastern Time utilities directly
-    const formatTime = formatMessageTime;
-    const formatDateSep = formatDateSeparator;
-    const shouldShowDate = shouldShowDateSeparator;
-
-    const isMyMessage = (message) => {
-        if (!currentUserIdentifier) return false;
-        const senderVariations = [
-            message.sender_id,
-            message.senderId,
-            message.sender?._id,
-            message.sender?.id,
-            message.sender?.userId,
-            message.sender?.user_id,
-            message.sender?.username,
-            message.user_id,
-            message.userId,
-            message.username,
-            message.from,
-            message.author_id,
-            message.authorId,
-            message.author?.username
-        ].filter(Boolean);
-        for (const senderIdentifier of senderVariations) {
-            if (String(senderIdentifier) === String(currentUserIdentifier)) return true;
-        }
-        return false;
     };
 
     if (!conversation) {
@@ -336,217 +514,54 @@ function MessageChat({ conversation, onNewMessage }) {
 
     return (
         <div className="flex flex-col h-full">
-            {/* Chat Header */}
-            <div className={`border-b p-4 flex items-center justify-between ${
-                isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'
-            }`}>
-                <div className="flex items-center">
-                    <img 
-                        src={getProfilePictureUrl(conversation.other_participant?.profile_picture)}
-                        alt={conversation.other_participant?.username || 'Unknown User'}
-                        className="w-10 h-10 rounded-full object-cover"
-                        onError={(e) => {
-                            e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
-                        }}
-                    />
-                    <div className="ml-3">
-                        <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{conversation.other_participant?.username || 'Unknown User'}</h3>
-                        <p className="text-green-400 text-sm">Active now</p>
+            {/* Connection Status Banner */}
+            {showOfflineMessage && (
+                <div className="bg-yellow-600 text-white px-4 py-2 text-sm flex items-center justify-between">
+                    <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        {connectionStatus === 'disconnected' ? 'Connection lost. Messages may not sync in real-time.' : 'Connection failed. Unable to send/receive messages.'}
                     </div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                    <button className="text-gray-400 hover:text-white transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" strokeWidth="2"/>
-                        </svg>
-                    </button>
-                    <button className="text-gray-400 hover:text-white transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <polygon points="23 7 16 12 23 17 23 7" fill="currentColor"/>
-                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-                        </svg>
-                    </button>
-                    <button className="text-gray-400 hover:text-white transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                            <circle cx="19" cy="12" r="1" fill="currentColor"/>
-                            <circle cx="5" cy="12" r="1" fill="currentColor"/>
-                        </svg>
+                    <button 
+                        onClick={handleRetry}
+                        className="bg-yellow-700 hover:bg-yellow-800 px-3 py-1 rounded text-xs font-medium transition-colors"
+                    >
+                        Retry
                     </button>
                 </div>
-            </div>
+            )}
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((message, index) => {
-                    const myMessage = isMyMessage(message);
-                    
-                    return (
-                        <div key={message._id}>
-                            {/* Date separator */}
-                            {shouldShowDate(message, messages[index - 1]) && (
-                                <div className="flex items-center justify-center my-4">
-                                    <div className="bg-gray-600 text-gray-300 px-3 py-1 rounded-full text-xs">
-                                        {formatDateSep(message.created_at)}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* Message Container */}
-                            <div className={`flex items-end space-x-3 mb-4 ${
-                                myMessage ? 'justify-end' : 'justify-start'
-                            }`}>
-                                {/* Profile Picture - Show on left for others, right for you */}
-                                {!myMessage && (
-                                    <img 
-                                        src={getProfilePictureUrl(message.sender?.profile_picture)}
-                                        alt={message.sender?.username || 'Unknown'}
-                                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                        onError={(e) => {
-                                            e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
-                                        }}
-                                    />
-                                )}
-                                
-                                {/* Message Bubble */}
-                                <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${
-                                    myMessage ? 'order-1' : 'order-2'
-                                }`}>
-                                    {/* Username (only for other people's messages) */}
-                                    {!myMessage && (
-                                        <div className="text-gray-300 text-sm font-medium mb-1 ml-1">
-                                            {message.sender?.username || 'Unknown'}
-                                        </div>
-                                    )}
-                                    
-                                    {/* Message Content with improved styling */}
-                                    <div className={`rounded-2xl px-4 py-3 ${
-                                        myMessage 
-                                            ? 'bg-orange-500 text-white rounded-br-md shadow-lg' 
-                                            : 'bg-gray-600 text-white rounded-bl-md shadow-md'
-                                    }`}>
-                                        <p className="break-words">{message.content}</p>
-                                    </div>
-                                    
-                                    {/* Timestamp - Using Eastern Time */}
-                                    <div className={`text-xs text-gray-400 mt-1 px-1 ${
-                                        myMessage ? 'text-right' : 'text-left'
-                                    }`}>
-                                        {formatTime(message.created_at)}
-                                    </div>
-                                </div>
+            {/* Debug Panel - Remove this in production */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="bg-gray-800 text-white p-2 text-xs border-b">
+                    <div>🔍 Debug: User ID: {currentUserIdentifier} | Conv: {conversation._id} | Messages: {messages.length} | Connection: {connectionStatus} | Retries: {retryCount}</div>
+                </div>
+            )}
 
-                                {/* Profile Picture for your messages */}
-                                {myMessage && (
-                                    <img 
-                                        src={getProfilePictureUrl(message.sender?.profile_picture)}
-                                        alt="You"
-                                        className="w-8 h-8 rounded-full object-cover flex-shrink-0 order-2"
-                                        onError={(e) => {
-                                            e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
-                                        }}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-                
-                {/* Typing indicator */}
-                {otherUserTyping && (
-                    <div className="flex items-start space-x-3">
-                        <img 
-                            src={getProfilePictureUrl(conversation.other_participant?.profile_picture)}
-                            alt="typing"
-                            className="w-8 h-8 rounded-full object-cover"
-                            onError={(e) => {
-                                e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
-                            }}
-                        />
-                        <div className="bg-gray-600 rounded-lg px-4 py-2">
-                            <div className="flex space-x-1">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="border-t border-gray-600 p-4">
-                <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
-                    {/* Emoji Button with Picker */}
-                    <div className="relative" ref={emojiPickerRef}>
-                        <button 
-                            type="button"
-                            onClick={toggleEmojiPicker}
-                            className={`text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-600 ${
-                                showEmojiPicker ? 'bg-gray-600 text-white' : ''
-                            }`}
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                                <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                <path d="M9 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                <path d="M15 9h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            </svg>
-                        </button>
-                        
-                        {/* Emoji Picker */}
-                        {showEmojiPicker && (
-                            <div className="absolute bottom-full left-0 mb-2 bg-gray-700 border border-gray-600 rounded-lg shadow-lg p-3 w-80 h-64 overflow-y-auto z-50">
-                                <div className="grid grid-cols-8 gap-2">
-                                    {emojis.map((emoji, index) => (
-                                        <button
-                                            key={index}
-                                            type="button"
-                                            onClick={() => handleEmojiClick(emoji)}
-                                            className="text-xl hover:bg-gray-600 p-2 rounded transition-colors"
-                                        >
-                                            {emoji}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="flex-1 relative">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={newMessage}
-                            onChange={handleTyping}
-                            placeholder={`Message ${conversation.other_participant?.username || 'user'}...`}
-                            className="w-full bg-gray-600 text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-400"
-                        />
-                        <button 
-                            type="button"
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49" stroke="currentColor" strokeWidth="2"/>
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    {newMessage.trim() && (
-                        <button 
-                            type="submit"
-                            className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-lg transition-colors"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2"/>
-                            </svg>
-                        </button>
-                    )}
-                </form>
-            </div>
+            <ChatHeader 
+                conversation={conversation} 
+                getProfilePictureUrl={getProfilePictureUrl} 
+                connectionStatus={connectionStatus}
+                typingUsers={typingUsers}
+            />
+            
+            <MessageList 
+                messages={messages} 
+                currentUserIdentifier={currentUserIdentifier}
+                getProfilePictureUrl={getProfilePictureUrl}
+                typingUsers={typingUsers}
+            />
+            
+            <MessageInput 
+                conversation={conversation}
+                onSendMessage={handleSendMessage}
+                sending={sending}
+                disabled={connectionStatus === 'failed'}
+                onTypingStart={handleTypingStart}
+                onTypingStop={handleTypingStop}
+            />
+            
         </div>
     );
 }

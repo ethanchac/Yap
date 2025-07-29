@@ -4,6 +4,7 @@ import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import MessagesList from '../messages/MessagesList';
 import MessageChat from '../messages/MessageChat';
+import { messageService } from '../../services/messageService';
 import { useTheme } from '../../contexts/ThemeContext';
 
 function Messages() {
@@ -13,6 +14,38 @@ function Messages() {
     const [searchParams] = useSearchParams();
     const { isDarkMode } = useTheme();
 
+    // Get current user identifier (same logic as in your components)
+    const getCurrentUserIdentifier = () => {
+        try {
+            const userString = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+
+            if (userString) {
+                const user = JSON.parse(userString);
+                const userId = user._id || user.id || user.userId || user.user_id || user.username;
+                if (userId) return String(userId);
+            }
+
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const tokenIdentifier = payload.userId || payload.id || payload._id || payload.user_id || payload.sub || payload.username;
+                    if (tokenIdentifier) return String(tokenIdentifier);
+                } catch (e) {}
+            }
+
+            const altKeys = ['userId', 'user_id', 'currentUserId', 'authUserId', 'username'];
+            for (const key of altKeys) {
+                const altId = localStorage.getItem(key);
+                if (altId) return String(altId);
+            }
+
+            return null;
+        } catch {
+            return null;
+        }
+    };
+
     useEffect(() => {
         fetchConversations();
     }, []);
@@ -20,18 +53,27 @@ function Messages() {
     // Handle URL parameter for direct conversation access
     useEffect(() => {
         const conversationId = searchParams.get('conversation');
-        console.log('Conversation ID from URL:', conversationId); // DEBUG
+        console.log('Conversation ID from URL:', conversationId);
         
-        if (conversationId) {
-            // Fetch the specific conversation directly
-            fetchSpecificConversation(conversationId);
+        if (conversationId && conversations.length > 0) {
+            // Find the conversation in the current list
+            const conversation = conversations.find(conv => conv._id === conversationId);
+            if (conversation) {
+                setSelectedConversation(conversation);
+            } else {
+                // If not found, try to fetch it specifically
+                fetchSpecificConversation(conversationId);
+            }
         }
-    }, [searchParams]);
+    }, [searchParams, conversations]);
 
     const fetchConversations = async () => {
         try {
-            console.log('Fetching conversations...'); // DEBUG
+            console.log('Fetching conversations from MongoDB...');
             const token = localStorage.getItem('token');
+            const currentUserId = getCurrentUserIdentifier();
+            
+            // Fetch from MongoDB like before
             const response = await fetch('http://localhost:5000/messages/conversations', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -39,19 +81,35 @@ function Messages() {
                 }
             });
 
-            console.log('Conversations response status:', response.status); // DEBUG
+            console.log('Conversations response status:', response.status);
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Conversations data:', data); // DEBUG
-                setConversations(data.conversations || []);
+                console.log('MongoDB conversations data:', data);
+                const mongoConversations = data.conversations || [];
+                
+                // Sync each conversation to Supabase in the background
+                if (currentUserId && mongoConversations.length > 0) {
+                    console.log('Syncing conversations to Supabase...');
+                    for (const conversation of mongoConversations) {
+                        try {
+                            await messageService.ensureConversationExists(conversation._id, currentUserId);
+                        } catch (syncError) {
+                            console.warn('Failed to sync conversation to Supabase:', conversation._id, syncError);
+                        }
+                    }
+                }
+                
+                setConversations(mongoConversations);
             } else {
                 console.error('Failed to fetch conversations:', response.status);
                 const errorData = await response.json();
                 console.error('Error data:', errorData);
+                setConversations([]);
             }
         } catch (error) {
             console.error('Error fetching conversations:', error);
+            setConversations([]);
         } finally {
             setLoading(false);
         }
@@ -59,8 +117,10 @@ function Messages() {
 
     const fetchSpecificConversation = async (conversationId) => {
         try {
-            console.log('Fetching specific conversation:', conversationId); // DEBUG
+            console.log('Fetching specific conversation:', conversationId);
             const token = localStorage.getItem('token');
+            const currentUserId = getCurrentUserIdentifier();
+            
             const response = await fetch(`http://localhost:5000/messages/conversations/${conversationId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -68,13 +128,22 @@ function Messages() {
                 }
             });
 
-            console.log('Specific conversation response status:', response.status); // DEBUG
+            console.log('Specific conversation response status:', response.status);
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Specific conversation data:', data); // DEBUG
+                console.log('Specific conversation data:', data);
                 
                 if (data.success && data.conversation) {
+                    // Sync to Supabase
+                    if (currentUserId) {
+                        try {
+                            await messageService.ensureConversationExists(conversationId, currentUserId);
+                        } catch (syncError) {
+                            console.warn('Failed to sync specific conversation to Supabase:', syncError);
+                        }
+                    }
+                    
                     setSelectedConversation(data.conversation);
                     
                     // Also refresh conversations list to include this one if it's not there
@@ -98,7 +167,7 @@ function Messages() {
     };
 
     const handleConversationSelect = (conversation) => {
-        console.log('Selecting conversation:', conversation); // DEBUG
+        console.log('Selecting conversation:', conversation);
         setSelectedConversation(conversation);
         // Update URL without causing a page reload
         const newSearchParams = new URLSearchParams(searchParams);
@@ -107,7 +176,7 @@ function Messages() {
     };
 
     const handleNewMessage = (conversationId, message) => {
-        console.log('New message received:', message); // DEBUG
+        console.log('New message received:', message);
         // Update conversations list with new message
         setConversations(prev => 
             prev.map(conv => 
@@ -117,6 +186,42 @@ function Messages() {
             )
         );
     };
+
+    // Set up real-time subscription for new messages across all conversations
+    useEffect(() => {
+        const currentUserId = getCurrentUserIdentifier();
+        if (!currentUserId || conversations.length === 0) return;
+
+        console.log('Setting up real-time subscriptions for all conversations...');
+        const subscriptions = [];
+
+        // Subscribe to each conversation for real-time updates
+        conversations.forEach(conversation => {
+            try {
+                const subscription = messageService.subscribeToMessages(
+                    conversation._id,
+                    (newMessage) => {
+                        console.log('Real-time message received:', newMessage);
+                        handleNewMessage(conversation._id, newMessage);
+                    }
+                );
+                subscriptions.push(subscription);
+            } catch (error) {
+                console.warn('Failed to subscribe to conversation:', conversation._id, error);
+            }
+        });
+
+        return () => {
+            console.log('Cleaning up message subscriptions');
+            subscriptions.forEach(subscription => {
+                try {
+                    subscription.unsubscribe();
+                } catch (error) {
+                    console.warn('Error unsubscribing:', error);
+                }
+            });
+        };
+    }, [conversations]);
 
     // Debug logging
     useEffect(() => {
@@ -179,7 +284,6 @@ function Messages() {
                                         Send message
                                     </button>
                                 </div>
-                                
                             </div>
                         )}
                     </div>
