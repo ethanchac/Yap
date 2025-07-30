@@ -1,19 +1,16 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/authentication/LoginForm.jsx';
 import Signup from './components/authentication/RegisterForm.jsx';
-import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx';
-import LandingPage from './components/pages/LandingPage.jsx';
+import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx'; // ADD THIS LINE
 import Home from './components/pages/home/Home.jsx';
-import Create from './components/pages/create/Create.jsx';
+import Create from './components/pages/Create.jsx';
 import Users from './components/pages/Users.jsx';
 import Messages from './components/pages/Messages.jsx';
 import Likes from './components/pages/profile/Likes.jsx';
-import Waypoint from './components/pages/waypoint/Waypoint.jsx';
 import Profile from './components/pages/profile/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
 import Feedback from './components/pages/Feedback.jsx';
 import CommentsPage from './components/pages/CommentsPage.jsx';
-import EventThread from './components/pages/home/events/EventThread.jsx';
 import PageTransition from './components/common/PageTransition.jsx';
 
 const PrivateRoute = ({ children }) => {
@@ -47,12 +44,7 @@ function AuthRoutes() {
             } />
             <Route path="/" element={
                 <PageTransition>
-                    <LandingPage />
-                </PageTransition>
-            } />
-            <Route path="/landing" element={
-                <PageTransition>
-                    <LandingPage />
+                    <Login />
                 </PageTransition>
             } />
             <Route
@@ -106,16 +98,6 @@ function AuthRoutes() {
                 }
             />
             <Route
-                path="/waypoint"
-                element={
-                    <PrivateRoute>
-                        <PageTransition>
-                            <Waypoint />
-                        </PageTransition>
-                    </PrivateRoute>
-                }
-            />
-            <Route
                 path="/profile"
                 element={
                     <PrivateRoute>
@@ -161,16 +143,6 @@ function AuthRoutes() {
                     <PrivateRoute>
                         <PageTransition>
                             <CommentsPage />
-                        </PageTransition>
-                    </PrivateRoute>
-                }
-            />
-            <Route
-                path="/events/:eventId/thread"
-                element={
-                    <PrivateRoute>
-                        <PageTransition>
-                            <EventThread />
                         </PageTransition>
                     </PrivateRoute>
                 }
