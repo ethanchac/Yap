@@ -35,53 +35,102 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# Redis Configuration
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+# FIXED: Redis Configuration with proper error handling
+def setup_redis_connection():
+    """Setup Redis connection without crashing the app"""
+    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    logger.info(f"🔴 Attempting Redis connection to: {redis_url[:30]}...")
+    
+    try:
+        redis_client = redis.from_url(
+            redis_url, 
+            decode_responses=True,
+            socket_connect_timeout=10,
+            socket_timeout=10,
+            retry_on_timeout=True,
+            health_check_interval=30
+        )
+        
+        # Test the connection
+        redis_client.ping()
+        logger.info("✅ Redis connection successful!")
+        return redis_client
+        
+    except redis.ConnectionError as e:
+        logger.error(f"❌ Redis connection failed: {e}")
+        logger.warning("⚠️ App will continue without Redis (messaging features may be limited)")
+        return None
+        
+    except Exception as e:
+        logger.error(f"❌ Unexpected Redis error: {e}")
+        logger.warning("⚠️ App will continue without Redis")
+        return None
 
-# Test Redis connection
-try:
-    redis_client.ping()
-    logger.info("✅ Redis connection successful")
-except redis.ConnectionError:
-    logger.error("❌ Redis connection failed. Make sure Redis is running.")
-    sys.exit(1)
+# Initialize Redis (won't crash if it fails)
+redis_client = setup_redis_connection()
 
-# CORS Configuration - Updated for Render deployment
+# CORS Configuration - Updated for Railway
 CORS(app, 
      origins=[
          "http://localhost:5173", 
          "http://127.0.0.1:5173", 
          "http://localhost:3000",
-         "https://your-vercel-app.vercel.app",  # Replace with your actual Vercel URL
-         os.getenv("FRONTEND_URL", "")  # Add this to your Render environment variables
+         "https://your-vercel-app.vercel.app",
+         os.getenv("FRONTEND_URL", ""),
+         "https://*.railway.app"  # Added Railway domains
      ],
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "Accept", "X-User-ID"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# SOCKETIO CONFIGURATION with Redis message queue
-socketio = SocketIO(
-    app, 
-    cors_allowed_origins=[
-        "http://localhost:5173", 
-        "http://127.0.0.1:5173", 
-        "http://localhost:3000",
-        "https://your-vercel-app.vercel.app",  # Replace with your actual Vercel URL
-        os.getenv("FRONTEND_URL", "")
-    ],
-    async_mode='threading',
-    ping_timeout=60,
-    ping_interval=25,
-    transports=['websocket', 'polling'],
-    logger=True,
-    engineio_logger=True,
-    allow_upgrades=True,
-    # Redis configuration for scaling across multiple servers
-    message_queue=REDIS_URL
-)
+# FIXED: SOCKETIO CONFIGURATION with conditional Redis
+if redis_client:
+    # SocketIO with Redis message queue
+    logger.info("🔌 Configuring SocketIO with Redis message queue...")
+    socketio = SocketIO(
+        app, 
+        cors_allowed_origins=[
+            "http://localhost:5173", 
+            "http://127.0.0.1:5173", 
+            "http://localhost:3000",
+            "https://your-vercel-app.vercel.app",
+            os.getenv("FRONTEND_URL", ""),
+            "https://*.railway.app"
+        ],
+        async_mode='threading',
+        ping_timeout=60,
+        ping_interval=25,
+        transports=['websocket', 'polling'],
+        logger=True,
+        engineio_logger=True,
+        allow_upgrades=True,
+        message_queue=os.getenv('REDIS_URL')  # Use Redis for scaling
+    )
+    logger.info("✅ SocketIO configured with Redis message queue")
+else:
+    # SocketIO without Redis (single server mode)
+    logger.warning("⚠️ Configuring SocketIO without Redis (single server mode)")
+    socketio = SocketIO(
+        app, 
+        cors_allowed_origins=[
+            "http://localhost:5173", 
+            "http://127.0.0.1:5173", 
+            "http://localhost:3000",
+            "https://your-vercel-app.vercel.app",
+            os.getenv("FRONTEND_URL", ""),
+            "https://*.railway.app"
+        ],
+        async_mode='threading',
+        ping_timeout=60,
+        ping_interval=25,
+        transports=['websocket', 'polling'],
+        logger=True,
+        engineio_logger=True,
+        allow_upgrades=True
+        # No message_queue - single server mode
+    )
 
-# Store Redis client in app config for use in other modules
+# Store Redis client in app config (can be None)
 app.config['REDIS'] = redis_client
 
 # configuring file upload
@@ -100,8 +149,9 @@ def after_request(response):
         'http://localhost:5173', 
         'http://127.0.0.1:5173', 
         'http://localhost:3000',
-        'https://your-vercel-app.vercel.app',  # Replace with your actual Vercel URL
-        os.getenv("FRONTEND_URL", "")
+        'https://your-vercel-app.vercel.app',
+        os.getenv("FRONTEND_URL", ""),
+        'https://*.railway.app'
     ]
     
     if origin in allowed_origins:
@@ -122,8 +172,9 @@ def handle_options():
             'http://localhost:5173', 
             'http://127.0.0.1:5173', 
             'http://localhost:3000',
-            'https://your-vercel-app.vercel.app',  # Replace with your actual Vercel URL
-            os.getenv("FRONTEND_URL", "")
+            'https://your-vercel-app.vercel.app',
+            os.getenv("FRONTEND_URL", ""),
+            'https://*.railway.app'
         ]
         
         response = jsonify({'status': 'OK'})
@@ -347,31 +398,85 @@ def uploaded_file(user_id, filename):
 def too_large(e):
     return jsonify({"error": "File too large. Maximum size is 5MB"}), 413
 
-# Add health check endpoint
+# FIXED: Health check endpoint with better Redis handling
 @app.route('/health')
 def health_check():
-    """Health check endpoint"""
-    try:
-        redis_status = "connected" if redis_client.ping() else "disconnected"
-    except:
-        redis_status = "disconnected"
+    """Health check endpoint with detailed status"""
+    redis_status = "disconnected"
+    redis_error = None
     
+    try:
+        if redis_client:
+            redis_client.ping()
+            redis_status = "connected"
+        else:
+            redis_status = "not_initialized"
+    except Exception as e:
+        redis_status = "error"
+        redis_error = str(e)
+    
+    # Test MongoDB
+    db_status = "connected"
+    db_error = None
+    try:
+        db.command('ping')
+    except Exception as e:
+        db_status = "error"
+        db_error = str(e)
+    
+    overall_status = "healthy"
+    if db_status != "connected":
+        overall_status = "unhealthy"  # MongoDB is critical
+    elif redis_status not in ["connected", "not_initialized"]:
+        overall_status = "degraded"  # Redis issues are not fatal
+    
+    response = {
+        "status": overall_status,
+        "database": {
+            "name": db_name,
+            "status": db_status,
+            "error": db_error
+        },
+        "redis": {
+            "status": redis_status,
+            "error": redis_error,
+            "url_configured": bool(os.getenv('REDIS_URL'))
+        },
+        "environment": {
+            "mode": "TEST" if TEST_MODE else "PRODUCTION",
+            "port": os.environ.get('PORT', 5000)
+        }
+    }
+    
+    return jsonify(response)
+
+# Add debug endpoint
+@app.route('/debug')
+def debug_info():
+    """Debug endpoint to check configuration"""
     return jsonify({
-        "status": "healthy",
-        "database": db_name,
-        "mode": "TEST" if TEST_MODE else "PRODUCTION",
-        "redis": redis_status
+        "redis_url_set": bool(os.getenv('REDIS_URL')),
+        "redis_client_initialized": redis_client is not None,
+        "environment_vars": {
+            "REDIS_URL": "SET" if os.getenv('REDIS_URL') else "NOT_SET",
+            "SECRET_KEY": "SET" if os.getenv('SECRET_KEY') else "NOT_SET",
+            "MONGO_URI": "SET" if os.getenv('MONGO_URI') else "NOT_SET"
+        }
     })
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting SocketIO server with Redis...")
+    logger.info("🚀 Starting SocketIO server...")
     
-    # Get port from environment variable (Render provides this)
+    # Get port from environment variable (Railway provides this)
     port = int(os.environ.get('PORT', 5000))
     
     logger.info(f"🌐 Server will be accessible at http://0.0.0.0:{port}")
     logger.info(f"🔌 WebSocket endpoint: ws://0.0.0.0:{port}/socket.io/")
-    logger.info(f"🔴 Redis URL: {REDIS_URL}")
+    
+    if redis_client:
+        logger.info(f"🔴 Redis: Connected")
+    else:
+        logger.warning(f"🔴 Redis: Not connected (app will run in single-server mode)")
     
     # Use socketio.run instead of app.run for WebSocket support
     socketio.run(
