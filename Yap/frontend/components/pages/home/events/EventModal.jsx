@@ -11,8 +11,22 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [totalAttendees, setTotalAttendees] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
   const [actionLoading, setActionLoading] = useState({ like: false, attend: false });
+  const [shareMessage, setShareMessage] = useState('');
   
   const navigate = useNavigate(); // For navigation to waypoint map and thread
+
+  const handleShareEvent = () => {
+    const eventLink = `${window.location.origin}/events/${event._id}`;
+    navigator.clipboard.writeText(eventLink)
+      .then(() => {
+        setShareMessage('Event link copied to clipboard!');
+        setTimeout(() => setShareMessage(''), 3000);
+      })
+      .catch(() => {
+        setShareMessage('Failed to copy event link.');
+        setTimeout(() => setShareMessage(''), 3000);
+      });
+  };
 
   const fetchEventDetails = async () => {
     if (!event || !isOpen || !currentUser) return;
@@ -299,53 +313,75 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const dateTime = formatDateTime(event.event_datetime);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div
-        className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl relative"
+        className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl relative border border-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl z-10">
-          <div className="flex items-center space-x-3">
-            <div className="text-4xl">{getEventIcon(0)}</div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{event.title}</h2>
-              <p className="text-gray-600">Hosted by @{event.host_username || event.username || 'Unknown'}</p>
+        <div className="relative z-10 bg-white border-b border-gray-100 p-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <div className="text-5xl">{getEventIcon(0)}</div>
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-1">
+                  {event.title}
+                </h2>
+                <p className="text-gray-600 font-medium flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-orange-500 rounded-full"></span>
+                  Hosted by @{event.host_username || event.username || 'Unknown'}
+                </p>
+              </div>
             </div>
+            <button 
+              onClick={onClose} 
+              className="p-3 hover:bg-gray-50 rounded-full transition-all duration-200 hover:scale-105 group"
+            >
+              <X className="w-6 h-6 text-gray-500 group-hover:text-gray-700 transition-colors" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-            <X className="w-6 h-6 text-gray-500" />
-          </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="relative z-10 p-8 overflow-y-auto max-h-[calc(90vh-200px)]">
           {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center items-center py-16">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-orange-500"></div>
+              </div>
             </div>
           ) : (
-            <>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <Calendar className="w-5 h-5 text-gray-500 mt-1" />
-                  <div>
-                    <p className="font-semibold text-gray-900">{dateTime.date}</p>
-                    <p className="text-gray-600">{dateTime.time}</p>
+            <div className="space-y-8">
+              {/* Event Details Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="group bg-white rounded-xl p-6 border border-gray-100 hover:border-gray-200 transition-all duration-200 hover:shadow-lg">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 bg-orange-500 rounded-xl shadow-sm group-hover:scale-105 transition-transform duration-200">
+                      <Calendar className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-1">When</p>
+                      <p className="font-bold text-gray-900 text-lg">{dateTime.date}</p>
+                      <p className="text-orange-600 font-semibold">{dateTime.time}</p>
+                    </div>
                   </div>
                 </div>
 
                 {event.location && (
-                  <div className="flex items-start space-x-3">
-                    <MapPin className="w-5 h-5 text-gray-500 mt-1" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">Location</p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-gray-600">{event.location}</p>
+                  <div className="group bg-white rounded-xl p-6 border border-gray-100 hover:border-gray-200 transition-all duration-200 hover:shadow-lg">
+                    <div className="flex items-start space-x-4">
+                      <div className="p-3 bg-orange-600 rounded-xl shadow-sm group-hover:scale-105 transition-transform duration-200">
+                        <MapPin className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-500 mb-1">Where</p>
+                        <p className="font-bold text-gray-900 mb-2">{event.location}</p>
                         {hasLocationCoordinates() && (
                           <button
                             onClick={handleViewOnMap}
-                            className="flex items-center space-x-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
+                            className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-sm"
                           >
                             <Map className="w-4 h-4" />
                             <span>View on Map</span>
@@ -356,44 +392,60 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                   </div>
                 )}
 
-                <div className="flex items-start space-x-3">
-                  <Users className="w-5 h-5 text-gray-500 mt-1" />
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {totalAttendees} {totalAttendees === 1 ? 'person' : 'people'} attending
-                    </p>
+                <div className="group bg-white rounded-xl p-6 border border-gray-100 hover:border-gray-200 transition-all duration-200 hover:shadow-lg">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 bg-orange-400 rounded-xl shadow-sm group-hover:scale-105 transition-transform duration-200">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-1">Attendees</p>
+                      <p className="font-bold text-gray-900 text-lg">
+                        {totalAttendees} {totalAttendees === 1 ? 'person' : 'people'}
+                      </p>
+                      <p className="text-orange-600 font-semibold">joining</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
+              {/* Event Description */}
               {event.description && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">About this event</h3>
-                  <p className="text-gray-700 leading-relaxed">{event.description}</p>
+                <div className="bg-white rounded-xl p-8 border border-gray-100">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
+                    <div className="p-2 bg-orange-500 rounded-lg">
+                      <MessageCircle className="w-5 h-5 text-white" />
+                    </div>
+                    About this event
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed text-lg">{event.description}</p>
                 </div>
               )}
 
+              {/* Friends Attending */}
               {attendingFriends.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                <div className="bg-white rounded-xl p-8 border border-gray-100">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                    <div className="p-2 bg-orange-600 rounded-lg">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
                     Friends attending ({attendingFriends.length})
                   </h3>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-4">
                     {attendingFriends.slice(0, 8).map((friend) => (
-                      <div key={friend._id} className="flex items-center space-x-2 bg-gray-50 rounded-full pr-3 py-1">
+                      <div key={friend._id} className="group flex items-center space-x-3 bg-gray-50 rounded-xl pr-4 py-2 border border-gray-100 hover:border-gray-200 transition-all duration-200 hover:shadow-sm">
                         <img
                           src={getProfilePictureUrl(friend.profile_picture)}
                           alt={friend.username}
-                          className="w-8 h-8 rounded-full object-cover"
+                          className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm group-hover:scale-105 transition-transform duration-200"
                         />
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="font-semibold text-gray-900">
                           {friend.full_name || friend.username}
                         </span>
                       </div>
                     ))}
                     {attendingFriends.length > 8 && (
-                      <div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
-                        <span className="text-xs font-medium text-gray-600">
+                      <div className="flex items-center justify-center w-12 h-12 bg-orange-500 rounded-full shadow-sm">
+                        <span className="text-sm font-bold text-white">
                           +{attendingFriends.length - 8}
                         </span>
                       </div>
@@ -404,26 +456,26 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
 
               {/* Action buttons - only show if user is logged in */}
               {currentUser && (
-                <div className="space-y-3 pt-4 border-t border-gray-200">
+                <div className="space-y-4">
                   {/* Main action button - Join/Attending */}
                   <button
                     onClick={toggleAttendance}
                     disabled={actionLoading.attend}
-                    className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                    className={`w-full flex items-center justify-center space-x-3 py-4 px-6 rounded-xl font-bold text-lg shadow-lg transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 ${
                       isAttending
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                        ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                        : 'bg-orange-600 hover:bg-orange-700 text-white'
                     }`}
                   >
                     {actionLoading.attend ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <UserPlus className="w-5 h-5" />
+                      <UserPlus className="w-6 h-6" />
                     )}
                     <span>
                       {isAttending 
-                        ? 'Attending' 
-                        : 'Join Event'
+                        ? '✓ You\'re Attending!' 
+                        : 'Join This Event'
                       }
                     </span>
                   </button>
@@ -432,33 +484,36 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                   {isAttending && (
                     <button
                       onClick={handleViewThread}
-                      className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg font-medium transition-colors"
+                      className="w-full flex items-center justify-center space-x-3 py-3 px-6 bg-orange-400 hover:bg-orange-500 text-white rounded-xl font-semibold shadow-lg transition-all duration-200 transform hover:scale-105"
                     >
                       <MessageCircle className="w-5 h-5" />
-                      <span>View Event Discussion</span>
+                      <span>Join Event Discussion</span>
                     </button>
                   )}
 
                   {/* Secondary action buttons */}
-                  <div className="flex space-x-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <button
                       onClick={toggleLike}
                       disabled={actionLoading.like}
-                      className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                      className={`flex items-center justify-center space-x-3 py-4 px-6 rounded-xl font-semibold shadow-lg transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 ${
                         isLiked
-                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? 'bg-red-500 hover:bg-red-600 text-white'
+                          : 'bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200'
                       }`}
                     >
                       {actionLoading.like ? (
                         <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : 'text-orange-500'}`} />
                       )}
-                      <span>{likesCount}</span>
+                      <span>{likesCount} Likes</span>
                     </button>
 
-                    <button className="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-semibold transition-colors">
+                    <button 
+                      onClick={handleShareEvent}
+                      className="flex items-center justify-center space-x-3 py-4 px-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold shadow-lg transition-all duration-200 transform hover:scale-105"
+                    >
                       <Share2 className="w-5 h-5" />
                       <span>Share</span>
                     </button>
@@ -466,23 +521,40 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 </div>
               )}
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">{totalAttendees}</p>
-                    <p className="text-sm text-gray-600">Attending</p>
+              {/* Share Message */}
+              {shareMessage && (
+                <div className="text-center p-4 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl shadow-sm animate-fade-in">
+                  {shareMessage}
+                </div>
+              )}
+
+              {/* Stats Section */}
+              <div className="bg-white rounded-xl p-6 border border-gray-100">
+                <div className="grid grid-cols-3 gap-6 text-center">
+                  <div className="group">
+                    <div className="p-4 bg-orange-500 rounded-xl shadow-sm group-hover:scale-105 transition-transform duration-200 mx-auto w-fit mb-3">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900 mb-1">{totalAttendees}</p>
+                    <p className="text-sm font-medium text-gray-600">Attending</p>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">{likesCount}</p>
-                    <p className="text-sm text-gray-600">Likes</p>
+                  <div className="group">
+                    <div className="p-4 bg-red-500 rounded-xl shadow-sm group-hover:scale-105 transition-transform duration-200 mx-auto w-fit mb-3">
+                      <Heart className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900 mb-1">{likesCount}</p>
+                    <p className="text-sm font-medium text-gray-600">Likes</p>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">{attendingFriends.length}</p>
-                    <p className="text-sm text-gray-600">Friends</p>
+                  <div className="group">
+                    <div className="p-4 bg-orange-400 rounded-xl shadow-sm group-hover:scale-105 transition-transform duration-200 mx-auto w-fit mb-3">
+                      <UserPlus className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900 mb-1">{attendingFriends.length}</p>
+                    <p className="text-sm font-medium text-gray-600">Friends</p>
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
