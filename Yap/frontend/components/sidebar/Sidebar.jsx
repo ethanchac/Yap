@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Plus, Users, MessageCircle, Heart, User, Settings, MessageSquare } from 'lucide-react';
+import { Home, Plus, Users, MessageCircle, Heart, User, Settings, MessageSquare, MapPin } from 'lucide-react';
 
 function Sidebar() {
     const location = useLocation();
@@ -69,6 +69,19 @@ function Sidebar() {
                     >
                         <MessageCircle className="w-5 h-5" />
                         <span>Message</span>
+                    </Link>
+                </li>
+                <li>
+                    <Link 
+                        to="/waypoint" 
+                        className={`flex items-center space-x-3 w-full px-4 py-3 text-white rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                            isActive('/waypoint') 
+                                ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
+                                : 'hover:bg-gray-700 hover:shadow-md'
+                        }`}
+                    >
+                        <MapPin className="w-5 h-5" />
+                        <span>Waypoint</span>
                     </Link>
                 </li>
                 <li>

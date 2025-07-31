@@ -11,6 +11,7 @@ import Profile from './components/pages/profile/Profile.jsx';
 import Settings from './components/pages/Settings.jsx';
 import Feedback from './components/pages/Feedback.jsx';
 import CommentsPage from './components/pages/CommentsPage.jsx';
+import Waypoint from './components/pages/waypoint/Waypoint.jsx';
 import PageTransition from './components/common/PageTransition.jsx';
 
 const PrivateRoute = ({ children }) => {
@@ -83,6 +84,16 @@ function AuthRoutes() {
                     <PrivateRoute>
                         <PageTransition>
                             <Messages />
+                        </PageTransition>
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/waypoint"
+                element={
+                    <PrivateRoute>
+                        <PageTransition>
+                            <Waypoint />
                         </PageTransition>
                     </PrivateRoute>
                 }
