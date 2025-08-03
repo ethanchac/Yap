@@ -1,8 +1,9 @@
 // WouldYouRather.jsx - Updated to use server-side vote tracking
 import { useState, useEffect } from 'react';
 import WYRItem from './WYRItem';
+import { API_BASE_URL } from '../../../../../services/config';
 
-const API_URL = 'http://localhost:5000/api/activities/wouldyourather';
+const API_URL = `${API_BASE_URL}/api/activities/wouldyourather`;
 
 export default function WouldYouRather() {
   const [questions, setQuestions] = useState([]);

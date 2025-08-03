@@ -5,6 +5,7 @@ import Header from '../../../header/Header';
 import ETHeader from './thread/ETHeader';
 import ETInput from './thread/ETInput';
 import ETPostsFeed from './thread/ETPostsFeed';
+import { API_BASE_URL } from '../../../../services/config';
 
 const EventThread = () => {
   const { eventId } = useParams();
@@ -60,7 +61,7 @@ const EventThread = () => {
 
   const fetchThreadInfo = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/info`, {
+      const response = await fetch(`${API_BASE_URL}/eventthreads/${eventId}/info`, {
         headers: getAuthHeaders()
       });
 
@@ -82,7 +83,7 @@ const EventThread = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/posts?limit=50&sort_order=-1`, {
+      const response = await fetch(`${API_BASE_URL}/eventthreads/${eventId}/posts?limit=50&sort_order=-1`, {
         headers: getAuthHeaders()
       });
 
@@ -105,7 +106,7 @@ const EventThread = () => {
 
   const handleLeaveEvent = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/events/${eventId}/attend`, {
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}/attend`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +157,7 @@ const EventThread = () => {
         formData.append('image', image);  // All with same name for getlist()
       });
 
-      const response = await fetch(`http://localhost:5000/eventthreads/${eventId}/posts`, {
+      const response = await fetch(`${API_BASE_URL}/eventthreads/${eventId}/posts`, {
         method: 'POST',
         headers: getAuthHeaders(), // Don't set Content-Type for FormData
         body: formData
@@ -201,7 +202,7 @@ const EventThread = () => {
 
   const handleLikePost = async (postId, isReply = false, parentPostId = null) => {
     try {
-      const response = await fetch(`http://localhost:5000/eventthreads/posts/${postId}/like`, {
+      const response = await fetch(`${API_BASE_URL}/eventthreads/posts/${postId}/like`, {
         method: 'POST',
         headers: getAuthHeaders()
       });
@@ -251,7 +252,7 @@ const EventThread = () => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/eventthreads/posts/${postId}`, {
+      const response = await fetch(`${API_BASE_URL}/eventthreads/posts/${postId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -280,7 +281,7 @@ const EventThread = () => {
 
   const handleEditPost = async (postId, newContent, isReply = false, parentPostId = null) => {
     try {
-      const response = await fetch(`http://localhost:5000/eventthreads/posts/${postId}`, {
+      const response = await fetch(`${API_BASE_URL}/eventthreads/posts/${postId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -324,7 +325,7 @@ const EventThread = () => {
     if (profilePicture?.trim()) {
       return profilePicture.startsWith('http')
         ? profilePicture
-        : `http://localhost:5000/uploads/profile_pictures/${profilePicture}`;
+        : `${API_BASE_URL}/uploads/profile_pictures/${profilePicture}`;
     }
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };

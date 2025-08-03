@@ -4,6 +4,7 @@ import PostItem from './posts/PostItem';
 import Header from '../../header/Header';
 import EventItem from './events/EventItem';
 import HomepageActivities from './activities/HomepageActivities';
+import { API_BASE_URL } from '../../../services/config';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 function Home() {
@@ -57,7 +58,7 @@ function Home() {
                 setLoadingMore(true);
             }
             
-            const response = await fetch(`http://localhost:5000/posts/feed?page=${pageNum}&limit=20`);
+            const response = await fetch(`${API_BASE_URL}/posts/feed?page=${pageNum}&limit=20`);
             const data = await response.json();
 
             if (response.ok) {

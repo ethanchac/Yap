@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import Header from '../../header/Header';
 import Sidebar from '../../sidebar/Sidebar';
 import PostItem from '../home/posts/PostItem';
+import { API_BASE_URL } from '../../../services/config';
 
 function Likes() {
     const [likedPosts, setLikedPosts] = useState([]);

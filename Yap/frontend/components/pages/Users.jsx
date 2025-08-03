@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'; // Add this import
 import Sidebar from '../sidebar/Sidebar';
 import Header from '../header/Header';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
 
 function Users() {
     const navigate = useNavigate(); // Add this hook
@@ -25,7 +26,7 @@ function Users() {
             setError('');
 
             try {
-                const response = await fetch(`http://localhost:5000/users/search?q=${encodeURIComponent(query)}&limit=20`);
+                const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}&limit=20`);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -70,7 +71,7 @@ function Users() {
                 return user.profile_picture;
             }
             // Match the path from your Flask API routes
-            return `http://localhost:5000/uploads/profile_pictures/${user._id}/${user.profile_picture}`;
+            return `${API_BASE_URL}/uploads/profile_pictures/${user._id}/${user.profile_picture}`;
         }
         // Default profile picture with user's initial
         const initial = user.username ? user.username[0].toUpperCase() : '?';

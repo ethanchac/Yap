@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, MoreVertical, Edit, Trash2, UserPlus, UserMinus } from 'lucide-react';
 import ETReply from './ETReply';
+import { API_BASE_URL } from '../../../../../services/config';
 
 const ETPost = ({ 
   post, 
@@ -32,11 +33,11 @@ const ETPost = ({
     
     // If it's a relative path, prepend the base URL
     if (mediaUrl.startsWith('/eventthreads/images/')) {
-      return `http://localhost:5000${mediaUrl}`;
+      return `${API_BASE_URL}/${mediaUrl}`;
     }
     
     // If it's just a filename, construct the full URL
-    return `http://localhost:5000/eventthreads/images/${mediaUrl}`;
+    return `${API_BASE_URL}/eventthreads/images/${mediaUrl}`;
   };
 
   // Special rendering for join notifications

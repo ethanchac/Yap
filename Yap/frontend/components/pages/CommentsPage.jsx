@@ -5,6 +5,7 @@ import Header from '../header/Header';
 import Sidebar from '../sidebar/Sidebar';
 import PostItem from './home/posts/PostItem';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
 
 function CommentsPage() {
     const { postId } = useParams();
@@ -28,7 +29,7 @@ function CommentsPage() {
             console.log('Fetching comments for postId:', postId); // Debug log
             
             // fetch the posts and comments
-            const response = await fetch(`http://localhost:5000/comments/post/${postId}`);
+            const response = await fetch(`${API_BASE_URL}/comments/post/${postId}`);
             console.log('Response status:', response.status); // Debug log
             
             const data = await response.json();
@@ -68,7 +69,7 @@ function CommentsPage() {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:5000/comments/create', {
+            const response = await fetch(`${API_BASE_URL}/comments/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -107,7 +108,7 @@ function CommentsPage() {
         if (!token) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/comments/${commentId}`, {
+            const response = await fetch(`${API_BASE_URL}/comments/${commentId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -142,7 +143,7 @@ function CommentsPage() {
             if (profilePicture.startsWith('http')) {
                 return profilePicture;
             }
-            return `http://localhost:5000/uploads/profile_pictures/${profilePicture}`;
+            return `${API_BASE_URL}/uploads/profile_pictures/${profilePicture}`;
         }
         // Return a data URL for a simple default avatar
         return "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23e0e0e0'/%3E%3Ccircle cx='20' cy='15' r='6' fill='%23bdbdbd'/%3E%3Cellipse cx='20' cy='35' rx='12' ry='8' fill='%23bdbdbd'/%3E%3C/svg%3E";

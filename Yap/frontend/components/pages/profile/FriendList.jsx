@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/config';
 
 const FriendList = ({ userId, isOwnProfile }) => {
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:5000';
 
   // Get auth headers
   const getAuthHeaders = () => {

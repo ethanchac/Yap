@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import Sidebar from '../sidebar/Sidebar';
 import Header from '../header/Header';
+import { API_BASE_URL } from '../../services/config';
 import { useTheme } from '../../contexts/ThemeContext';
 
 function Create() {
@@ -91,7 +92,7 @@ function Create() {
                 const formData = new FormData();
                 formData.append('image', image);
 
-                const response = await fetch('http://localhost:5000/posts/upload-image', {
+                const response = await fetch(`${API_BASE_URL}/posts/upload-image`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -141,7 +142,7 @@ function Create() {
                 imageUrls = await uploadImages();
             }
 
-            const response = await fetch('http://localhost:5000/posts/create', {
+            const response = await fetch(`${API_BASE_URL}/posts/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -217,7 +218,7 @@ function Create() {
                 max_attendees: maxAttendees ? parseInt(maxAttendees) : null
             };
 
-            const response = await fetch('http://localhost:5000/events/create', {
+            const response = await fetch(`${API_BASE_URL}/events/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

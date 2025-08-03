@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import EventModal from './EventModal';
+import { API_BASE_URL } from '../../../../services/config';
 
 function EventItem() {
     const [events, setEvents] = useState([]);
@@ -79,7 +80,7 @@ function EventItem() {
             setError('');
             
             console.log('Fetching events from API...');
-            const response = await fetch('http://localhost:5000/events/feed?limit=10&include_past=false');
+            const response = await fetch(`${API_BASE_URL}/events/feed?limit=10&include_past=false`);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -186,7 +187,7 @@ function EventItem() {
 
         setDeletingEvent(eventId);
         try {
-            const response = await fetch(`http://localhost:5000/events/${eventId}/cancel`, {
+            const response = await fetch(`${API_BASE_URL}/events/${eventId}/cancel`, {
                 method: 'POST',
                 headers: getAuthHeaders(), // Using same pattern as WouldYouRather
             });

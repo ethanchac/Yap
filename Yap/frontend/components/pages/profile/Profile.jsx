@@ -30,7 +30,7 @@ const Profile = () => {
   const mainContentRef = useRef(null);
   const { isDarkMode } = useTheme();
 
-  const API_BASE_URL = 'http://localhost:5000';
+
   const isOwnProfile = !userId; // if no userId in URL, it's own profile
 
   // get auth headers
@@ -309,7 +309,7 @@ const Profile = () => {
       if (profile.profile_picture.startsWith('http')) {
         return profile.profile_picture;
       }
-      return `http://localhost:5000/uploads/profile_pictures/${profile.profile_picture}`;
+      return `${API_BASE_URL}/uploads/profile_pictures/${profile.profile_picture}`;
     }
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };

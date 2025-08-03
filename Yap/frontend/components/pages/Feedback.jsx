@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Send, Star, MessageSquare, CheckCircle, ArrowLeft } from 'lucide-react';
 import Sidebar from '../sidebar/Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
 
 function Feedback() {
     const [feedback, setFeedback] = useState({
@@ -26,7 +27,7 @@ function Feedback() {
         setIsSubmitting(true);
         
         try {
-            const response = await fetch('http://localhost:5000/api/feedback', {
+            const response = await fetch(`${API_BASE_URL}/api/feedback`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

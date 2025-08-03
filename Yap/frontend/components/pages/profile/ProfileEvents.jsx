@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import EventCard from './EventCard';
 import EventModal from '../home/events/EventModal';
 import { Calendar, Users, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/config';
 
 const ProfileEvents = ({ userId, isOwnProfile }) => {
   const [events, setEvents] = useState([]);
@@ -12,7 +13,6 @@ const ProfileEvents = ({ userId, isOwnProfile }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:5000';
 
   // Get auth headers
   const getAuthHeaders = () => {

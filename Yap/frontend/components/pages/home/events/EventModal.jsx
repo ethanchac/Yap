@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus, Map, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Assuming you're using React Router
+import { API_BASE_URL } from '../../../../services/config';
 
 const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [eventDetails, setEventDetails] = useState(null);
@@ -34,7 +35,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/events/${event._id}/details`, {
+      const response = await fetch(`${API_BASE_URL}/events/${event._id}/details`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -78,7 +79,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const fetchAttendanceStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/events/${event._id}/attend-status`, {
+      const response = await fetch(`${API_BASE_URL}/events/${event._id}/attend-status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -93,7 +94,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const fetchLikeStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/events/${event._id}/like-status`, {
+      const response = await fetch(`${API_BASE_URL}/events/${event._id}/like-status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -108,7 +109,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const refreshFriendsAttending = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/events/${event._id}/details`, {
+      const response = await fetch(`${API_BASE_URL}/events/${event._id}/details`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -126,7 +127,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     setActionLoading(prev => ({ ...prev, attend: true }));
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/events/${event._id}/attend`, {
+      const response = await fetch(`${API_BASE_URL}/events/${event._id}/attend`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -164,7 +165,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     setActionLoading(prev => ({ ...prev, like: true }));
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/events/${event._id}/like`, {
+      const response = await fetch(`${API_BASE_URL}/events/${event._id}/like`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -224,7 +225,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     if (profilePicture?.trim()) {
       return profilePicture.startsWith('http')
         ? profilePicture
-        : `http://localhost:5000/uploads/profile_pictures/${profilePicture}`;
+        : `${API_BASE_URL}/uploads/profile_pictures/${profilePicture}`;
     }
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };
