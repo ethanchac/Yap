@@ -2,7 +2,6 @@ from datetime import datetime
 import pytz
 from bson import ObjectId
 from flask import current_app
-from messages.redis_service import redis_service
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ def format_eastern_timestamp(dt):
 class Message:
     @staticmethod
     def create_message(conversation_id, sender_id, content):
-        """Create a new message with Eastern Time timestamp and Redis caching"""
+        """Create a new message with Eastern Time timestamp"""
         db = current_app.config["DB"]
         
         try:
@@ -50,7 +49,7 @@ class Message:
                 "content": content,
                 "created_at": et_now,
                 "read_by": [sender_id],
-                "message_type": "text",  # Support for future message types
+                "message_type": "text",
                 "edited": False,
                 "edited_at": None
             }
@@ -94,19 +93,6 @@ class Message:
                 }
             }
             
-            # Cache message in Redis for quick access
-            redis_service.cache_message(message_response, ttl=3600)
-            
-            # Store recent message in conversation cache
-            conv_cache_key = f"conversation:{conversation_id}:recent_messages"
-            try:
-                redis_client = current_app.config['REDIS']
-                redis_client.lpush(conv_cache_key, message_id)
-                redis_client.ltrim(conv_cache_key, 0, 49)  # Keep last 50 messages
-                redis_client.expire(conv_cache_key, 3600)  # 1 hour expiry
-            except Exception as redis_error:
-                logger.warning(f"Redis cache error: {redis_error}")
-            
             logger.info(f"Message created: {message_id} in conversation {conversation_id}")
             return message_response
             
@@ -116,31 +102,10 @@ class Message:
     
     @staticmethod
     def get_conversation_messages(conversation_id, limit=50, skip=0):
-        """Get messages for a conversation with Redis caching"""
+        """Get messages for a conversation"""
         db = current_app.config["DB"]
         
         try:
-            # Try to get recent messages from Redis cache first
-            cached_messages = []
-            if skip == 0:  # Only use cache for first page
-                try:
-                    redis_client = current_app.config['REDIS']
-                    conv_cache_key = f"conversation:{conversation_id}:recent_messages"
-                    cached_message_ids = redis_client.lrange(conv_cache_key, 0, limit - 1)
-                    
-                    for msg_id in cached_message_ids:
-                        cached_msg = redis_service.get_cached_message(msg_id)
-                        if cached_msg:
-                            cached_messages.append(cached_msg)
-                    
-                    if len(cached_messages) == limit:
-                        logger.info(f"Returned {len(cached_messages)} cached messages for conversation {conversation_id}")
-                        return cached_messages[::-1]  # Return in chronological order
-                        
-                except Exception as redis_error:
-                    logger.warning(f"Redis cache retrieval error: {redis_error}")
-            
-            # Fallback to database query
             messages = list(db.messages.find({
                 "conversation_id": ObjectId(conversation_id)
             }).sort("created_at", -1).skip(skip).limit(limit))
@@ -148,26 +113,8 @@ class Message:
             result = []
             
             for msg in messages:
-                # Get sender info with caching
-                sender_cache_key = f"user:{msg['sender_id']}"
-                sender = None
-                
-                try:
-                    redis_client = current_app.config['REDIS']
-                    cached_sender = redis_client.get(sender_cache_key)
-                    if cached_sender:
-                        sender = eval(cached_sender)  # Use json.loads in production
-                except:
-                    pass
-                
-                if not sender:
-                    sender = db.users.find_one({"_id": ObjectId(msg["sender_id"])})
-                    if sender:
-                        # Cache sender info for 5 minutes
-                        try:
-                            redis_client.setex(sender_cache_key, 300, str(sender))
-                        except:
-                            pass
+                # Get sender info
+                sender = db.users.find_one({"_id": ObjectId(msg["sender_id"])})
                 
                 # Format timestamp
                 stored_time = msg["created_at"]
@@ -196,9 +143,6 @@ class Message:
                     }
                 }
                 result.append(message)
-                
-                # Cache the formatted message
-                redis_service.cache_message(message, ttl=3600)
             
             # Return in chronological order (oldest first)
             return result[::-1]
@@ -209,7 +153,7 @@ class Message:
     
     @staticmethod
     def mark_messages_as_read(conversation_id, user_id):
-        """Mark all messages in a conversation as read by user with Redis invalidation"""
+        """Mark all messages in a conversation as read by user"""
         db = current_app.config["DB"]
         
         try:
@@ -222,15 +166,6 @@ class Message:
                     "$addToSet": {"read_by": user_id}
                 }
             )
-            
-            # Invalidate conversation cache since read status changed
-            try:
-                redis_client = current_app.config['REDIS']
-                cache_pattern = f"conversation:{conversation_id}:*"
-                for key in redis_client.scan_iter(match=cache_pattern):
-                    redis_client.delete(key)
-            except Exception as redis_error:
-                logger.warning(f"Redis cache invalidation error: {redis_error}")
             
             logger.info(f"Marked {result.modified_count} messages as read for user {user_id}")
             return result.modified_count
@@ -245,16 +180,6 @@ class Message:
         db = current_app.config["DB"]
         
         try:
-            # Check Redis cache first
-            cache_key = f"unread_count:{user_id}"
-            try:
-                redis_client = current_app.config['REDIS']
-                cached_count = redis_client.get(cache_key)
-                if cached_count is not None:
-                    return int(cached_count)
-            except:
-                pass
-            
             # Get user's conversations
             user_conversations = db.conversations.find({"participants": user_id})
             total_unread = 0
@@ -266,12 +191,6 @@ class Message:
                     "read_by": {"$ne": user_id}
                 })
                 total_unread += unread_count
-            
-            # Cache the result for 1 minute
-            try:
-                redis_client.setex(cache_key, 60, total_unread)
-            except:
-                pass
             
             return total_unread
             
@@ -309,15 +228,6 @@ class Message:
             )
             
             if result.modified_count > 0:
-                # Invalidate cache
-                try:
-                    redis_client = current_app.config['REDIS']
-                    redis_client.delete(f"message:{message_id}")
-                    conv_cache_key = f"conversation:{str(message['conversation_id'])}:recent_messages"
-                    redis_client.delete(conv_cache_key)
-                except:
-                    pass
-                
                 return {
                     "message_id": message_id,
                     "new_content": new_content,
@@ -333,32 +243,15 @@ class Message:
 class Conversation:
     @staticmethod
     def get_conversation(conversation_id):
-        """Get conversation by ID with Redis caching"""
+        """Get conversation by ID"""
         db = current_app.config["DB"]
         
         try:
-            # Try Redis cache first
-            cache_key = f"conversation_details:{conversation_id}"
-            try:
-                redis_client = current_app.config['REDIS']
-                cached_conv = redis_client.get(cache_key)
-                if cached_conv:
-                    return eval(cached_conv)  # Use json.loads in production
-            except:
-                pass
-            
             conversation = db.conversations.find_one({"_id": ObjectId(conversation_id)})
             if conversation:
                 conversation["_id"] = str(conversation["_id"])
                 conversation["created_at"] = format_eastern_timestamp(conversation.get("created_at"))
                 conversation["last_message_at"] = format_eastern_timestamp(conversation.get("last_message_at"))
-                
-                # Cache for 5 minutes
-                try:
-                    redis_client.setex(cache_key, 300, str(conversation))
-                except:
-                    pass
-                
                 return conversation
             return None
             
@@ -368,7 +261,7 @@ class Conversation:
 
     @staticmethod
     def create_conversation(participant_ids):
-        """Create a new conversation with Eastern Time timestamps and Redis notifications"""
+        """Create a new conversation with Eastern Time timestamps"""
         db = current_app.config["DB"]
         
         try:
@@ -392,7 +285,7 @@ class Conversation:
                 "created_at": et_now,
                 "last_message_at": et_now,
                 "last_message": None,
-                "conversation_type": "direct",  # Support for group chats later
+                "conversation_type": "direct",
                 "active": True
             }
             
@@ -400,14 +293,6 @@ class Conversation:
             conversation_doc["_id"] = str(result.inserted_id)
             conversation_doc["created_at"] = et_now.isoformat()
             conversation_doc["last_message_at"] = et_now.isoformat()
-            
-            # Cache the new conversation
-            cache_key = f"conversation_details:{conversation_doc['_id']}"
-            try:
-                redis_client = current_app.config['REDIS']
-                redis_client.setex(cache_key, 300, str(conversation_doc))
-            except:
-                pass
             
             logger.info(f"Created new conversation: {conversation_doc['_id']}")
             return conversation_doc
@@ -418,23 +303,10 @@ class Conversation:
     
     @staticmethod
     def get_user_conversations(user_id, limit=20, skip=0):
-        """Get conversations with Redis caching and real-time updates"""
+        """Get conversations for user"""
         db = current_app.config["DB"]
         
         try:
-            # Try cache for first page
-            if skip == 0:
-                cache_key = f"user_conversations:{user_id}"
-                try:
-                    redis_client = current_app.config['REDIS']
-                    cached_convs = redis_client.get(cache_key)
-                    if cached_convs:
-                        cached_data = eval(cached_convs)  # Use json.loads in production
-                        if len(cached_data) >= limit:
-                            return cached_data[:limit]
-                except:
-                    pass
-            
             conversations = list(db.conversations.find({
                 "participants": user_id,
                 "active": {"$ne": False}
@@ -452,56 +324,40 @@ class Conversation:
                         other_participant_id = participant
                         break
                 
-                # Get other participant user info with caching
+                # Get other participant user info
                 other_participant = None
                 if other_participant_id:
-                    user_cache_key = f"user_profile:{other_participant_id}"
-                    try:
-                        redis_client = current_app.config['REDIS']
-                        cached_user = redis_client.get(user_cache_key)
-                        if cached_user:
-                            other_user = eval(cached_user)
-                        else:
-                            other_user = db.users.find_one({"_id": ObjectId(other_participant_id)})
-                            if other_user:
-                                redis_client.setex(user_cache_key, 300, str(other_user))
-                    except:
-                        other_user = db.users.find_one({"_id": ObjectId(other_participant_id)})
+                    other_user = db.users.find_one({"_id": ObjectId(other_participant_id)})
                     
                     if other_user:
                         other_participant = {
                             "_id": str(other_user["_id"]),
                             "username": other_user["username"],
                             "profile_picture": other_user.get("profile_picture", ""),
-                            "online": redis_service.is_user_online(other_participant_id)
+                            "online": False  # Simple offline status since no Redis
                         }
                 
                 # Get last message
                 last_message = None
                 if conv.get("last_message"):
-                    # Try cache first
-                    last_msg_id = str(conv["last_message"])
-                    last_message = redis_service.get_cached_message(last_msg_id)
-                    
-                    if not last_message:
-                        last_msg = db.messages.find_one({"_id": conv["last_message"]})
-                        if last_msg:
-                            stored_time = last_msg["created_at"]
-                            if isinstance(stored_time, datetime):
-                                if stored_time.tzinfo is None:
-                                    stored_time = stored_time.replace(tzinfo=pytz.UTC)
-                                eastern_time = stored_time.astimezone(EASTERN_TZ)
-                                created_at_iso = eastern_time.isoformat()
-                            else:
-                                created_at_iso = stored_time
-                                
-                            last_message = {
-                                "_id": str(last_msg["_id"]),
-                                "content": last_msg["content"],
-                                "sender_id": last_msg["sender_id"],
-                                "created_at": created_at_iso,
-                                "message_type": last_msg.get("message_type", "text")
-                            }
+                    last_msg = db.messages.find_one({"_id": conv["last_message"]})
+                    if last_msg:
+                        stored_time = last_msg["created_at"]
+                        if isinstance(stored_time, datetime):
+                            if stored_time.tzinfo is None:
+                                stored_time = stored_time.replace(tzinfo=pytz.UTC)
+                            eastern_time = stored_time.astimezone(EASTERN_TZ)
+                            created_at_iso = eastern_time.isoformat()
+                        else:
+                            created_at_iso = stored_time
+                            
+                        last_message = {
+                            "_id": str(last_msg["_id"]),
+                            "content": last_msg["content"],
+                            "sender_id": last_msg["sender_id"],
+                            "created_at": created_at_iso,
+                            "message_type": last_msg.get("message_type", "text")
+                        }
                 
                 # Get unread count for this conversation
                 unread_count = db.messages.count_documents({
@@ -518,14 +374,6 @@ class Conversation:
                 conv["last_message"] = last_message
                 conv["unread_count"] = unread_count
                 result.append(conv)
-            
-            # Cache the first page results for 2 minutes
-            if skip == 0 and result:
-                try:
-                    redis_client = current_app.config['REDIS']
-                    redis_client.setex(f"user_conversations:{user_id}", 120, str(result))
-                except:
-                    pass
             
             return result
             

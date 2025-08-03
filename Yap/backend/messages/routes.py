@@ -1,3 +1,4 @@
+import datetime
 from flask import Blueprint, request, jsonify, current_app
 from auth.service import token_required
 from messages.models import Conversation, Message
@@ -155,6 +156,32 @@ def send_message_http(current_user, conversation_id):
         if not message:
             return jsonify({"error": "Failed to send message"}), 500
         
+        # Try to broadcast via SocketIO if available
+        try:
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                room_name = f"conversation_{conversation_id}"
+                socketio.emit('new_message', message, room=room_name)
+                
+                # Send notifications to participants
+                for participant_id in conversation['participants']:
+                    if participant_id != current_user['_id']:
+                        socketio.emit(
+                            'new_message_notification',
+                            {
+                                'message': message,
+                                'conversation_id': conversation_id,
+                                'sender': {
+                                    'username': current_user.get('username', 'Unknown'),
+                                    'user_id': current_user['_id']
+                                }
+                            },
+                            room=f"user_{participant_id}"
+                        )
+        except Exception as socket_error:
+            print(f"SocketIO broadcast failed: {socket_error}")
+            # Continue without real-time broadcasting
+        
         return jsonify({
             "success": True,
             "message": message
@@ -163,3 +190,116 @@ def send_message_http(current_user, conversation_id):
     except Exception as e:
         print(f"Error sending message: {e}")
         return jsonify({"error": "Failed to send message"}), 500
+
+@messages_bp.route('/conversations/<conversation_id>/messages/<message_id>', methods=['PUT'])
+@token_required
+def edit_message(current_user, conversation_id, message_id):
+    """Edit a message"""
+    try:
+        # Verify user is part of conversation
+        conversation = Conversation.get_conversation(conversation_id)
+        if not conversation or current_user['_id'] not in conversation['participants']:
+            return jsonify({"error": "Access denied"}), 403
+        
+        data = request.get_json()
+        new_content = data.get('content', '').strip()
+        
+        if not new_content:
+            return jsonify({"error": "Message content required"}), 400
+        
+        result = Message.edit_message(message_id, new_content, current_user['_id'])
+        
+        if not result:
+            return jsonify({"error": "Failed to edit message or not authorized"}), 403
+        
+        # Try to broadcast edit via SocketIO if available
+        try:
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                room_name = f"conversation_{conversation_id}"
+                socketio.emit('message_edited', {
+                    'message_id': message_id,
+                    'conversation_id': conversation_id,
+                    'new_content': new_content,
+                    'edited_at': result['edited_at']
+                }, room=room_name)
+        except Exception as socket_error:
+            print(f"SocketIO broadcast failed: {socket_error}")
+        
+        return jsonify({
+            "success": True,
+            "edit_result": result
+        }), 200
+        
+    except Exception as e:
+        print(f"Error editing message: {e}")
+        return jsonify({"error": "Failed to edit message"}), 500
+
+@messages_bp.route('/conversations/<conversation_id>/mark-read', methods=['POST'])
+@token_required
+def mark_conversation_read(current_user, conversation_id):
+    """Mark all messages in a conversation as read"""
+    try:
+        # Verify user is part of conversation
+        conversation = Conversation.get_conversation(conversation_id)
+        if not conversation or current_user['_id'] not in conversation['participants']:
+            return jsonify({"error": "Access denied"}), 403
+        
+        count = Message.mark_messages_as_read(conversation_id, current_user['_id'])
+        
+        return jsonify({
+            "success": True,
+            "marked_read": count
+        }), 200
+        
+    except Exception as e:
+        print(f"Error marking messages as read: {e}")
+        return jsonify({"error": "Failed to mark messages as read"}), 500
+
+@messages_bp.route('/unread-count', methods=['GET'])
+@token_required
+def get_unread_count(current_user):
+    """Get total unread message count for current user"""
+    try:
+        count = Message.get_unread_message_count(current_user['_id'])
+        
+        return jsonify({
+            "success": True,
+            "unread_count": count
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting unread count: {e}")
+        return jsonify({"error": "Failed to get unread count"}), 500
+
+# Optional: Polling endpoint for real-time-like updates without WebSocket
+@messages_bp.route('/conversations/<conversation_id>/poll', methods=['GET'])
+@token_required
+def poll_conversation_updates(current_user, conversation_id):
+    """Poll for new messages and updates in a conversation"""
+    try:
+        # Verify user is part of conversation
+        conversation = Conversation.get_conversation(conversation_id)
+        if not conversation or current_user['_id'] not in conversation['participants']:
+            return jsonify({"error": "Access denied"}), 403
+        
+        # Get timestamp from query params for polling
+        since_timestamp = request.args.get('since')
+        
+        # This would need additional logic to get messages since timestamp
+        # For now, just return recent messages
+        messages = Message.get_conversation_messages(conversation_id, limit=10)
+        
+        # Get conversation update timestamp
+        conversation_updated = conversation.get('last_message_at')
+        
+        return jsonify({
+            "success": True,
+            "messages": messages,
+            "conversation_updated": conversation_updated,
+            "server_time": datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"Error polling conversation: {e}")
+        return jsonify({"error": "Failed to poll conversation"}), 500

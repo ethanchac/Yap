@@ -1,16 +1,19 @@
-from flask_socketio import emit, join_room, leave_room, disconnect
+from flask_socketio import emit, join_room, leave_room
 from flask import request, current_app
 from auth.service import verify_token
 from users.models import User
 from messages.models import Message, Conversation
-from messages.redis_service import redis_service
 from datetime import datetime
 import logging
-import json
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# In-memory storage for simple session management
+connected_users = {}  # {session_id: user_info}
+user_sessions = {}    # {user_id: [session_ids]}
+typing_users = {}     # {conversation_id: {user_id: timestamp}}
 
 def get_socketio():
     """Get the SocketIO instance from the current app"""
@@ -21,18 +24,18 @@ def get_socketio():
         return None
 
 def handle_connect(socketio, auth):
-    """Handle client connection with Redis-based session management"""
+    """Handle client connection with simple session management"""
     try:
         logger.info(f"🔌 Connection attempt from {request.sid}")
         
-        # More flexible auth token extraction
+        # Extract auth token
         token = None
         if auth and isinstance(auth, dict):
             token = auth.get('token')
         elif auth and isinstance(auth, str):
             token = auth
         
-        # Also try to get token from query parameters as fallback
+        # Fallback to query parameters
         if not token:
             token = request.args.get('token')
         
@@ -49,7 +52,7 @@ def handle_connect(socketio, auth):
             emit('error', {'message': 'Invalid token'})
             return False
         
-        # Get user info - try multiple possible username fields
+        # Get username from token
         username = (token_data.get('username') or 
                    token_data.get('user') or 
                    token_data.get('sub') or 
@@ -71,23 +74,21 @@ def handle_connect(socketio, auth):
         user_id = user['_id']
         logger.info(f"✅ User found: {user_id} - {username}")
         
-        # Check if user already has active sessions and clean up if needed
-        existing_sessions = redis_service.get_user_sessions(user_id)
-        logger.info(f"👥 User {username} has {len(existing_sessions)} existing sessions")
-        
-        # Store user session in Redis
-        user_data = {
+        # Store session info in memory
+        user_info = {
+            'user_id': user_id,
             'username': username,
             'profile_picture': user.get('profile_picture', ''),
-            'last_active': datetime.now().isoformat(),
-            'session_id': request.sid
+            'connected_at': datetime.now().isoformat(),
+            'last_active': datetime.now().isoformat()
         }
         
-        success = redis_service.set_user_online(user_id, request.sid, user_data)
-        if not success:
-            logger.error(f"❌ Failed to set user online in Redis for {user_id}")
-            emit('error', {'message': 'Failed to establish session'})
-            return False
+        connected_users[request.sid] = user_info
+        
+        # Track user sessions
+        if user_id not in user_sessions:
+            user_sessions[user_id] = []
+        user_sessions[user_id].append(request.sid)
         
         # Join user to their personal room for notifications
         join_room(f"user_{user_id}")
@@ -103,20 +104,6 @@ def handle_connect(socketio, auth):
         
         logger.info(f"✅ User {username} ({user_id}) connected successfully with session {request.sid}")
         
-        # Broadcast to other sessions that user is online (but not to all users)
-        socketio_instance = get_socketio()
-        if socketio_instance and len(existing_sessions) == 0:  # Only broadcast if this is first session
-            socketio_instance.emit(
-                'user_status_change',
-                {
-                    'user_id': user_id,
-                    'username': username,
-                    'status': 'online',
-                    'timestamp': datetime.now().isoformat()
-                },
-                room=f"user_{user_id}_contacts"  # Only to contacts, not all sessions
-            )
-        
         return True
         
     except Exception as e:
@@ -125,54 +112,35 @@ def handle_connect(socketio, auth):
         return False
 
 def handle_disconnect():
-    """Handle client disconnection with Redis cleanup"""
+    """Handle client disconnection with simple cleanup"""
     try:
         logger.info(f"🔌 Disconnect attempt from {request.sid}")
         
-        # Try to get session data
-        try:
-            session_data = redis_service.get_redis().get(f"session:{request.sid}")
-        except:
-            session_data = None
+        # Get session info
+        user_info = connected_users.get(request.sid)
         
-        if session_data:
-            try:
-                data = json.loads(session_data)
-                user_id = data['user_id']
-                username = data.get('username', 'Unknown')
+        if user_info:
+            user_id = user_info['user_id']
+            username = user_info['username']
+            
+            logger.info(f"🧹 Cleaning up session for user {username} ({user_id})")
+            
+            # Remove from connected users
+            del connected_users[request.sid]
+            
+            # Remove from user sessions
+            if user_id in user_sessions:
+                if request.sid in user_sessions[user_id]:
+                    user_sessions[user_id].remove(request.sid)
                 
-                logger.info(f"🧹 Cleaning up session for user {username} ({user_id})")
-                
-                # Clean up Redis session
-                redis_service.set_user_offline(user_id, request.sid)
-                
-                # Leave user's personal room
-                leave_room(f"user_{user_id}")
-                
-                # Check if user is still online from other sessions
-                is_still_online = redis_service.is_user_online(user_id)
-                
-                if not is_still_online:
-                    logger.info(f"📴 User {username} is now completely offline")
-                    # Broadcast offline status only to contacts
-                    socketio_instance = get_socketio()
-                    if socketio_instance:
-                        socketio_instance.emit(
-                            'user_status_change',
-                            {
-                                'user_id': user_id,
-                                'username': username,
-                                'status': 'offline',
-                                'timestamp': datetime.now().isoformat()
-                            },
-                            room=f"user_{user_id}_contacts"
-                        )
-                else:
-                    logger.info(f"📱 User {username} still has other active sessions")
-                
-                logger.info(f"✅ User {username} ({user_id}) disconnected from session {request.sid}")
-            except json.JSONDecodeError:
-                logger.warning(f"⚠️ Invalid session data for {request.sid}")
+                # If no more sessions, remove user entirely
+                if not user_sessions[user_id]:
+                    del user_sessions[user_id]
+            
+            # Leave user's personal room
+            leave_room(f"user_{user_id}")
+            
+            logger.info(f"✅ User {username} ({user_id}) disconnected from session {request.sid}")
         else:
             logger.info(f"❓ Unknown session {request.sid} disconnected")
             
@@ -180,18 +148,14 @@ def handle_disconnect():
         logger.error(f"❌ Error in handle_disconnect: {str(e)}", exc_info=True)
 
 def handle_join_conversation(socketio, data):
-    """Join a conversation room with Redis tracking"""
+    """Join a conversation room"""
     try:
         conversation_id = data.get('conversation_id')
         logger.info(f"🎯 Join conversation attempt from {request.sid}: {conversation_id}")
         
         # Get user from session
-        try:
-            session_data = redis_service.get_redis().get(f"session:{request.sid}")
-        except:
-            session_data = None
-            
-        if not session_data:
+        user_info = connected_users.get(request.sid)
+        if not user_info:
             logger.warning(f"❌ No session found for {request.sid}")
             emit('error', {'message': 'Session not found. Please reconnect.'})
             return
@@ -201,14 +165,8 @@ def handle_join_conversation(socketio, data):
             emit('error', {'message': 'Conversation ID required'})
             return
         
-        try:
-            data_parsed = json.loads(session_data)
-            user_id = data_parsed['user_id']
-            username = data_parsed['username']
-        except (json.JSONDecodeError, KeyError):
-            logger.warning(f"❌ Invalid session data for {request.sid}")
-            emit('error', {'message': 'Invalid session. Please reconnect.'})
-            return
+        user_id = user_info['user_id']
+        username = user_info['username']
         
         logger.info(f"👤 User {username} attempting to join conversation {conversation_id}")
         
@@ -230,28 +188,7 @@ def handle_join_conversation(socketio, data):
         join_room(room_name)
         logger.info(f"🏠 User {username} joined room {room_name}")
         
-        # Track in Redis
-        redis_service.add_user_to_conversation(user_id, conversation_id, request.sid)
-        
-        # Update last seen
-        redis_service.update_last_seen(request.sid)
-        
         emit('joined_conversation', {'conversation_id': conversation_id})
-        
-        # Notify others in the room that user joined (optional, can be disabled to reduce noise)
-        # socketio_instance = get_socketio()
-        # if socketio_instance:
-        #     socketio_instance.emit(
-        #         'user_joined_room',
-        #         {
-        #             'user_id': user_id,
-        #             'username': username,
-        #             'conversation_id': conversation_id,
-        #             'timestamp': datetime.now().isoformat()
-        #         },
-        #         room=room_name,
-        #         include_self=False
-        #     )
         
         # Mark messages as read when joining
         Message.mark_messages_as_read(conversation_id, user_id)
@@ -263,7 +200,7 @@ def handle_join_conversation(socketio, data):
         emit('error', {'message': 'Failed to join conversation'})
 
 def handle_leave_conversation(data):
-    """Leave a conversation room with Redis cleanup"""
+    """Leave a conversation room"""
     try:
         conversation_id = data.get('conversation_id')
         if not conversation_id:
@@ -272,35 +209,23 @@ def handle_leave_conversation(data):
         logger.info(f"👋 User leaving conversation {conversation_id} from {request.sid}")
         
         # Get user from session
-        try:
-            session_data = redis_service.get_redis().get(f"session:{request.sid}")
-        except:
-            session_data = None
+        user_info = connected_users.get(request.sid)
+        if user_info:
+            username = user_info['username']
             
-        if session_data:
-            try:
-                data_parsed = json.loads(session_data)
-                user_id = data_parsed['user_id']
-                username = data_parsed['username']
-                
-                # Leave room
-                room_name = f"conversation_{conversation_id}"
-                leave_room(room_name)
-                
-                # Clean up Redis tracking
-                redis_service.remove_user_from_conversation(user_id, conversation_id, request.sid)
-                
-                emit('left_conversation', {'conversation_id': conversation_id})
-                
-                logger.info(f"✅ User {username} left conversation {conversation_id}")
-            except (json.JSONDecodeError, KeyError):
-                logger.warning(f"⚠️ Invalid session data while leaving conversation")
+            # Leave room
+            room_name = f"conversation_{conversation_id}"
+            leave_room(room_name)
+            
+            emit('left_conversation', {'conversation_id': conversation_id})
+            
+            logger.info(f"✅ User {username} left conversation {conversation_id}")
         
     except Exception as e:
         logger.error(f"❌ Error in handle_leave_conversation: {str(e)}", exc_info=True)
 
 def handle_send_message(socketio, data):
-    """Handle sending a message with Redis broadcasting"""
+    """Handle sending a message with simple broadcasting"""
     try:
         conversation_id = data.get('conversation_id')
         content = data.get('content', '').strip()
@@ -308,24 +233,14 @@ def handle_send_message(socketio, data):
         logger.info(f"📨 Send message attempt from {request.sid}: conv={conversation_id}, length={len(content)}")
         
         # Get user from session
-        try:
-            session_data = redis_service.get_redis().get(f"session:{request.sid}")
-        except:
-            session_data = None
-            
-        if not session_data:
+        user_info = connected_users.get(request.sid)
+        if not user_info:
             logger.warning(f"❌ No session found for {request.sid}")
             emit('error', {'message': 'Session not found. Please reconnect.'})
             return
         
-        try:
-            data_parsed = json.loads(session_data)
-            user_id = data_parsed['user_id']
-            username = data_parsed['username']
-        except (json.JSONDecodeError, KeyError):
-            logger.warning(f"❌ Invalid session data for {request.sid}")
-            emit('error', {'message': 'Invalid session. Please reconnect.'})
-            return
+        user_id = user_info['user_id']
+        username = user_info['username']
         
         if not conversation_id or not content:
             logger.warning(f"❌ Invalid message data from {username}")
@@ -356,7 +271,7 @@ def handle_send_message(socketio, data):
             
             logger.info(f"📡 Broadcasting message {message['_id']} to room {room_name}")
             
-            # Get SocketIO instance
+            # Get SocketIO instance and broadcast
             socketio_instance = get_socketio()
             if socketio_instance:
                 # Emit to all users in the conversation room
@@ -366,7 +281,7 @@ def handle_send_message(socketio, data):
                     room=room_name
                 )
                 
-                # Also emit to users' personal rooms for notifications (if they're not in the conversation room)
+                # Send notifications to participants not in the room
                 for participant_id in conversation['participants']:
                     if participant_id != user_id:  # Don't notify sender
                         socketio_instance.emit(
@@ -389,11 +304,11 @@ def handle_send_message(socketio, data):
                 'timestamp': message['created_at']
             })
             
-            # Update last seen
-            redis_service.update_last_seen(request.sid)
-            
             # Clear typing status
-            redis_service.set_typing_status(user_id, conversation_id, False)
+            if conversation_id in typing_users and user_id in typing_users[conversation_id]:
+                del typing_users[conversation_id][user_id]
+                if not typing_users[conversation_id]:
+                    del typing_users[conversation_id]
             
             logger.info(f"✅ Message sent successfully: {message['_id']} from {username}")
             
@@ -406,30 +321,24 @@ def handle_send_message(socketio, data):
         emit('error', {'message': 'Failed to send message'})
 
 def handle_typing_start(socketio, data):
-    """Handle typing indicator start with Redis"""
+    """Handle typing indicator start"""
     try:
         conversation_id = data.get('conversation_id')
         if not conversation_id:
             return
             
         # Get user from session
-        try:
-            session_data = redis_service.get_redis().get(f"session:{request.sid}")
-        except:
-            return
-            
-        if not session_data:
+        user_info = connected_users.get(request.sid)
+        if not user_info:
             return
         
-        try:
-            data_parsed = json.loads(session_data)
-            user_id = data_parsed['user_id']
-            username = data_parsed['username']
-        except (json.JSONDecodeError, KeyError):
-            return
+        user_id = user_info['user_id']
+        username = user_info['username']
         
-        # Set typing status in Redis
-        redis_service.set_typing_status(user_id, conversation_id, True, ttl=10)
+        # Track typing status
+        if conversation_id not in typing_users:
+            typing_users[conversation_id] = {}
+        typing_users[conversation_id][user_id] = datetime.now()
         
         # Broadcast typing indicator
         room_name = f"conversation_{conversation_id}"
@@ -448,37 +357,29 @@ def handle_typing_start(socketio, data):
                 include_self=False
             )
         
-        # Update last seen
-        redis_service.update_last_seen(request.sid)
-        
     except Exception as e:
         logger.error(f"❌ Error in handle_typing_start: {str(e)}", exc_info=True)
 
 def handle_typing_stop(socketio, data):
-    """Handle typing indicator stop with Redis"""
+    """Handle typing indicator stop"""
     try:
         conversation_id = data.get('conversation_id')
         if not conversation_id:
             return
             
         # Get user from session
-        try:
-            session_data = redis_service.get_redis().get(f"session:{request.sid}")
-        except:
-            return
-            
-        if not session_data:
+        user_info = connected_users.get(request.sid)
+        if not user_info:
             return
         
-        try:
-            data_parsed = json.loads(session_data)
-            user_id = data_parsed['user_id']
-            username = data_parsed['username']
-        except (json.JSONDecodeError, KeyError):
-            return
+        user_id = user_info['user_id']
+        username = user_info['username']
         
-        # Clear typing status in Redis
-        redis_service.set_typing_status(user_id, conversation_id, False)
+        # Clear typing status
+        if conversation_id in typing_users and user_id in typing_users[conversation_id]:
+            del typing_users[conversation_id][user_id]
+            if not typing_users[conversation_id]:
+                del typing_users[conversation_id]
         
         # Broadcast typing stop
         room_name = f"conversation_{conversation_id}"
@@ -500,31 +401,185 @@ def handle_typing_stop(socketio, data):
     except Exception as e:
         logger.error(f"❌ Error in handle_typing_stop: {str(e)}", exc_info=True)
 
-# Additional utility functions for debugging
+# Utility functions for session management
 
-def get_session_info(session_id):
-    """Get session information for debugging"""
-    try:
-        session_data = redis_service.get_redis().get(f"session:{session_id}")
-        if session_data:
-            return json.loads(session_data)
-    except:
-        pass
-    return None
+def get_user_info_by_session(session_id):
+    """Get user info by session ID"""
+    return connected_users.get(session_id)
 
-def cleanup_stale_sessions():
-    """Clean up stale sessions - can be called periodically"""
+def get_user_sessions_by_id(user_id):
+    """Get all sessions for a user ID"""
+    return user_sessions.get(user_id, [])
+
+def is_user_online(user_id):
+    """Check if user is online (has active sessions)"""
+    return user_id in user_sessions and len(user_sessions[user_id]) > 0
+
+def get_online_users_in_conversation(conversation_id):
+    """Get list of online users in a conversation"""
     try:
-        redis_service.cleanup_expired_sessions()
-        logger.info("✅ Cleaned up stale sessions")
+        conversation = Conversation.get_conversation(conversation_id)
+        if not conversation:
+            return []
+        
+        online_users = []
+        for participant_id in conversation['participants']:
+            if is_user_online(participant_id):
+                # Get user info from any of their sessions
+                sessions = get_user_sessions_by_id(participant_id)
+                if sessions:
+                    user_info = connected_users.get(sessions[0])
+                    if user_info:
+                        online_users.append({
+                            'user_id': participant_id,
+                            'username': user_info['username'],
+                            'profile_picture': user_info.get('profile_picture', ''),
+                            'online': True
+                        })
+        
+        return online_users
+        
     except Exception as e:
-        logger.error(f"❌ Error cleaning up sessions: {e}")
+        logger.error(f"Error getting online users for conversation {conversation_id}: {e}")
+        return []
 
-def get_active_users_count():
-    """Get count of active users for monitoring"""
+def get_typing_users_in_conversation(conversation_id):
+    """Get list of users currently typing in a conversation"""
     try:
-        redis_client = redis_service.get_redis()
-        online_keys = redis_client.keys("user_online:*")
-        return len(online_keys)
-    except:
-        return 0
+        if conversation_id not in typing_users:
+            return []
+        
+        # Clean up old typing statuses (older than 15 seconds)
+        current_time = datetime.now()
+        expired_users = []
+        
+        for user_id, timestamp in typing_users[conversation_id].items():
+            if (current_time - timestamp).total_seconds() > 15:
+                expired_users.append(user_id)
+        
+        # Remove expired typing statuses
+        for user_id in expired_users:
+            del typing_users[conversation_id][user_id]
+        
+        # Clean up empty conversation
+        if not typing_users[conversation_id]:
+            del typing_users[conversation_id]
+            return []
+        
+        # Return current typing users with their info
+        typing_list = []
+        for user_id in typing_users[conversation_id].keys():
+            sessions = get_user_sessions_by_id(user_id)
+            if sessions:
+                user_info = connected_users.get(sessions[0])
+                if user_info:
+                    typing_list.append({
+                        'user_id': user_id,
+                        'username': user_info['username']
+                    })
+        
+        return typing_list
+        
+    except Exception as e:
+        logger.error(f"Error getting typing users for conversation {conversation_id}: {e}")
+        return []
+
+def broadcast_to_user(user_id, event, data):
+    """Broadcast an event to all sessions of a specific user"""
+    try:
+        socketio_instance = get_socketio()
+        if not socketio_instance:
+            return False
+        
+        socketio_instance.emit(event, data, room=f"user_{user_id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error broadcasting to user {user_id}: {e}")
+        return False
+
+def broadcast_to_conversation(conversation_id, event, data, exclude_user=None):
+    """Broadcast an event to all users in a conversation"""
+    try:
+        socketio_instance = get_socketio()
+        if not socketio_instance:
+            return False
+        
+        room_name = f"conversation_{conversation_id}"
+        
+        if exclude_user:
+            # Get conversation participants
+            conversation = Conversation.get_conversation(conversation_id)
+            if conversation:
+                for participant_id in conversation['participants']:
+                    if participant_id != exclude_user:
+                        socketio_instance.emit(event, data, room=f"user_{participant_id}")
+        else:
+            socketio_instance.emit(event, data, room=room_name)
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error broadcasting to conversation {conversation_id}: {e}")
+        return False
+
+def cleanup_expired_typing():
+    """Clean up expired typing indicators - can be called periodically"""
+    try:
+        current_time = datetime.now()
+        conversations_to_remove = []
+        
+        for conversation_id, users in typing_users.items():
+            expired_users = []
+            
+            for user_id, timestamp in users.items():
+                if (current_time - timestamp).total_seconds() > 15:
+                    expired_users.append(user_id)
+            
+            # Remove expired users
+            for user_id in expired_users:
+                del typing_users[conversation_id][user_id]
+                
+                # Broadcast typing stop for expired user
+                sessions = get_user_sessions_by_id(user_id)
+                if sessions:
+                    user_info = connected_users.get(sessions[0])
+                    if user_info:
+                        broadcast_to_conversation(
+                            conversation_id,
+                            'user_typing',
+                            {
+                                'user_id': user_id,
+                                'username': user_info['username'],
+                                'conversation_id': conversation_id,
+                                'typing': False,
+                                'timestamp': current_time.isoformat()
+                            },
+                            exclude_user=user_id
+                        )
+            
+            # Mark empty conversations for removal
+            if not typing_users[conversation_id]:
+                conversations_to_remove.append(conversation_id)
+        
+        # Remove empty conversations
+        for conversation_id in conversations_to_remove:
+            del typing_users[conversation_id]
+        
+        logger.info(f"Cleaned up typing indicators for {len(conversations_to_remove)} conversations")
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up typing indicators: {e}")
+
+def get_server_stats():
+    """Get server statistics for monitoring"""
+    try:
+        return {
+            'connected_sessions': len(connected_users),
+            'unique_users_online': len(user_sessions),
+            'active_conversations_with_typing': len(typing_users),
+            'total_typing_users': sum(len(users) for users in typing_users.values())
+        }
+    except Exception as e:
+        logger.error(f"Error getting server stats: {e}")
+        return {}

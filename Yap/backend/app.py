@@ -19,125 +19,60 @@ from eventthreads.routes import eventthreads_bp
 import os
 import sys
 import logging
-import redis
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# loading the .env variables
+# Loading the .env variables
 load_dotenv()
 
-# check if it is in test mode (--test)
+# Check if it is in test mode (--test)
 TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 
-# setting up flask
+# Setting up Flask
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# FIXED: Redis Configuration with proper error handling
-def setup_redis_connection():
-    """Setup Redis connection without crashing the app"""
-    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-    logger.info(f"🔴 Attempting Redis connection to: {redis_url[:30]}...")
-    
-    try:
-        redis_client = redis.from_url(
-            redis_url, 
-            decode_responses=True,
-            socket_connect_timeout=10,
-            socket_timeout=10,
-            retry_on_timeout=True,
-            health_check_interval=30
-        )
-        
-        # Test the connection
-        redis_client.ping()
-        logger.info("✅ Redis connection successful!")
-        return redis_client
-        
-    except redis.ConnectionError as e:
-        logger.error(f"❌ Redis connection failed: {e}")
-        logger.warning("⚠️ App will continue without Redis (messaging features may be limited)")
-        return None
-        
-    except Exception as e:
-        logger.error(f"❌ Unexpected Redis error: {e}")
-        logger.warning("⚠️ App will continue without Redis")
-        return None
-
-# Initialize Redis (won't crash if it fails)
-redis_client = setup_redis_connection()
-
-# CORS Configuration - Updated for Railway
+# CORS Configuration for local development
 CORS(app, 
      origins=[
          "http://localhost:5173", 
          "http://127.0.0.1:5173", 
          "http://localhost:3000",
-         "https://your-vercel-app.vercel.app",
-         os.getenv("FRONTEND_URL", ""),
-         "https://*.railway.app"  # Added Railway domains
+         "http://localhost:8080",
+         os.getenv("FRONTEND_URL", "")
      ],
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "Accept", "X-User-ID"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# FIXED: SOCKETIO CONFIGURATION with conditional Redis
-if redis_client:
-    # SocketIO with Redis message queue
-    logger.info("🔌 Configuring SocketIO with Redis message queue...")
-    socketio = SocketIO(
-        app, 
-        cors_allowed_origins=[
-            "http://localhost:5173", 
-            "http://127.0.0.1:5173", 
-            "http://localhost:3000",
-            "https://your-vercel-app.vercel.app",
-            os.getenv("FRONTEND_URL", ""),
-            "https://*.railway.app"
-        ],
-        async_mode='threading',
-        ping_timeout=60,
-        ping_interval=25,
-        transports=['websocket', 'polling'],
-        logger=True,
-        engineio_logger=True,
-        allow_upgrades=True,
-        message_queue=os.getenv('REDIS_URL')  # Use Redis for scaling
-    )
-    logger.info("✅ SocketIO configured with Redis message queue")
-else:
-    # SocketIO without Redis (single server mode)
-    logger.warning("⚠️ Configuring SocketIO without Redis (single server mode)")
-    socketio = SocketIO(
-        app, 
-        cors_allowed_origins=[
-            "http://localhost:5173", 
-            "http://127.0.0.1:5173", 
-            "http://localhost:3000",
-            "https://your-vercel-app.vercel.app",
-            os.getenv("FRONTEND_URL", ""),
-            "https://*.railway.app"
-        ],
-        async_mode='threading',
-        ping_timeout=60,
-        ping_interval=25,
-        transports=['websocket', 'polling'],
-        logger=True,
-        engineio_logger=True,
-        allow_upgrades=True
-        # No message_queue - single server mode
-    )
+# SocketIO Configuration (simple, no Redis)
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173", 
+        "http://localhost:3000",
+        "http://localhost:8080",
+        os.getenv("FRONTEND_URL", "")
+    ],
+    async_mode='threading',
+    ping_timeout=60,
+    ping_interval=25,
+    transports=['websocket', 'polling'],
+    logger=True,
+    engineio_logger=True,
+    allow_upgrades=True
+)
 
-# Store Redis client in app config (can be None)
-app.config['REDIS'] = redis_client
+logger.info("✅ SocketIO configured for single server mode")
 
-# configuring file upload
+# Configuring file upload
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
 
-# create upload directory if it doesn't exist
+# Create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Enhanced CORS handling for complex requests
@@ -149,9 +84,8 @@ def after_request(response):
         'http://localhost:5173', 
         'http://127.0.0.1:5173', 
         'http://localhost:3000',
-        'https://your-vercel-app.vercel.app',
-        os.getenv("FRONTEND_URL", ""),
-        'https://*.railway.app'
+        'http://localhost:8080',
+        os.getenv("FRONTEND_URL", "")
     ]
     
     if origin in allowed_origins:
@@ -172,9 +106,8 @@ def handle_options():
             'http://localhost:5173', 
             'http://127.0.0.1:5173', 
             'http://localhost:3000',
-            'https://your-vercel-app.vercel.app',
-            os.getenv("FRONTEND_URL", ""),
-            'https://*.railway.app'
+            'http://localhost:8080',
+            os.getenv("FRONTEND_URL", "")
         ]
         
         response = jsonify({'status': 'OK'})
@@ -188,7 +121,7 @@ def handle_options():
         response.headers['Access-Control-Max-Age'] = '3600'
         return response
 
-# database selection based on test mode
+# Database selection based on test mode
 if TEST_MODE:
     mongo_uri = os.getenv("MONGO_TEST_URI")
     db_name = "unithread_test"
@@ -252,7 +185,7 @@ def setup_waypoint_indexes():
 # Setup waypoint indexes
 setup_waypoint_indexes()
 
-# register blueprints
+# Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(registration_bp, url_prefix="/users")
 app.register_blueprint(users_bp, url_prefix="/users")
@@ -281,13 +214,8 @@ def handle_connect(auth):
             logger.info(f"Socket {request.sid} connected successfully")
         else:
             logger.warning(f"Socket {request.sid} connection failed")
-    except ImportError:
-        # Fallback if socket_handlers doesn't exist, try services
-        try:
-            from Yap.backend.messages.socket_handlers import handle_connect
-            handle_connect(socketio, auth)
-        except ImportError as e:
-            logger.error(f"Could not import socket handlers: {e}")
+    except ImportError as e:
+        logger.error(f"Could not import socket handlers: {e}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -296,12 +224,8 @@ def handle_disconnect():
     try:
         from messages.socket_handlers import handle_disconnect
         handle_disconnect()
-    except ImportError:
-        try:
-            from Yap.backend.messages.socket_handlers import handle_disconnect
-            handle_disconnect()
-        except ImportError as e:
-            logger.error(f"Could not import socket handlers: {e}")
+    except ImportError as e:
+        logger.error(f"Could not import socket handlers: {e}")
 
 @socketio.on('join_conversation')
 def handle_join_conversation(data):
@@ -310,12 +234,8 @@ def handle_join_conversation(data):
     try:
         from messages.socket_handlers import handle_join_conversation
         handle_join_conversation(socketio, data)
-    except ImportError:
-        try:
-            from Yap.backend.messages.socket_handlers import handle_join_conversation
-            handle_join_conversation(socketio, data)
-        except ImportError as e:
-            logger.error(f"Could not import socket handlers: {e}")
+    except ImportError as e:
+        logger.error(f"Could not import socket handlers: {e}")
 
 @socketio.on('leave_conversation')
 def handle_leave_conversation(data):
@@ -324,12 +244,8 @@ def handle_leave_conversation(data):
     try:
         from messages.socket_handlers import handle_leave_conversation
         handle_leave_conversation(data)
-    except ImportError:
-        try:
-            from Yap.backend.messages.socket_handlers import handle_leave_conversation
-            handle_leave_conversation(data)
-        except ImportError as e:
-            logger.error(f"Could not import socket handlers: {e}")
+    except ImportError as e:
+        logger.error(f"Could not import socket handlers: {e}")
 
 @socketio.on('send_message')
 def handle_send_message(data):
@@ -338,12 +254,8 @@ def handle_send_message(data):
     try:
         from messages.socket_handlers import handle_send_message
         handle_send_message(socketio, data)
-    except ImportError:
-        try:
-            from Yap.backend.messages.socket_handlers import handle_send_message
-            handle_send_message(socketio, data)
-        except ImportError as e:
-            logger.error(f"Could not import socket handlers: {e}")
+    except ImportError as e:
+        logger.error(f"Could not import socket handlers: {e}")
 
 @socketio.on('typing_start')
 def handle_typing_start(data):
@@ -351,12 +263,8 @@ def handle_typing_start(data):
     try:
         from messages.socket_handlers import handle_typing_start
         handle_typing_start(socketio, data)
-    except ImportError:
-        try:
-            from Yap.backend.messages.socket_handlers import handle_typing_start
-            handle_typing_start(socketio, data)
-        except ImportError as e:
-            logger.error(f"Could not import socket handlers: {e}")
+    except ImportError as e:
+        logger.error(f"Could not import socket handlers: {e}")
 
 @socketio.on('typing_stop')
 def handle_typing_stop(data):
@@ -364,12 +272,8 @@ def handle_typing_stop(data):
     try:
         from messages.socket_handlers import handle_typing_stop
         handle_typing_stop(socketio, data)
-    except ImportError:
-        try:
-            from Yap.backend.messages.socket_handlers import handle_typing_stop
-            handle_typing_stop(socketio, data)
-        except ImportError as e:
-            logger.error(f"Could not import socket handlers: {e}")
+    except ImportError as e:
+        logger.error(f"Could not import socket handlers: {e}")
 
 # Add error handler for socket events
 @socketio.on_error_default
@@ -377,7 +281,7 @@ def default_error_handler(e):
     """Handle socket errors"""
     logger.error(f"Socket error from {request.sid}: {e}")
 
-# route to serve uploaded profile pictures
+# Route to serve uploaded profile pictures
 @app.route('/uploads/profile_pictures/<user_id>/<filename>')
 def uploaded_file(user_id, filename):
     """Serve uploaded profile pictures"""
@@ -393,28 +297,15 @@ def uploaded_file(user_id, filename):
     except Exception as e:
         return jsonify({"error": "Failed to serve file"}), 500
 
-# when file size is too big
+# When file size is too big
 @app.errorhandler(413)
 def too_large(e):
     return jsonify({"error": "File too large. Maximum size is 5MB"}), 413
 
-# FIXED: Health check endpoint with better Redis handling
+# Health check endpoint
 @app.route('/health')
 def health_check():
-    """Health check endpoint with detailed status"""
-    redis_status = "disconnected"
-    redis_error = None
-    
-    try:
-        if redis_client:
-            redis_client.ping()
-            redis_status = "connected"
-        else:
-            redis_status = "not_initialized"
-    except Exception as e:
-        redis_status = "error"
-        redis_error = str(e)
-    
+    """Health check endpoint"""
     # Test MongoDB
     db_status = "connected"
     db_error = None
@@ -424,11 +315,7 @@ def health_check():
         db_status = "error"
         db_error = str(e)
     
-    overall_status = "healthy"
-    if db_status != "connected":
-        overall_status = "unhealthy"  # MongoDB is critical
-    elif redis_status not in ["connected", "not_initialized"]:
-        overall_status = "degraded"  # Redis issues are not fatal
+    overall_status = "healthy" if db_status == "connected" else "unhealthy"
     
     response = {
         "status": overall_status,
@@ -436,11 +323,6 @@ def health_check():
             "name": db_name,
             "status": db_status,
             "error": db_error
-        },
-        "redis": {
-            "status": redis_status,
-            "error": redis_error,
-            "url_configured": bool(os.getenv('REDIS_URL'))
         },
         "environment": {
             "mode": "TEST" if TEST_MODE else "PRODUCTION",
@@ -450,40 +332,32 @@ def health_check():
     
     return jsonify(response)
 
-# Add debug endpoint
-@app.route('/debug')
-def debug_info():
-    """Debug endpoint to check configuration"""
+# Simple root route
+@app.route('/')
+def index():
+    """Root endpoint"""
     return jsonify({
-        "redis_url_set": bool(os.getenv('REDIS_URL')),
-        "redis_client_initialized": redis_client is not None,
-        "environment_vars": {
-            "REDIS_URL": "SET" if os.getenv('REDIS_URL') else "NOT_SET",
-            "SECRET_KEY": "SET" if os.getenv('SECRET_KEY') else "NOT_SET",
-            "MONGO_URI": "SET" if os.getenv('MONGO_URI') else "NOT_SET"
-        }
+        "message": "UniThread API is running!",
+        "status": "healthy",
+        "database": db_name
     })
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting SocketIO server...")
+    logger.info("🚀 Starting Flask-SocketIO server...")
     
-    # Get port from environment variable (Railway provides this)
+    # Get port from environment variable or default to 5000
     port = int(os.environ.get('PORT', 5000))
     
-    logger.info(f"🌐 Server will be accessible at http://0.0.0.0:{port}")
-    logger.info(f"🔌 WebSocket endpoint: ws://0.0.0.0:{port}/socket.io/")
+    logger.info(f"🌐 Server will be accessible at http://localhost:{port}")
+    logger.info(f"🔌 WebSocket endpoint: ws://localhost:{port}/socket.io/")
+    logger.info(f"📊 Connected to MongoDB: {db_name}")
     
-    if redis_client:
-        logger.info(f"🔴 Redis: Connected")
-    else:
-        logger.warning(f"🔴 Redis: Not connected (app will run in single-server mode)")
-    
-    # Use socketio.run instead of app.run for WebSocket support
+    # Use socketio.run for WebSocket support
     socketio.run(
         app, 
-        debug=False,  # Set to False for production
-        host='0.0.0.0',  # This allows external connections
-        port=port,  # Use the PORT environment variable
-        use_reloader=False,  # Disable reloader in production
+        debug=True,  # Enable debug for local development
+        host='127.0.0.1',  # Local development
+        port=port,
+        use_reloader=True,  # Enable reloader for development
         log_output=True
     )
