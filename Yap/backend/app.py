@@ -34,13 +34,15 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# CORS Configuration for local development
+# CORS Configuration - Updated for Vercel
 CORS(app, 
      origins=[
          "http://localhost:5173", 
          "http://127.0.0.1:5173", 
          "http://localhost:3000",
          "http://localhost:8080",
+         "https://yap-mu.vercel.app",  # Your Vercel production URL
+         "https://*.vercel.app",        # All Vercel preview deployments
          os.getenv("FRONTEND_URL", "")
      ],
      supports_credentials=True,
@@ -55,6 +57,8 @@ socketio = SocketIO(
         "http://127.0.0.1:5173", 
         "http://localhost:3000",
         "http://localhost:8080",
+        "https://yap-mu.vercel.app",  # Your Vercel production URL
+        "https://*.vercel.app",        # All Vercel preview deployments
         os.getenv("FRONTEND_URL", "")
     ],
     async_mode='threading',
@@ -85,10 +89,12 @@ def after_request(response):
         'http://127.0.0.1:5173', 
         'http://localhost:3000',
         'http://localhost:8080',
+        'https://yap-mu.vercel.app',  # Your Vercel production URL
         os.getenv("FRONTEND_URL", "")
     ]
     
-    if origin in allowed_origins:
+    # Also allow any .vercel.app subdomain for preview deployments
+    if origin and (origin in allowed_origins or origin.endswith('.vercel.app')):
         response.headers['Access-Control-Allow-Origin'] = origin
     
     response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS,PATCH'
@@ -107,12 +113,14 @@ def handle_options():
             'http://127.0.0.1:5173', 
             'http://localhost:3000',
             'http://localhost:8080',
+            'https://yap-mu.vercel.app',  # Your Vercel production URL
             os.getenv("FRONTEND_URL", "")
         ]
         
         response = jsonify({'status': 'OK'})
         
-        if origin in allowed_origins:
+        # Also allow any .vercel.app subdomain for preview deployments
+        if origin and (origin in allowed_origins or origin.endswith('.vercel.app')):
             response.headers['Access-Control-Allow-Origin'] = origin
         
         response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS,PATCH'
