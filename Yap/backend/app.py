@@ -348,16 +348,41 @@ if __name__ == "__main__":
     # Get port from environment variable or default to 5000
     port = int(os.environ.get('PORT', 5000))
     
-    logger.info(f"🌐 Server will be accessible at http://localhost:{port}")
-    logger.info(f"🔌 WebSocket endpoint: ws://localhost:{port}/socket.io/")
-    logger.info(f"📊 Connected to MongoDB: {db_name}")
-    
-    # Use socketio.run for WebSocket support
-    socketio.run(
-        app, 
-        debug=True,  # Enable debug for local development
-        host='127.0.0.1',  # Local development
-        port=port,
-        use_reloader=True,  # Enable reloader for development
-        log_output=True
+    # Detect if we're in production (common environment variables)
+    is_production = (
+        os.environ.get('RAILWAY_ENVIRONMENT') or 
+        os.environ.get('RENDER') or 
+        os.environ.get('HEROKU') or 
+        os.environ.get('PRODUCTION') or
+        os.environ.get('NODE_ENV') == 'production'
     )
+    
+    if is_production:
+        logger.info(f"🌐 Production server starting on 0.0.0.0:{port}")
+        logger.info(f"🔌 WebSocket endpoint: ws://0.0.0.0:{port}/socket.io/")
+        
+        # Production settings
+        socketio.run(
+            app, 
+            debug=False,
+            host='0.0.0.0',
+            port=port,
+            use_reloader=False,
+            log_output=True,
+            allow_unsafe_werkzeug=True  # This suppresses the Werkzeug warning
+        )
+    else:
+        logger.info(f"🌐 Development server starting on localhost:{port}")
+        logger.info(f"🔌 WebSocket endpoint: ws://localhost:{port}/socket.io/")
+        
+        # Development settings
+        socketio.run(
+            app, 
+            debug=True,
+            host='127.0.0.1',
+            port=port,
+            use_reloader=True,
+            log_output=True
+        )
+    
+    logger.info(f"📊 Connected to MongoDB: {db_name}")
