@@ -1,5 +1,6 @@
 // MindPost.jsx
 import { useState } from 'react';
+import { API_BASE_URL } from '../../../../../services/config';
 
 export default function MindPost({ post, onDelete, isDeleting }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -37,9 +38,9 @@ export default function MindPost({ post, onDelete, isDeleting }) {
   const getProfilePictureUrl = () => {
     if (post.profile_picture) {
       if (post.profile_picture.startsWith('http')) return post.profile_picture;
-      return `http://localhost:5000/uploads/profile_pictures/${post.profile_picture}`;
+      return `${API_BASE_URL}/uploads/profile_pictures/${post.profile_picture}`;
     }
-    return `http://localhost:5000/static/default/default-avatar.png`;
+    return `${API_BASE_URL}/static/default/default-avatar.png`;
   };
 
   return (
@@ -49,7 +50,7 @@ export default function MindPost({ post, onDelete, isDeleting }) {
         src={getProfilePictureUrl()}
         alt={`${post.username || 'User'}'s profile`}
         onError={(e) => {
-          e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+          e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
         }}
         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
       />

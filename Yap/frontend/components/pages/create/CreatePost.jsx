@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ImageIcon, Send, Smile, Hash, AtSign } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/config';
 
 function CreatePost() {
     // Post state
@@ -174,7 +175,7 @@ function CreatePost() {
                 const formData = new FormData();
                 formData.append('image', image);
 
-                const response = await fetch('http://localhost:5000/posts/upload-image', {
+                const response = await fetch(`${API_BASE_URL}/posts/upload-image`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -224,7 +225,7 @@ function CreatePost() {
                 imageUrls = await uploadImages();
             }
 
-            const response = await fetch('http://localhost:5000/posts/create', {
+            const response = await fetch(`${API_BASE_URL}/posts/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

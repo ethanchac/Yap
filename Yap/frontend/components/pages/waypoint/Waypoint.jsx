@@ -4,6 +4,7 @@ import WaypointModal from './WaypointModal.jsx';
 import WaypointHeader from './WaypointHeader.jsx';
 import WaypointMap from './WaypointMap.jsx';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../../services/config.js';
 
 // Import Leaflet CSS - make sure this is in your main CSS file
 import 'leaflet/dist/leaflet.css';
@@ -29,7 +30,6 @@ function Waypoint() {
     // TMU Campus coordinates
     const TMU_COORDS = [43.6577, -79.3788];
     const ZOOM_LEVEL = 16;
-    const API_BASE_URL = 'http://localhost:5000';
 
     // Get auth headers
     const getAuthHeaders = () => {

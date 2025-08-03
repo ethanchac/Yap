@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap, Heart } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../../services/config';
 
 const Profile = () => {
   const { userId } = useParams(); // Get userId from URL

@@ -1,8 +1,9 @@
 // WhatsOnYourMind.jsx
 import { useState, useEffect } from 'react';
 import MindPost from './MindPost';
+import { API_BASE_URL } from '../../../../../services/config';
 
-const API_URL = 'http://localhost:5000/api/activities/whatsonmind';
+const API_URL = `${API_BASE_URL}/api/activities/whatsonmind`;
 
 export default function WhatsOnYourMind() {
   const [posts, setPosts] = useState([]);
@@ -48,7 +49,7 @@ export default function WhatsOnYourMind() {
     if (!token) return;
 
     try {
-      const response = await fetch('http://localhost:5000/users/me', {
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -68,9 +69,9 @@ export default function WhatsOnYourMind() {
       if (currentUser.profile_picture.startsWith('http')) {
         return currentUser.profile_picture;
       }
-      return `http://localhost:5000/uploads/profile_pictures/${currentUser.profile_picture}`;
+      return `${API_BASE_URL}/uploads/profile_pictures/${currentUser.profile_picture}`;
     }
-    return `http://localhost:5000/static/default/default-avatar.png`;
+    return `${API_BASE_URL}/static/default/default-avatar.png`;
   };
 
   const fetchPosts = async () => {
@@ -227,7 +228,7 @@ export default function WhatsOnYourMind() {
               src={getCurrentUserProfilePicture()}
               alt="Your profile"
               onError={(e) => {
-                e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
               }}
               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />

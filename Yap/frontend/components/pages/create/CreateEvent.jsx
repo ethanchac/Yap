@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUsers, FaRegEdit } from 'react-icons/fa';
 import EventLocationMap from './EventLocationMap.jsx';
+import { API_BASE_URL } from '../../../services/config.js';
 
 function CreateEvent() {
     // Event state
@@ -108,7 +109,7 @@ function CreateEvent() {
                 max_attendees: maxAttendees ? parseInt(maxAttendees) : null
             };
 
-            const response = await fetch('http://localhost:5000/events/create', {
+            const response = await fetch(`${API_BASE_URL}/events/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ function CreateEvent() {
                             expires_in_hours: calculateHoursUntilEvent(eventDate, eventTime)
                         };
 
-                        await fetch('http://localhost:5000/waypoint/create', {
+                        await fetch(`${API_BASE_URL}/waypoint/create`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
