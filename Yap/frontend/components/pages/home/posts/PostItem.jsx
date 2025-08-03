@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Trash2, MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../../../services/config';
 
 function PostItem({ post, onPostDeleted }) {
     const [liked, setLiked] = useState(false);
@@ -27,7 +28,7 @@ function PostItem({ post, onPostDeleted }) {
         if (!token) return;
 
         try {
-            const response = await fetch('http://localhost:5000/users/me', {
+            const response = await fetch(`${API_BASE_URL}/users/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -52,7 +53,7 @@ function PostItem({ post, onPostDeleted }) {
         if (!token) return; // User not logged in
 
         try {
-            const response = await fetch(`http://localhost:5000/posts/${post._id}/like-status`, {
+            const response = await fetch(`${API_BASE_URL}/posts/${post._id}/like-status`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -78,7 +79,7 @@ function PostItem({ post, onPostDeleted }) {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:5000/posts/${post._id}/like`, {
+            const response = await fetch(`${API_BASE_URL}/posts/${post._id}/like`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -112,7 +113,7 @@ function PostItem({ post, onPostDeleted }) {
         setDeleting(true);
 
         try {
-            const response = await fetch(`http://localhost:5000/posts/${post._id}`, {
+            const response = await fetch(`${API_BASE_URL}/posts/${post._id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -164,9 +165,9 @@ function PostItem({ post, onPostDeleted }) {
             if (post.profile_picture.startsWith('http')) {
                 return post.profile_picture;
             }
-            return `http://localhost:5000/uploads/profile_pictures/${post.profile_picture}`;
+            return `${API_BASE_URL}/uploads/profile_pictures/${post.profile_picture}`;
         }
-        return `http://localhost:5000/static/default/default-avatar.png`;
+        return `${API_BASE_URL}/static/default/default-avatar.png`;
     };
 
     const renderPostImages = () => {
@@ -268,7 +269,7 @@ function PostItem({ post, onPostDeleted }) {
                     alt={`${post.username}'s profile`}
                     onClick={handleProfilePhotoClick}
                     onError={(e) => {
-                        e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                        e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
                     }}
                     className='w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity object-cover'
                 />

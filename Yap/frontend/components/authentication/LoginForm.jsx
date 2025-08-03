@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from "../../services/config";
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({
@@ -36,7 +37,7 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
