@@ -2,6 +2,7 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/authentication/LoginForm.jsx';
 import Signup from './components/authentication/RegisterForm.jsx';
 import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx'; // ADD THIS LINE
+import LandingPage from './components/pages/LandingPage.jsx';
 import Home from './components/pages/home/Home.jsx';
 import Create from './components/pages/Create.jsx';
 import Users from './components/pages/Users.jsx';
@@ -28,6 +29,11 @@ const PrivateRoute = ({ children }) => {
 function AuthRoutes() {
     return (
         <Routes>
+            <Route path="/" element={
+                <PageTransition>
+                    <LandingPage />
+                </PageTransition>
+            } />
             <Route path="/login" element={
                 <PageTransition>
                     <Login />
@@ -41,11 +47,6 @@ function AuthRoutes() {
             <Route path="/forgot-password" element={
                 <PageTransition>
                     <ForgotPassword />
-                </PageTransition>
-            } />
-            <Route path="/" element={
-                <PageTransition>
-                    <Login />
                 </PageTransition>
             } />
             <Route

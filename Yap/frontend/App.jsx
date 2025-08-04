@@ -1,4 +1,3 @@
-import { BrowserRouter } from 'react-router-dom';
 import AuthRoutes from './AuthRoutes'; // Import AuthRoutes
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
