@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+// Removed react-router-dom import - using button elements instead
 import { 
   ArrowRight, 
   Users, 
@@ -15,7 +15,10 @@ import {
   Globe,
   Bell,
   Search,
-  Shield
+  Shield,
+  Building,
+  GraduationCap,
+  Coffee
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -26,10 +29,10 @@ const LandingPage = () => {
   const [isTyping, setIsTyping] = useState(true);
 
   const typingTexts = [
-    "Connect with your campus community",
-    "Discover amazing events",
-    "Explore your university like never before",
-    "Join the next generation of campus social"
+    "Connect with TMU students downtown",
+    "Discover events at 350 Victoria Street",
+    "Explore Toronto's urban campus",
+    "Join the TMU community revolution"
   ];
 
   useEffect(() => {
@@ -67,24 +70,24 @@ const LandingPage = () => {
   const features = [
     {
       icon: <Users className="w-8 h-8" />,
-      title: "Smart Social Networking",
-      description: "Connect with classmates, join study groups, and build meaningful relationships with people who share your interests and academic goals.",
+      title: "Connect with TMU Students",
+      description: "Meet fellow friends across all faculties - from Engineering to Business, Arts to Science. Build study groups, find project partners, and make lifelong friendships.",
       color: "from-blue-500 to-purple-600",
-      highlights: ["Friend suggestions", "Study group finder", "Interest-based matching"]
+      highlights: ["Cross-faculty networking", "Study group matching", "Program-specific connections"]
     },
     {
       icon: <Calendar className="w-8 h-8" />,
-      title: "Campus Event Discovery",
-      description: "Never miss out on campus life again. Discover events, parties, workshops, and activities happening right on your campus.",
+      title: "Downtown Campus Events",
+      description: "Stay connected to everything happening at TMU and in downtown Toronto. From RSU events to faculty mixers, career fairs to social nights.",
       color: "from-orange-500 to-red-500",
-      highlights: ["Real-time updates", "Event recommendations", "RSVP system"]
+      highlights: ["RSU event updates", "Faculty-specific events", "Downtown Toronto activities"]
     },
     {
       icon: <MapPin className="w-8 h-8" />,
-      title: "Interactive Campus Map",
-      description: "Navigate your campus with an interactive map that shows events, study spots, dining locations, and hidden gems.",
+      title: "Navigate TMU & Toronto",
+      description: "Find your way around TMU's urban campus and discover the best study spots, food courts, and hidden gems in downtown Toronto.",
       color: "from-green-500 to-teal-500",
-      highlights: ["Live event locations", "Study spot finder", "Campus navigation"]
+      highlights: ["Campus building finder", "Best study spots", "Downtown Toronto hotspots"]
     }
   ];
 
@@ -92,32 +95,32 @@ const LandingPage = () => {
     {
       icon: <MessageCircle className="w-6 h-6" />,
       title: "Real-time Messaging",
-      description: "Chat with friends, create group conversations, and stay connected with your campus community."
+      description: "Chat with fellow TMU students, create project groups, and stay connected with your campus community."
     },
     {
       icon: <Heart className="w-6 h-6" />,
       title: "Like & Share",
-      description: "Show appreciation for posts, events, and share interesting content with your network."
+      description: "Show appreciation for posts, events, and share interesting content with your TMU network."
     },
     {
       icon: <Search className="w-6 h-6" />,
       title: "Smart Search",
-      description: "Find people, events, and content quickly with our intelligent search and filtering system."
+      description: "Find TMU students, campus events, and content quickly with our intelligent search system."
     },
     {
       icon: <Bell className="w-6 h-6" />,
-      title: "Smart Notifications",
-      description: "Get personalized notifications about events, messages, and activities that matter to you."
+      title: "TMU Notifications",
+      description: "Get alerts about important deadlines, RSU events, and campus announcements that matter to you."
     },
     {
       icon: <Shield className="w-6 h-6" />,
       title: "Privacy First",
-      description: "Your data is protected with enterprise-grade security and privacy controls."
+      description: "Your TMU student data is protected with enterprise-grade security and privacy controls."
     },
     {
       icon: <Globe className="w-6 h-6" />,
       title: "Campus-Wide Access",
-      description: "Connect with students across your entire university campus, not just your department."
+      description: "Connect with students across all TMU faculties and programs, from downtown to satellite campuses."
     }
   ];
 
@@ -138,18 +141,16 @@ const LandingPage = () => {
           <span className="text-white text-xl font-bold">Yapp</span>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <Link 
-            to="/login"
+          <button 
             className="text-gray-300 hover:text-white transition-colors px-2 sm:px-4 py-2 text-sm sm:text-base"
           >
             Sign In
-          </Link>
-          <Link 
-            to="/signup"
+          </button>
+          <button 
             className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 sm:px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 text-sm sm:text-base"
           >
-            Join Now!
-          </Link>
+            Join TMU Community
+          </button>
         </div>
       </nav>
 
@@ -158,12 +159,12 @@ const LandingPage = () => {
         <div className={`max-w-4xl mx-auto transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <div className="flex items-center justify-center mb-6">
             <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mr-2 sm:mr-3" />
-            <span className="text-orange-400 font-semibold text-sm sm:text-base">The Future of Campus Social</span>
+            <span className="text-orange-400 font-semibold text-sm sm:text-base">The Future of TMU Campus Social</span>
           </div>
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
             <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent animate-float">
-              Connect.
+              Your TMU.
             </span>
             <br />
             <span className="bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent animate-gradient animate-float" style={{animationDelay: '0.5s'}}>
@@ -184,18 +185,20 @@ const LandingPage = () => {
           </div>
           
           <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-8 max-w-3xl mx-auto px-4">
-            Yapp is the revolutionary campus social platform designed exclusively for university students. 
-            Connect with your campus community, discover amazing events, and explore your university like never before.
+            Yapp is the revolutionary campus social platform designed exclusively for TMU students. 
+            Connect with your campus community, discover amazing events happening downtown, and explore Toronto like never before.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 px-4">
-            <Link 
-              to="/signup"
+            <button 
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-200 transform hover:scale-105 flex items-center animate-glow"
             >
-              Join Now!
+              Join the Community
               <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-            </Link>
+            </button>
+            <div className="text-sm text-gray-400">
+              ✓ Verified TMU students only
+            </div>
           </div>
         </div>
       </section>
@@ -205,10 +208,10 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">
-              Everything you need to thrive on campus
+              Everything you need for TMU campus life
             </h2>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              Powerful features designed specifically for university life, built by students, for students
+              Powerful features designed specifically for Toronto Metropolitan University students, built by students, for students
             </p>
           </div>
 
@@ -247,7 +250,7 @@ const LandingPage = () => {
               Built for modern campus life
             </h2>
             <p className="text-gray-400 text-lg">
-              Every feature is designed to enhance your university experience
+              Every feature is designed to enhance your TMU university experience
             </p>
           </div>
 
@@ -268,31 +271,31 @@ const LandingPage = () => {
         </div>
       </section>
 
-
       {/* CTA Section */}
       <section className="relative z-10 px-4 sm:px-8 py-20">
         <div className="max-w-4xl mx-auto text-center">
           <div className="bg-gradient-to-r from-orange-500/10 to-purple-500/10 backdrop-blur-lg border border-white/10 rounded-3xl p-12">
             <h2 className="text-4xl font-bold text-white mb-6">
-              Ready to transform your campus experience?
+              Ready to transform your TMU campus experience?
             </h2>
             <p className="text-gray-400 text-lg mb-8">
-              Join thousands of students who are already connecting, discovering, and exploring with Yapp.
+              Join thousands of TMU students who are already connecting, discovering, and exploring with Yapp.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <Link 
-                to="/signup"
+              <button 
                 className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 transform hover:scale-105 flex items-center"
               >
-                Join Now!
+                Join with TMU Email
                 <ChevronRight className="w-5 h-5 ml-2" />
-              </Link>
-              <Link 
-                to="/login"
+              </button>
+              <button 
                 className="text-gray-300 hover:text-white transition-colors font-semibold"
               >
-                Already have an account? Sign in
-              </Link>
+                Already part of the community? Sign in
+              </button>
+            </div>
+            <div className="mt-6 text-sm text-gray-500">
+              Requires valid @torontomu.ca or @ryerson.ca email address
             </div>
           </div>
         </div>
@@ -304,12 +307,12 @@ const LandingPage = () => {
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <div className="text-2xl">🎓</div>
-              <span className="text-white text-x2 font-bold">Yapp</span>
+              <span className="text-white text-xl font-bold">Yapp</span>
             </div>
             <div className="flex items-center space-x-6 text-gray-400">
               <span>© 2024 Yapp. All rights reserved.</span>
-              <Link to="/login" className="hover:text-white transition-colors">Privacy</Link>
-              <Link to="/login" className="hover:text-white transition-colors">Terms</Link>
+              <button className="hover:text-white transition-colors">Privacy</button>
+              <button className="hover:text-white transition-colors">Terms</button>
             </div>
           </div>
         </div>
@@ -318,4 +321,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage; 
+export default LandingPage;
