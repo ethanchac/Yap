@@ -1,7 +1,7 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/authentication/LoginForm.jsx';
 import Signup from './components/authentication/RegisterForm.jsx';
-import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx'; // ADD THIS LINE
+import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx';
 import LandingPage from './components/pages/LandingPage.jsx';
 import Home from './components/pages/home/Home.jsx';
 import Create from './components/pages/create/Create.jsx';
@@ -13,6 +13,7 @@ import Settings from './components/pages/Settings.jsx';
 import Feedback from './components/pages/Feedback.jsx';
 import CommentsPage from './components/pages/CommentsPage.jsx';
 import Waypoint from './components/pages/waypoint/Waypoint.jsx';
+import EventThread from './components/pages/home/events/EventThread.jsx';
 import PageTransition from './components/common/PageTransition.jsx';
 
 const PrivateRoute = ({ children }) => {
@@ -155,6 +156,17 @@ function AuthRoutes() {
                     <PrivateRoute>
                         <PageTransition>
                             <CommentsPage />
+                        </PageTransition>
+                    </PrivateRoute>
+                }
+            />
+            {/* ADD THIS NEW ROUTE FOR EVENT THREADS */}
+            <Route
+                path="/events/:eventId/thread"
+                element={
+                    <PrivateRoute>
+                        <PageTransition>
+                            <EventThread />
                         </PageTransition>
                     </PrivateRoute>
                 }
