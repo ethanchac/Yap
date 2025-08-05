@@ -18,12 +18,12 @@ function Settings() {
         // Only need to clear the main token now
         localStorage.removeItem('token');
         
-        navigate('/login');
+        navigate('/');
         
     } catch (error) {
         console.error('Error during logout:', error);
         localStorage.removeItem('token');
-        navigate('/login');
+        navigate('/');
     } finally {
         setIsLoggingOut(false);
     }
