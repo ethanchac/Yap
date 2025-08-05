@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { API_BASE_URL } from "../../services/config";
+import EmailVerification from './EmailVerification'; 
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,8 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isFormFocused, setIsFormFocused] = useState(false);
   const [animationClass, setAnimationClass] = useState("translate-y-4 opacity-0");
+  const [showVerification, setShowVerification] = useState(false);
+  const [unverifiedUsername, setUnverifiedUsername] = useState('');
   const navigate = useNavigate();
   const { isDarkMode } = useTheme();
 
@@ -47,13 +50,18 @@ export default function LoginForm() {
       });
 
       const data = await res.json();
+      
       if (res.ok) {
         // store the token in localStorage
         localStorage.setItem("token", data.token);
-        
         setMsg("Login success");
         // navigate to homepage
         navigate('/Home');
+      } else if (res.status === 403 && data.requires_verification) {
+        // User exists but email is not verified
+        setUnverifiedUsername(data.username || formData.username);
+        setShowVerification(true);
+        setMsg(""); // Clear any previous messages
       } else {
         setMsg(data.error || "Login failed");
       }
@@ -64,6 +72,35 @@ export default function LoginForm() {
     }
   };
 
+  const handleVerificationSuccess = () => {
+    // After successful verification, redirect to login or auto-login
+    setShowVerification(false);
+    setMsg("Email verified successfully! Please log in.");
+    // Optionally clear the form
+    setFormData({
+      username: "",
+      password: ""
+    });
+  };
+
+  const handleBackToLogin = () => {
+    setShowVerification(false);
+    setUnverifiedUsername('');
+    setMsg("");
+  };
+
+  // Show verification component if user needs to verify email
+  if (showVerification) {
+    return (
+      <EmailVerification
+        username={unverifiedUsername}
+        onVerificationSuccess={handleVerificationSuccess}
+        onBackToRegister={handleBackToLogin}
+      />
+    );
+  }
+
+  // Show the regular login form
   return (
     <div className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden" style={{
       backgroundColor: isDarkMode ? '#121212' : '#ffffff', 

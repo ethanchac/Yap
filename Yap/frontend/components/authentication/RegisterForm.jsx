@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
+import EmailVerification from './EmailVerification'; // Import the verification component
 
 function RegisterForm() {
     const [form, setForm] = useState({
@@ -11,6 +13,8 @@ function RegisterForm() {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showVerification, setShowVerification] = useState(false);
+    const [registeredUsername, setRegisteredUsername] = useState('');
     const { isDarkMode } = useTheme();
 
     const handleChange = (e) => {
@@ -21,10 +25,12 @@ function RegisterForm() {
         e.preventDefault();
         setError('');
         setMessage('');
+        
         if (form.password !== form.confirmPassword) {
             setError("Passwords do not match");
             return;
         }
+        
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/users/register`, {
@@ -36,9 +42,13 @@ function RegisterForm() {
                     password: form.password
                 })
             });
+            
             const data = await response.json();
+            
             if (response.ok) {
-                setMessage('Registration successful! Please check your email to verify your account.');
+                // Success - show verification page
+                setRegisteredUsername(data.username || form.username);
+                setShowVerification(true);
             } else {
                 setError(data.error || 'Registration failed.');
             }
@@ -49,6 +59,37 @@ function RegisterForm() {
         }
     };
 
+    const handleVerificationSuccess = () => {
+        // Redirect to login page or show success message
+        window.location.href = '/login'; // Or use your router's navigation
+    };
+
+    const handleBackToRegister = () => {
+        setShowVerification(false);
+        setRegisteredUsername('');
+        // Optionally clear the form
+        setForm({
+            username: '',
+            email: '',
+            password: '',
+            confirmPassword: ''
+        });
+        setError('');
+        setMessage('');
+    };
+
+    // Show verification component if registration was successful
+    if (showVerification) {
+        return (
+            <EmailVerification
+                username={registeredUsername}
+                onVerificationSuccess={handleVerificationSuccess}
+                onBackToRegister={handleBackToRegister}
+            />
+        );
+    }
+
+    // Show registration form
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
             backgroundColor: isDarkMode ? '#121212' : '#ffffff',
@@ -85,7 +126,7 @@ function RegisterForm() {
                                 ? 'bg-[#232323] text-white border-gray-700' 
                                 : 'bg-white text-gray-900 border-gray-300'
                         }`}
-                        placeholder="Email"
+                        placeholder="xxx@torontomu.ca"
                         value={form.email}
                         onChange={handleChange}
                         required
