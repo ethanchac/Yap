@@ -4,7 +4,7 @@ import Signup from './components/authentication/RegisterForm.jsx';
 import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx'; // ADD THIS LINE
 import LandingPage from './components/pages/LandingPage.jsx';
 import Home from './components/pages/home/Home.jsx';
-import Create from './components/pages/Create.jsx';
+import Create from './components/pages/create/Create.jsx';
 import Users from './components/pages/Users.jsx';
 import Messages from './components/pages/Messages.jsx';
 import Likes from './components/pages/profile/Likes.jsx';
