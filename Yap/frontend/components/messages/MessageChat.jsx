@@ -15,6 +15,9 @@ function MessageChat({ conversation, onNewMessage }) {
     const [retryCount, setRetryCount] = useState(0);
     const [showOfflineMessage, setShowOfflineMessage] = useState(false);
     const [typingUsers, setTypingUsers] = useState([]);
+    const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
     const { isDarkMode } = useTheme();
     
     const currentUserIdentifier = getCurrentUserIdentifier();
@@ -24,6 +27,194 @@ function MessageChat({ conversation, onNewMessage }) {
     const typingTimeoutRef = useRef(null);
     const unsubscribeMessageRef = useRef(null);
     const unsubscribeTypingRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const shouldScrollToBottomRef = useRef(true);
+    const isUserScrollingRef = useRef(false);
+    const lastScrollTopRef = useRef(0);
+    const debounceTimeoutRef = useRef(null);
+    const messagesPerPage = 50;
+
+    // Smart scrolling utilities
+    const scrollToBottom = useCallback(() => {
+        if (scrollContainerRef.current && shouldScrollToBottomRef.current) {
+            const container = scrollContainerRef.current;
+            container.scrollTop = container.scrollHeight;
+            console.log('📜 Scrolled to bottom');
+        }
+    }, []);
+
+    const preserveScrollPosition = useCallback(() => {
+        if (scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const scrollHeight = container.scrollHeight;
+            const scrollTop = container.scrollTop;
+            const clientHeight = container.clientHeight;
+            
+            // User is near bottom (within 100px) - should auto-scroll for new messages
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+            shouldScrollToBottomRef.current = isNearBottom;
+            
+            console.log('📜 Scroll position preserved:', { 
+                scrollTop, 
+                scrollHeight, 
+                clientHeight, 
+                isNearBottom,
+                shouldAutoScroll: shouldScrollToBottomRef.current 
+            });
+            
+            return { scrollTop, scrollHeight, isNearBottom };
+        }
+        return null;
+    }, []);
+
+    // Debounced scroll handler for loading older messages
+    const handleScroll = useCallback(() => {
+        if (!scrollContainerRef.current || loadingOlderMessages || !hasMoreMessages) return;
+        
+        const container = scrollContainerRef.current;
+        const scrollTop = container.scrollTop;
+        
+        // Detect if user is actively scrolling
+        isUserScrollingRef.current = Math.abs(scrollTop - lastScrollTopRef.current) > 5;
+        lastScrollTopRef.current = scrollTop;
+        
+        // Update shouldScrollToBottom based on current position
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+        shouldScrollToBottomRef.current = isNearBottom;
+        
+        // Check if we should load older messages (near top)
+        if (scrollTop < 300) {
+            // Clear existing debounce
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
+            
+            // Debounce the load older messages call
+            debounceTimeoutRef.current = setTimeout(() => {
+                console.log('📜 Loading older messages - user scrolled near top');
+                loadOlderMessages();
+            }, 300);
+        }
+    }, [loadingOlderMessages, hasMoreMessages]);
+
+    // Load older messages with pagination
+    const loadOlderMessages = useCallback(async () => {
+        if (loadingOlderMessages || !hasMoreMessages) return;
+        
+        setLoadingOlderMessages(true);
+        console.log('📨 Loading older messages, page:', currentPage + 1);
+        
+        try {
+            // Get older messages from API with pagination
+            const olderMessages = await messageService.getMessages(
+                conversation._id, 
+                { page: currentPage + 1, limit: messagesPerPage }
+            );
+            
+            if (olderMessages.length === 0) {
+                setHasMoreMessages(false);
+                console.log('📨 No more older messages available');
+                return;
+            }
+            
+            // Preserve scroll position before adding messages
+            const scrollPos = preserveScrollPosition();
+            const prevScrollHeight = scrollPos?.scrollHeight || 0;
+            
+            // Process older messages
+            const messagesWithSenders = await Promise.all(
+                olderMessages.map(async (message) => {
+                    messagesRef.current.set(message._id, true);
+                    
+                    let senderInfo = message.sender;
+                    if (!senderInfo || !senderInfo.username) {
+                        senderInfo = await fetchUserInfo(message.sender_id);
+                    }
+                    
+                    return {
+                        ...message,
+                        sender: senderInfo || {
+                            _id: message.sender_id,
+                            username: String(message.sender_id) === String(currentUserIdentifier) ? 'You' : 'Unknown',
+                            profile_picture: ''
+                        }
+                    };
+                })
+            );
+            
+            // Add older messages to the beginning
+            setMessages(prev => {
+                const combined = [...messagesWithSenders, ...prev];
+                const sorted = sortMessagesByTime(combined);
+                console.log('📨 Added', olderMessages.length, 'older messages');
+                return sorted;
+            });
+            
+            setCurrentPage(prev => prev + 1);
+            
+            // Restore scroll position after messages are added
+            setTimeout(() => {
+                if (scrollContainerRef.current && scrollPos) {
+                    const container = scrollContainerRef.current;
+                    const newScrollHeight = container.scrollHeight;
+                    const heightDifference = newScrollHeight - prevScrollHeight;
+                    container.scrollTop = (scrollPos.scrollTop || 0) + heightDifference;
+                    console.log('📜 Restored scroll position after loading older messages');
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('❌ Error loading older messages:', error);
+        } finally {
+            setLoadingOlderMessages(false);
+        }
+    }, [conversation._id, currentPage, loadingOlderMessages, hasMoreMessages, currentUserIdentifier, preserveScrollPosition, messagesPerPage]);
+    // Helper function to add message without full re-sort
+    const addMessageOptimized = useCallback((prevMessages, newMessage, isNewIncoming = false) => {
+        // Check if message already exists
+        const existsById = prevMessages.some(msg => msg._id === newMessage._id);
+        if (existsById) {
+            return prevMessages;
+        }
+
+        // Check for near-duplicate content (timing issues)
+        const existsByContent = prevMessages.some(msg => 
+            msg.content === newMessage.content && 
+            msg.sender_id === newMessage.sender_id &&
+            Math.abs(new Date(msg.created_at) - new Date(newMessage.created_at)) < 5000
+        );
+        
+        if (existsByContent) {
+            return prevMessages;
+        }
+
+        // For most cases, new messages are newer, so append to end
+        const newMessageTime = new Date(newMessage.created_at).getTime();
+        
+        // If the list is empty or the new message is newer than the last message, just append
+        if (prevMessages.length === 0 || 
+            newMessageTime >= new Date(prevMessages[prevMessages.length - 1].created_at).getTime()) {
+            
+            // If this is a new incoming message and user is near bottom, enable auto-scroll
+            if (isNewIncoming && shouldScrollToBottomRef.current) {
+                setTimeout(scrollToBottom, 100);
+            }
+            
+            return [...prevMessages, newMessage];
+        }
+
+        // Only do a full sort if the message is out of order (rare case)
+        const updated = [...prevMessages, newMessage];
+        const sorted = sortMessagesByTime(updated);
+        
+        if (isNewIncoming && shouldScrollToBottomRef.current) {
+            setTimeout(scrollToBottom, 100);
+        }
+        
+        return sorted;
+    }, [scrollToBottom]);
 
     // Connection status listener
     const handleConnectionStatusChange = useCallback((status) => {
@@ -31,11 +222,11 @@ function MessageChat({ conversation, onNewMessage }) {
         setConnectionStatus(status);
         
         if (status === 'connected' && retryCount > 0) {
-            console.log('✅ Reconnected successfully, refreshing messages');
+            console.log('✅ Reconnected successfully, syncing quietly');
             setRetryCount(0);
             setShowOfflineMessage(false);
-            // Refresh messages after reconnection
-            fetchMessages(true);
+            // Sync messages quietly without showing loading screen
+            fetchMessagesQuietly();
         } else if (status === 'disconnected') {
             setRetryCount(prev => prev + 1);
             setShowOfflineMessage(true);
@@ -44,7 +235,7 @@ function MessageChat({ conversation, onNewMessage }) {
         }
     }, [retryCount]);
 
-    // Enhanced message handler with deduplication
+    // Enhanced message handler with optimized updates
     const handleNewMessage = useCallback(async (newMessage) => {
         console.log('📨 Processing new message:', newMessage);
         
@@ -82,32 +273,8 @@ function MessageChat({ conversation, onNewMessage }) {
                 };
                 
                 setMessages(prev => {
-                    console.log('📨 Current messages count:', prev.length);
-                    
-                    // Double-check for duplicates by ID
-                    const existsById = prev.some(msg => msg._id === messageWithSender._id);
-                    if (existsById) {
-                        console.log('📨 Message already exists by ID, skipping:', messageWithSender._id);
-                        return prev;
-                    }
-                    
-                    // Check for near-duplicate content (timing issues)
-                    const existsByContent = prev.some(msg => 
-                        msg.content === messageWithSender.content && 
-                        msg.sender_id === messageWithSender.sender_id &&
-                        Math.abs(new Date(msg.created_at) - new Date(messageWithSender.created_at)) < 5000
-                    );
-                    
-                    if (existsByContent) {
-                        console.log('📨 Similar message already exists, skipping to prevent duplicate');
-                        return prev;
-                    }
-                    
                     console.log('📨 Adding new message from other user to UI');
-                    const updated = [...prev, messageWithSender];
-                    const sorted = sortMessagesByTime(updated);
-                    console.log('📨 New messages count:', sorted.length);
-                    return sorted;
+                    return addMessageOptimized(prev, messageWithSender, true); // true = isNewIncoming
                 });
                 
                 // Notify parent component
@@ -120,9 +287,6 @@ function MessageChat({ conversation, onNewMessage }) {
                 console.error('❌ Error processing message:', error);
                 // Add message without sender info as fallback
                 setMessages(prev => {
-                    const existsById = prev.some(msg => msg._id === newMessage._id);
-                    if (existsById) return prev;
-                    
                     const messageWithoutSender = {
                         ...newMessage,
                         sender: {
@@ -132,8 +296,7 @@ function MessageChat({ conversation, onNewMessage }) {
                         }
                     };
                     
-                    const updated = [...prev, messageWithoutSender];
-                    return sortMessagesByTime(updated);
+                    return addMessageOptimized(prev, messageWithoutSender);
                 });
             }
         } else {
@@ -156,7 +319,8 @@ function MessageChat({ conversation, onNewMessage }) {
                         sender: prev[optimisticIndex].sender,
                         isOptimistic: false
                     };
-                    return sortMessagesByTime(updated);
+                    // No need to re-sort since we're just replacing in place
+                    return updated;
                 } else {
                     // No optimistic message found, check if we already have this real message
                     const existsById = prev.some(msg => msg._id === newMessage._id);
@@ -176,12 +340,11 @@ function MessageChat({ conversation, onNewMessage }) {
                         }
                     };
                     
-                    const updated = [...prev, messageWithSender];
-                    return sortMessagesByTime(updated);
+                    return addMessageOptimized(prev, messageWithSender);
                 }
             });
         }
-    }, [conversation._id, currentUserIdentifier, onNewMessage]);
+    }, [conversation._id, currentUserIdentifier, onNewMessage, addMessageOptimized]);
 
     // Typing indicator handler
     const handleTypingEvent = useCallback((typingData) => {
@@ -222,8 +385,12 @@ function MessageChat({ conversation, onNewMessage }) {
         setMessages([]);
         setLoading(true);
         setTypingUsers([]);
+        setCurrentPage(1);
+        setHasMoreMessages(true);
+        setLoadingOlderMessages(false);
         messagesRef.current.clear();
         setShowOfflineMessage(false);
+        shouldScrollToBottomRef.current = true; // Reset scroll behavior for new conversation
         
         // Ensure connection
         const initializeConnection = async () => {
@@ -343,6 +510,11 @@ function MessageChat({ conversation, onNewMessage }) {
             setMessages(sortedMessages);
             console.log('✅ Loaded and sorted', sortedMessages.length, 'messages');
             
+            // Scroll to bottom only on initial load
+            if (sortedMessages.length > 0) {
+                setTimeout(scrollToBottom, 100);
+            }
+            
         } catch (error) {
             console.error('❌ Error fetching messages:', error);
             setRetryCount(prev => prev + 1);
@@ -359,7 +531,65 @@ function MessageChat({ conversation, onNewMessage }) {
         }
     };
 
-    // Enhanced message sending with WebSocket
+    // Quiet message sync without loading screen
+    const fetchMessagesQuietly = async () => {
+        try {
+            console.log('🔄 Quietly syncing messages for conversation:', conversation._id);
+            
+            const messages = await messageService.getMessages(conversation._id);
+            console.log('🔄 Received', messages.length, 'messages for quiet sync');
+            
+            // Only update if we have new messages or significant differences
+            if (messages.length === 0) return;
+            
+            // Populate sender info for each message
+            const messagesWithSenders = await Promise.all(
+                messages.map(async (message) => {
+                    // Mark as processed
+                    messagesRef.current.set(message._id, true);
+                    
+                    let senderInfo = message.sender;
+                    if (!senderInfo || !senderInfo.username) {
+                        senderInfo = await fetchUserInfo(message.sender_id);
+                    }
+                    
+                    return {
+                        ...message,
+                        sender: senderInfo || {
+                            _id: message.sender_id,
+                            username: String(message.sender_id) === String(currentUserIdentifier) ? 'You' : 'Unknown',
+                            profile_picture: ''
+                        }
+                    };
+                })
+            );
+            
+            const sortedMessages = sortMessagesByTime(messagesWithSenders);
+            
+            // Only update if there are actual differences
+            setMessages(prev => {
+                if (prev.length === sortedMessages.length) {
+                    // Same length, check if content is different
+                    const isDifferent = prev.some((msg, index) => 
+                        !sortedMessages[index] || msg._id !== sortedMessages[index]._id
+                    );
+                    if (!isDifferent) {
+                        console.log('🔄 No changes detected, keeping current messages');
+                        return prev;
+                    }
+                }
+                
+                console.log('🔄 Updating messages quietly');
+                return sortedMessages;
+            });
+            
+        } catch (error) {
+            console.error('❌ Error in quiet message sync:', error);
+            // Don't show error to user for quiet sync
+        }
+    };
+
+    // Enhanced message sending with optimized UI updates
     const handleSendMessage = async (messageContent) => {
         const tempId = `temp_${Date.now()}_${Math.random()}`;
         console.log('📤 Preparing to send message:', messageContent);
@@ -393,11 +623,8 @@ function MessageChat({ conversation, onNewMessage }) {
 
             console.log('📤 Adding optimistic message to UI:', tempMessage);
 
-            // Add optimistic message
-            setMessages(prev => {
-                const updated = [...prev, tempMessage];
-                return sortMessagesByTime(updated);
-            });
+            // Add optimistic message using optimized method
+            setMessages(prev => addMessageOptimized(prev, tempMessage, true)); // true = trigger scroll
 
             // Send the actual message via WebSocket
             console.log('📤 Sending message via WebSocket...');
@@ -427,9 +654,15 @@ function MessageChat({ conversation, onNewMessage }) {
                             isOptimistic: false
                         };
                         
-                        const withoutOptimistic = prev.filter(msg => msg._id !== tempId);
-                        const updated = [...withoutOptimistic, realMessage];
-                        return sortMessagesByTime(updated);
+                        // Replace optimistic message in place to avoid re-render
+                        const optimisticIndex = prev.findIndex(msg => msg._id === tempId);
+                        if (optimisticIndex !== -1) {
+                            const updated = [...prev];
+                            updated[optimisticIndex] = realMessage;
+                            return updated;
+                        }
+                        
+                        return addMessageOptimized(prev.filter(msg => msg._id !== tempId), realMessage);
                     }
                     return prev;
                 });
@@ -489,7 +722,8 @@ function MessageChat({ conversation, onNewMessage }) {
         
         try {
             await messageService.reconnect();
-            await fetchMessages(true);
+            // Use quiet sync instead of full refresh
+            await fetchMessagesQuietly();
         } catch (error) {
             console.error('❌ Manual retry failed:', error);
             setShowOfflineMessage(true);
@@ -532,7 +766,6 @@ function MessageChat({ conversation, onNewMessage }) {
                 </div>
             )}
 
-
             <ChatHeader 
                 conversation={conversation} 
                 getProfilePictureUrl={getProfilePictureUrl} 
@@ -541,10 +774,14 @@ function MessageChat({ conversation, onNewMessage }) {
             />
             
             <MessageList 
+                ref={scrollContainerRef}
                 messages={messages} 
                 currentUserIdentifier={currentUserIdentifier}
                 getProfilePictureUrl={getProfilePictureUrl}
                 typingUsers={typingUsers}
+                onScroll={handleScroll}
+                loadingOlderMessages={loadingOlderMessages}
+                hasMoreMessages={hasMoreMessages}
             />
             
             <MessageInput 
@@ -555,7 +792,6 @@ function MessageChat({ conversation, onNewMessage }) {
                 onTypingStart={handleTypingStart}
                 onTypingStop={handleTypingStop}
             />
-            
         </div>
     );
 }

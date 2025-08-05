@@ -83,7 +83,7 @@ function Settings() {
                                     isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-50 border border-gray-200'
                                 }`}>
                                     <div>
-                                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Email Settings</p>
+                                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>Email Settings</p>
                                         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your TMU email preferences</p>
                                     </div>
                                     <div className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>›</div>
@@ -121,7 +121,7 @@ function Settings() {
                                             className="sr-only peer" 
                                         />
                                         <div className={`w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
-                                            isDarkMode ? 'bg-blue-600' : 'bg-gray-300'
+                                            isDarkMode ? 'bg-gray-800' : 'bg-gray-300'
                                         }`}></div>
                                     </label>
                                 </div>

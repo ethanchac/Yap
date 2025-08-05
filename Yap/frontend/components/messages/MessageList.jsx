@@ -1,24 +1,81 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef } from 'react';
 import MessageBubble from './MessageBubble';
 import DateSeparator from './DateSeperator';
 import TypingIndicator from './TypingIndicator';
 import { shouldShowDateSeparator } from './utils/easternTimeUtils';
 
-function MessageList({ 
+const MessageList = forwardRef(({ 
     messages, 
     currentUserIdentifier, 
     getProfilePictureUrl,
-    typingUsers = []
-}) {
+    typingUsers = [],
+    onScroll,
+    loadingOlderMessages,
+    hasMoreMessages 
+}, ref) => {
     const messagesEndRef = useRef(null);
-    const messagesContainerRef = useRef(null);
+    const isInitialLoadRef = useRef(true);
+    const userScrolledRef = useRef(false);
 
+    // Smart scroll behavior - only auto-scroll when appropriate
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, typingUsers]);
+        // On initial load, always scroll to bottom
+        if (isInitialLoadRef.current && messages.length > 0) {
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                isInitialLoadRef.current = false;
+            }, 100);
+            return;
+        }
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // For new messages, only scroll if user is near bottom
+        if (!isInitialLoadRef.current && messages.length > 0) {
+            const container = ref?.current;
+            if (container) {
+                const { scrollTop, scrollHeight, clientHeight } = container;
+                const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+                
+                // Auto-scroll for new messages only if user is near bottom
+                if (isNearBottom && !userScrolledRef.current) {
+                    setTimeout(() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                }
+            }
+        }
+
+        // Reset user scrolled flag after a delay
+        if (userScrolledRef.current) {
+            const timer = setTimeout(() => {
+                userScrolledRef.current = false;
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [messages, ref]);
+
+    // Handle typing indicators - only scroll if near bottom
+    useEffect(() => {
+        if (typingUsers.length > 0 && !isInitialLoadRef.current) {
+            const container = ref?.current;
+            if (container) {
+                const { scrollTop, scrollHeight, clientHeight } = container;
+                const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+                
+                if (isNearBottom) {
+                    setTimeout(() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                }
+            }
+        }
+    }, [typingUsers, ref]);
+
+    // Enhanced scroll handler
+    const handleScroll = (e) => {
+        userScrolledRef.current = true;
+        if (onScroll) {
+            onScroll(e);
+        }
     };
 
     const isMyMessage = (message) => {
@@ -88,7 +145,7 @@ function MessageList({
 
     const messageGroups = groupMessages(messages);
 
-    if (messages.length === 0 && typingUsers.length === 0) {
+    if (messages.length === 0 && typingUsers.length === 0 && !loadingOlderMessages) {
         return (
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="text-center">
@@ -119,9 +176,31 @@ function MessageList({
 
     return (
         <div 
-            ref={messagesContainerRef}
+            ref={ref}
             className="flex-1 overflow-y-auto p-4 space-y-3"
+            onScroll={handleScroll}
         >
+            {/* Loading indicator for older messages */}
+            {loadingOlderMessages && (
+                <div className="flex justify-center py-4">
+                    <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                        <span className="text-sm text-gray-500">Loading older messages...</span>
+                    </div>
+                </div>
+            )}
+            
+            {/* End of messages indicator */}
+            {!hasMoreMessages && messages.length > 0 && (
+                <div className="flex justify-center py-4">
+                    <div className="text-xs text-gray-400 flex items-center space-x-2">
+                        <div className="h-px bg-gray-300 flex-1"></div>
+                        <span className="px-3">Beginning of conversation</span>
+                        <div className="h-px bg-gray-300 flex-1"></div>
+                    </div>
+                </div>
+            )}
+
             {messageGroups.map((group, groupIndex) => {
                 const showDateSeparator = groupIndex === 0 || 
                     shouldShowDateSeparator(
@@ -212,6 +291,8 @@ function MessageList({
             <div ref={messagesEndRef} />
         </div>
     );
-}
+});
+
+MessageList.displayName = 'MessageList';
 
 export default MessageList;
