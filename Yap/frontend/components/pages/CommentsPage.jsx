@@ -228,7 +228,16 @@ function CommentsPage() {
             <div className="ml-64 p-6">
                 <button 
                     onClick={() => navigate(-1)}
-                    className="flex items-center space-x-2 mb-6 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                    className="flex items-center space-x-2 mb-6 px-4 py-2 rounded-lg font-bold transition-colors text-white"
+                    style={{
+                        backgroundColor: '#1c1c1c'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#1f1f1f';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#1c1c1c';
+                    }}
                 >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back</span>
@@ -254,9 +263,12 @@ function CommentsPage() {
                             disabled={submitting}
                             className={`w-full p-3 border rounded-lg focus:outline-none resize-none h-24 ${
                                 isDarkMode 
-                                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-gray-400' 
+                                    ? 'border-gray-600 text-white placeholder-gray-400 focus:border-gray-400' 
                                     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-500'
                             }`}
+                            style={{
+                                backgroundColor: isDarkMode ? '#1c1c1c' : undefined
+                            }}
                         />
                         
                         <div className="flex items-center justify-between">

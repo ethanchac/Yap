@@ -70,8 +70,14 @@ function Settings() {
                             
                             <div className="space-y-4">
                                 <div className={`flex items-center justify-between p-4 rounded-lg hover:transition-colors cursor-pointer ${
-                                    isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-50 border border-gray-200'
-                                }`}>
+                                    isDarkMode ? '' : 'bg-white hover:bg-gray-50 border border-gray-200'
+                                }`} style={{
+                                    backgroundColor: isDarkMode ? '#1c1c1c' : undefined
+                                }} onMouseEnter={(e) => {
+                                    if (isDarkMode) e.target.style.backgroundColor = '#1f1f1f';
+                                }} onMouseLeave={(e) => {
+                                    if (isDarkMode) e.target.style.backgroundColor = '#1c1c1c';
+                                }}>
                                     <div>
                                         <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Change Password</p>
                                         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Update your account password</p>
@@ -80,8 +86,14 @@ function Settings() {
                                 </div>
                                 
                                 <div className={`flex items-center justify-between p-4 rounded-lg hover:transition-colors cursor-pointer ${
-                                    isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-50 border border-gray-200'
-                                }`}>
+                                    isDarkMode ? '' : 'bg-white hover:bg-gray-50 border border-gray-200'
+                                }`} style={{
+                                    backgroundColor: isDarkMode ? '#1c1c1c' : undefined
+                                }} onMouseEnter={(e) => {
+                                    if (isDarkMode) e.target.style.backgroundColor = '#1f1f1f';
+                                }} onMouseLeave={(e) => {
+                                    if (isDarkMode) e.target.style.backgroundColor = '#1c1c1c';
+                                }}>
                                     <div>
                                         <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>Email Settings</p>
                                         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your TMU email preferences</p>
@@ -105,8 +117,14 @@ function Settings() {
                             
                             <div className="space-y-4">
                                 <div className={`flex items-center justify-between p-4 rounded-lg ${
-                                    isDarkMode ? 'bg-gray-700' : 'bg-white border border-gray-200'
-                                }`}>
+                                    isDarkMode ? '' : 'bg-white border border-gray-200'
+                                }`} style={{
+                                    backgroundColor: isDarkMode ? '#1c1c1c' : undefined
+                                }} onMouseEnter={(e) => {
+                                    if (isDarkMode) e.target.style.backgroundColor = '#1f1f1f';
+                                }} onMouseLeave={(e) => {
+                                    if (isDarkMode) e.target.style.backgroundColor = '#1c1c1c';
+                                }}>
                                     <div>
                                         <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Dark Mode</p>
                                         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>

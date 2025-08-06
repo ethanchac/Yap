@@ -169,8 +169,21 @@ function Feedback() {
                                         className={`p-4 border rounded-lg text-left transition-colors ${
                                             feedback.type === type.value
                                                 ? 'border-orange-500 bg-orange-500/20'
-                                                : 'border-gray-600 hover:border-gray-500'
+                                                : isDarkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'
                                         }`}
+                                        style={{
+                                            backgroundColor: feedback.type !== type.value && isDarkMode ? '#1c1c1c' : undefined
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (feedback.type !== type.value && isDarkMode) {
+                                                e.target.style.backgroundColor = '#1f1f1f';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (feedback.type !== type.value && isDarkMode) {
+                                                e.target.style.backgroundColor = '#1c1c1c';
+                                            }
+                                        }}
                                     >
                                         <div className="font-semibold">{type.label}</div>
                                         <div className="text-sm text-gray-400">{type.desc}</div>
@@ -214,7 +227,14 @@ function Feedback() {
                                 id="subject"
                                 value={feedback.subject}
                                 onChange={(e) => setFeedback(prev => ({ ...prev, subject: e.target.value }))}
-                                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none"
+                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none ${
+                                    isDarkMode 
+                                        ? 'border-gray-600 text-white placeholder-gray-400 focus:border-orange-500' 
+                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-orange-500'
+                                }`}
+                                style={{
+                                    backgroundColor: isDarkMode ? '#1c1c1c' : undefined
+                                }}
                                 placeholder="Brief summary of your feedback"
                                 required
                             />
@@ -230,7 +250,14 @@ function Feedback() {
                                 value={feedback.message}
                                 onChange={(e) => setFeedback(prev => ({ ...prev, message: e.target.value }))}
                                 rows={6}
-                                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
+                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none resize-none ${
+                                    isDarkMode 
+                                        ? 'border-gray-600 text-white placeholder-gray-400 focus:border-orange-500' 
+                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-orange-500'
+                                }`}
+                                style={{
+                                    backgroundColor: isDarkMode ? '#1c1c1c' : undefined
+                                }}
                                 placeholder="Please provide detailed feedback..."
                                 required
                             />
@@ -246,7 +273,14 @@ function Feedback() {
                                 id="email"
                                 value={feedback.email}
                                 onChange={(e) => setFeedback(prev => ({ ...prev, email: e.target.value }))}
-                                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none"
+                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none ${
+                                    isDarkMode 
+                                        ? 'border-gray-600 text-white placeholder-gray-400 focus:border-orange-500' 
+                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-orange-500'
+                                }`}
+                                style={{
+                                    backgroundColor: isDarkMode ? '#1c1c1c' : undefined
+                                }}
                                 placeholder="your.email@example.com"
                             />
                             <p className="text-sm text-gray-400 mt-1">
@@ -259,7 +293,7 @@ function Feedback() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 text-white px-8 py-3 rounded-lg transition-colors flex items-center space-x-2"
+                                className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 text-white px-8 py-3 rounded-lg transition-colors flex items-center space-x-2"
                             >
                                 <Send className="w-4 h-4" />
                                 <span>{isSubmitting ? 'Submitting...' : 'Submit Feedback'}</span>
