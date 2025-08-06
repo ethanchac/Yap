@@ -42,7 +42,7 @@ function Likes() {
             }
 
             const token = getToken();
-            const response = await fetch(`http://localhost:5000/posts/liked?page=${pageNum}&limit=20`, {
+            const response = await fetch(`${API_BASE_URL}/posts/liked?page=${pageNum}&limit=20`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
