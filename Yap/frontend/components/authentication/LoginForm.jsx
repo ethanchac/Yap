@@ -56,7 +56,7 @@ export default function LoginForm() {
         localStorage.setItem("token", data.token);
         setMsg("Login success");
         // navigate to homepage
-        navigate('/Home');
+        navigate('/home');
       } else if (res.status === 403 && data.requires_verification) {
         // User exists but email is not verified
         setUnverifiedUsername(data.username || formData.username);
