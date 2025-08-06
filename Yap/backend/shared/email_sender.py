@@ -124,7 +124,7 @@ def send_password_reset_email(to_email: str, code: str) -> bool:
         return False
 
 def send_feedback_email(feedback_data):
-    """Send feedback notification email to yappTMU@gmail.com"""
+    """Send feedback notification email to yappTMU@gmail.com yessir"""
     print(f"[DEBUG] Sending feedback notification FROM: {FROM_EMAIL}")
     print(f"[DEBUG] Sending feedback notification TO: yappTMU@gmail.com")
     print(f"[DEBUG] API Key: {SENDGRID_API_KEY[:10]}...")
