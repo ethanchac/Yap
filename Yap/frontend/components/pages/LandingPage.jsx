@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-// Removed react-router-dom import - using button elements instead
+import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
   Users, 
@@ -71,7 +71,7 @@ const LandingPage = () => {
     {
       icon: <Users className="w-8 h-8" />,
       title: "Connect with TMU Students",
-      description: "Meet fellow friends across all faculties - from Engineering to Business, Arts to Science. Build study groups, find project partners, and make lifelong friendships.",
+      description: "Meet fellow Rams across all faculties - from Engineering to Business, Arts to Science. Build study groups, find project partners, and make lifelong friendships.",
       color: "from-blue-500 to-purple-600",
       highlights: ["Cross-faculty networking", "Study group matching", "Program-specific connections"]
     },
@@ -141,16 +141,18 @@ const LandingPage = () => {
           <span className="text-white text-xl font-bold">Yapp</span>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <button 
+          <Link 
+            to="/login"
             className="text-gray-300 hover:text-white transition-colors px-2 sm:px-4 py-2 text-sm sm:text-base"
           >
             Sign In
-          </button>
-          <button 
+          </Link>
+          <Link 
+            to="/signup"
             className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 sm:px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 text-sm sm:text-base"
           >
             Join TMU Community
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -193,7 +195,7 @@ const LandingPage = () => {
             <button 
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-200 transform hover:scale-105 flex items-center animate-glow"
             >
-              Join the Community
+              Join the Ram Community
               <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
             </button>
             <div className="text-sm text-gray-400">
@@ -311,8 +313,8 @@ const LandingPage = () => {
             </div>
             <div className="flex items-center space-x-6 text-gray-400">
               <span>© 2024 Yapp. All rights reserved.</span>
-              <button className="hover:text-white transition-colors">Privacy</button>
-              <button className="hover:text-white transition-colors">Terms</button>
+              <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
             </div>
           </div>
         </div>
