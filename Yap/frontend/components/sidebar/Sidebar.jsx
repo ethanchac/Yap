@@ -32,7 +32,7 @@ function Sidebar() {
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/home') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
+                                : 'hover:bg-orange-500/10 hover:text-orange-300 hover:shadow-md'
                         }`}
                     >
                         <Home className="w-6 h-6" />
@@ -45,7 +45,7 @@ function Sidebar() {
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/users') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
+                                : 'hover:bg-orange-500/10 hover:text-orange-300 hover:shadow-md'
                         }`}
                     >
                         <Users className="w-6 h-6" />
@@ -58,7 +58,7 @@ function Sidebar() {
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/messages') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
+                                : 'hover:bg-orange-500/10 hover:text-orange-300 hover:shadow-md'
                         }`}
                     >
                         <MessageCircle className="w-6 h-6" />
@@ -71,7 +71,7 @@ function Sidebar() {
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/waypoint') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
+                                : 'hover:bg-orange-500/10 hover:text-orange-300 hover:shadow-md'
                         }`}
                     >
                         <MapPin className="w-6 h-6" />
@@ -84,7 +84,7 @@ function Sidebar() {
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/profile') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
+                                : 'hover:bg-orange-500/10 hover:text-orange-300 hover:shadow-md'
                         }`}
                     >
                         <User className="w-6 h-6" />
@@ -97,7 +97,7 @@ function Sidebar() {
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/settings') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
+                                : 'hover:bg-orange-500/10 hover:text-orange-300 hover:shadow-md'
                         }`}
                     >
                         <Settings className="w-6 h-6" />
@@ -110,7 +110,7 @@ function Sidebar() {
                         className={`flex items-center space-x-4 w-full px-6 py-4 text-white text-lg rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 ${
                             isActive('/feedback') 
                                 ? 'bg-orange-500/20 border border-orange-500/30 text-orange-400 shadow-lg shadow-orange-500/25' 
-                                : 'hover:bg-gray-700 hover:shadow-md'
+                                : 'hover:bg-orange-500/10 hover:text-orange-300 hover:shadow-md'
                         }`}
                     >
                         <MessageSquare className="w-6 h-6" />

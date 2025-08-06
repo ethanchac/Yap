@@ -433,7 +433,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                   {isAttending && (
                     <button
                       onClick={handleViewThread}
-                      className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg font-medium transition-colors"
+                      className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg font-medium transition-colors"
                     >
                       <MessageCircle className="w-5 h-5" />
                       <span>View Event Discussion</span>
