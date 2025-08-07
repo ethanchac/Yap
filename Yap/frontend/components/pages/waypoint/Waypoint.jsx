@@ -379,21 +379,54 @@ function Waypoint() {
 
     // Function to find and navigate to event waypoint
     const findAndNavigateToEventWaypoint = (eventData) => {
+        console.log('Looking for event waypoint with data:', eventData);
+        console.log('Available waypoints:', waypoints);
+        
         // Look for an existing event waypoint that matches this event
         const eventWaypoint = waypoints.find(waypoint => {
-            // Check if this waypoint is for the same event (by title or coordinates)
-            const titleMatch = waypoint.title.includes(eventData.title) || 
-                              eventData.title.includes(waypoint.title.replace('📅 ', ''));
+            console.log('Checking waypoint:', waypoint.title, waypoint.type);
             
-            // Check coordinates are close (within ~50 meters)
-            const latDiff = Math.abs(waypoint.coords[0] - eventData.latitude);
-            const lngDiff = Math.abs(waypoint.coords[1] - eventData.longitude);
-            const coordMatch = latDiff < 0.0005 && lngDiff < 0.0005;
+            // Must be an event type waypoint
+            if (waypoint.type !== 'event') {
+                return false;
+            }
             
-            return (titleMatch || coordMatch) && waypoint.type === 'event';
+            // Check if this waypoint title matches the event title
+            // Remove the 📅 emoji prefix from waypoint title for comparison
+            const waypointTitle = waypoint.title.replace(/^📅\s*/, '').trim().toLowerCase();
+            const eventTitle = eventData.title.trim().toLowerCase();
+            
+            console.log('Comparing titles:', waypointTitle, 'vs', eventTitle);
+            
+            // Exact title match (case insensitive)
+            const titleMatch = waypointTitle === eventTitle;
+            
+            // If we have coordinates in the event data, also check coordinate proximity
+            let coordMatch = false;
+            if (eventData.latitude && eventData.longitude) {
+                const latDiff = Math.abs(waypoint.coords[0] - eventData.latitude);
+                const lngDiff = Math.abs(waypoint.coords[1] - eventData.longitude);
+                // Within ~50 meters (approximately 0.0005 degrees)
+                coordMatch = latDiff < 0.0005 && lngDiff < 0.0005;
+                
+                console.log('Coordinate check:', {
+                    waypointCoords: waypoint.coords,
+                    eventCoords: [eventData.latitude, eventData.longitude],
+                    latDiff,
+                    lngDiff,
+                    coordMatch
+                });
+            }
+            
+            // Match if either title matches exactly OR coordinates match closely
+            const isMatch = titleMatch || coordMatch;
+            console.log('Match result:', isMatch, { titleMatch, coordMatch });
+            
+            return isMatch;
         });
 
         if (eventWaypoint) {
+            console.log('Found matching waypoint:', eventWaypoint);
             // Found existing waypoint, navigate to it
             setTargetWaypoint(eventWaypoint);
             setShouldOpenPopup(true);
@@ -403,6 +436,9 @@ function Waypoint() {
                 setShouldOpenPopup(false);
             }, 3000);
         } else {
+            console.log('No matching waypoint found');
+            console.log('Event waypoints in list:', waypoints.filter(w => w.type === 'event'));
+            
             // No existing waypoint found - this means the event may have ended and been cleaned up
             // Show a message to the user
             alert('This event waypoint is no longer available on the map. The event may have ended or expired.');

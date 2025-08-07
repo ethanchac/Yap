@@ -193,33 +193,39 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     navigate(`/events/${event._id}/thread`);
   };
 
-  // Handle viewing event on waypoint map
   const handleViewOnMap = () => {
-    const coordinates = getEventCoordinates();
-    
-    if (!coordinates) {
-      alert('Location coordinates not available for this event');
-      return;
-    }
+      const coordinates = getEventCoordinates();
+      
+      if (!coordinates) {
+          alert('Location coordinates not available for this event');
+          return;
+      }
 
-    // Store event data in sessionStorage to pass to waypoint map
-    const eventMapData = {
-      eventId: event._id,
-      title: event.title,
-      description: event.description,
-      latitude: coordinates.lat,
-      longitude: coordinates.lng,
-      eventDate: event.event_date || event.event_datetime?.split('T')[0],
-      eventTime: event.event_time || event.event_datetime?.split('T')[1]?.substring(0, 5),
-      location: event.location,
-      navigateToEvent: true
-    };
-    
-    sessionStorage.setItem('navigateToEvent', JSON.stringify(eventMapData));
-    
-    // Close modal and navigate to waypoint map
-    onClose();
-    navigate('/waypoint');
+      // Store event data in sessionStorage to pass to waypoint map
+      const eventMapData = {
+          eventId: event._id,
+          title: event.title.trim(), // Make sure title is clean
+          description: event.description,
+          latitude: coordinates.lat,
+          longitude: coordinates.lng,
+          eventDate: event.event_date || event.event_datetime?.split('T')[0],
+          eventTime: event.event_time || event.event_datetime?.split('T')[1]?.substring(0, 5),
+          location: event.location,
+          navigateToEvent: true,
+          // Add some debug info
+          debug: {
+              originalTitle: event.title,
+              cleanTitle: event.title.trim(),
+              coordinates: coordinates
+          }
+      };
+      
+      console.log('Storing event map data:', eventMapData);
+      sessionStorage.setItem('navigateToEvent', JSON.stringify(eventMapData));
+      
+      // Close modal and navigate to waypoint map
+      onClose();
+      navigate('/waypoint');
   };
 
   const getProfilePictureUrl = (profilePicture) => {
