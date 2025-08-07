@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMapEvents, useMap } from 'react-leaflet';
 import { useEffect, useRef } from 'react';
 import { createCustomIcon, campusIcon, slcIcon } from './waypointIcons.js';
 import WaypointPopup from './WaypointPopup.jsx';
@@ -156,6 +156,27 @@ function WaypointMap({
                                 }
                             }}
                         >
+                            {/* Tooltip for hover */}
+                            <Tooltip 
+                                direction="top" 
+                                offset={[0, -20]} 
+                                opacity={0.9}
+                                permanent={false}
+                                interactive={false}
+                                sticky={false}
+                            >
+                                <div style={{ 
+                                    fontFamily: 'Albert Sans, sans-serif',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    textAlign: 'center',
+                                    padding: '2px 4px'
+                                }}>
+                                    {waypoint.title}
+                                </div>
+                            </Tooltip>
+
+                            {/* Popup for click (detailed info) */}
                             <Popup maxWidth={250}>
                                 <WaypointPopup 
                                     waypoint={waypoint}

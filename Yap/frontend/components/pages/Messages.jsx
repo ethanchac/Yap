@@ -280,10 +280,7 @@ function Messages() {
                                         </svg>
                                     </div>
                                     <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your messages</h2>
-                                    <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Send a message to start a chat.</p>
-                                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">
-                                        Send message
-                                    </button>
+                                    <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Send a message to a user to start a chat.</p>
                                 </div>
                             </div>
                         )}

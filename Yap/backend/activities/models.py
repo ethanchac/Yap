@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from flask import current_app
 
@@ -40,8 +40,13 @@ class WhatsOnMind:
     
     @staticmethod
     def get_all_posts(limit=50, skip=0):
-        """Get all posts with user profile data using aggregation"""
+        """Get all posts with user profile data using aggregation (MODIFIED with cleanup)"""
         db = current_app.config["DB"]
+        
+        # Clean up old posts before fetching (similar to waypoints)
+        cleanup_count = WhatsOnMind.cleanup_old_posts(hours_old=24)
+        if cleanup_count > 0:
+            print(f"Cleaned up {cleanup_count} old posts before fetching")
         
         pipeline = [
             # Convert string user_id to ObjectId for lookup
@@ -154,3 +159,45 @@ class WhatsOnMind:
         except Exception as e:
             print(f"Error deleting post: {e}")
             return {"error": str(e)}
+    @staticmethod
+    def cleanup_old_posts(hours_old=24):
+        """Remove posts older than specified hours (default 24 hours)"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Calculate the cutoff time
+            cutoff_time = datetime.utcnow() - timedelta(hours=hours_old)
+            
+            # Delete posts older than cutoff time
+            result = db.whats_on_mind.delete_many({
+                "created_at": {"$lt": cutoff_time}
+            })
+            
+            deleted_count = result.deleted_count
+            
+            if deleted_count > 0:
+                print(f"🗑️ Cleaned up {deleted_count} old 'What's on Your Mind' posts (older than {hours_old} hours)")
+            
+            return deleted_count
+        except Exception as e:
+            print(f"❌ Error cleaning up old posts: {e}")
+            return 0
+    
+    @staticmethod
+    def delete_all_posts():
+        """Delete all 'What's on Your Mind' posts"""
+        db = current_app.config["DB"]
+        
+        try:
+            # Delete all posts from the collection
+            result = db.whats_on_mind.delete_many({})
+            deleted_count = result.deleted_count
+            
+            if deleted_count > 0:
+                print(f"🗑️ Deleted all {deleted_count} 'What's on Your Mind' posts")
+            
+            return deleted_count
+        except Exception as e:
+            print(f"❌ Error deleting all posts: {e}")
+            return 0
+
