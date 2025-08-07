@@ -197,16 +197,16 @@ export default function WhatsOnYourMind() {
     return (
       <div className="rounded-lg p-4" style={{ backgroundColor: '#171717' }}>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded w-3/4 mb-4"></div>
-          <div className="h-20 bg-gray-700 rounded mb-4"></div>
+          <div className="h-4 rounded w-3/4 mb-4" style={{ backgroundColor: '#1c1c1c' }}></div>
+          <div className="h-20 rounded mb-4" style={{ backgroundColor: '#1c1c1c' }}></div>
           <div className="space-y-4">
             <div className="flex gap-3">
-              <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
-              <div className="flex-1 h-16 bg-gray-700 rounded"></div>
+              <div className="w-10 h-10 rounded-full" style={{ backgroundColor: '#1c1c1c' }}></div>
+              <div className="flex-1 h-16 rounded" style={{ backgroundColor: '#1c1c1c' }}></div>
             </div>
             <div className="flex gap-3">
-              <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
-              <div className="flex-1 h-12 bg-gray-700 rounded"></div>
+              <div className="w-10 h-10 rounded-full" style={{ backgroundColor: '#1c1c1c' }}></div>
+              <div className="flex-1 h-12 rounded" style={{ backgroundColor: '#1c1c1c' }}></div>
             </div>
           </div>
         </div>
@@ -239,7 +239,8 @@ export default function WhatsOnYourMind() {
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="What's on your mind?"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none"
+                className="w-full px-4 py-3 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none"
+                style={{ backgroundColor: '#1c1c1c' }}
                 rows={3}
                 maxLength={500}
                 disabled={posting}

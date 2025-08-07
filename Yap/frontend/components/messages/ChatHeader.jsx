@@ -1,4 +1,5 @@
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
 
 function ChatHeader({ conversation, getProfilePictureUrl, connectionStatus, typingUsers = [] }) {
     const { isDarkMode } = useTheme();
@@ -65,7 +66,7 @@ function ChatHeader({ conversation, getProfilePictureUrl, connectionStatus, typi
                         alt={conversation.other_participant?.username || 'Unknown User'}
                         className="w-10 h-10 rounded-full object-cover"
                         onError={(e) => {
-                            e.target.src = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/static/default/default-avatar.png`;
+                            e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
                         }}
                     />
                     

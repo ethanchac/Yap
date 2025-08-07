@@ -1,4 +1,5 @@
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
 
 function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
     const { isDarkMode } = useTheme();
@@ -43,10 +44,10 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
                 return profilePic;
             }
             // If it's just a filename, construct the full URL
-            return `http://localhost:5000/uploads/profile_pictures/${profilePic}`;
+            return `${API_BASE_URL}/uploads/profile_pictures/${profilePic}`;
         }
         // Default profile picture if none exists
-        return `http://localhost:5000/static/default/default-avatar.png`;
+        return `${API_BASE_URL}/static/default/default-avatar.png`;
     };
     
     // Format last message preview with better error handling
@@ -132,7 +133,7 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
                     }`}
                     onError={(e) => {
                         // Fallback to default avatar if image fails to load
-                        e.target.src = `http://localhost:5000/static/default/default-avatar.png`;
+                        e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
                     }}
                 />
                 

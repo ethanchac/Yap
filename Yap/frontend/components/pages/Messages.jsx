@@ -6,6 +6,7 @@ import MessagesList from '../messages/MessagesList';
 import MessageChat from '../messages/MessageChat';
 import { messageService } from '../../services/messageService';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
 
 function Messages() {
     const [selectedConversation, setSelectedConversation] = useState(null);
@@ -74,7 +75,7 @@ function Messages() {
             const currentUserId = getCurrentUserIdentifier();
             
             // Fetch from MongoDB like before
-            const response = await fetch('http://localhost:5000/messages/conversations', {
+            const response = await fetch(`${API_BASE_URL}/messages/conversations`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -121,7 +122,7 @@ function Messages() {
             const token = localStorage.getItem('token');
             const currentUserId = getCurrentUserIdentifier();
             
-            const response = await fetch(`http://localhost:5000/messages/conversations/${conversationId}`, {
+            const response = await fetch(`${API_BASE_URL}/messages/conversations/${conversationId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

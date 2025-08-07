@@ -63,9 +63,9 @@ export default function MindPost({ post, onDelete, isDeleting }) {
         </div>
 
         {/* Speech Bubble */}
-        <div className="relative bg-gray-700 text-white rounded-2xl px-4 py-3 shadow-md max-w-lg ml-2">
+        <div className="relative text-white rounded-2xl px-4 py-3 shadow-md max-w-lg ml-2" style={{ backgroundColor: '#1c1c1c' }}>
           {/* Tail */}
-          <div className="absolute -left-2 bottom-2 w-0 h-0 border-t-[10px] border-t-gray-700 border-l-[10px] border-l-transparent"></div>
+          <div className="absolute -left-2 bottom-2 w-0 h-0 border-l-[10px] border-l-transparent" style={{ borderTopColor: '#1c1c1c', borderTopWidth: '10px' }}></div>
 
           {/* Delete Button (hover) */}
           {post.is_own_post && (

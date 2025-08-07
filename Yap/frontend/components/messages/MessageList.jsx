@@ -3,6 +3,7 @@ import MessageBubble from './MessageBubble';
 import DateSeparator from './DateSeperator';
 import TypingIndicator from './TypingIndicator';
 import { shouldShowDateSeparator } from './utils/easternTimeUtils';
+import { API_BASE_URL } from '../../services/config';
 
 const MessageList = forwardRef(({ 
     messages, 
@@ -226,7 +227,7 @@ const MessageList = forwardRef(({
                                             alt={group.sender?.username || 'Unknown User'}
                                             className="w-8 h-8 rounded-full object-cover"
                                             onError={(e) => {
-                                                e.target.src = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/static/default/default-avatar.png`;
+                                                e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
                                             }}
                                         />
                                     </div>
@@ -277,7 +278,7 @@ const MessageList = forwardRef(({
                                 alt={typingUsers[0]?.username || 'Someone'}
                                 className="w-8 h-8 rounded-full object-cover"
                                 onError={(e) => {
-                                    e.target.src = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/static/default/default-avatar.png`;
+                                    e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
                                 }}
                             />
                         </div>
