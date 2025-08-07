@@ -87,6 +87,8 @@ function Waypoint() {
 
             const data = await response.json();
             
+
+            
             const transformedWaypoints = data.waypoints.map(waypoint => {
                 const currentUsername = getCurrentUser();
                 const currentUserId = getCurrentUserId();
@@ -401,34 +403,9 @@ function Waypoint() {
                 setShouldOpenPopup(false);
             }, 3000);
         } else {
-            // No existing waypoint found, create a temporary one and show it
-            const tempEventWaypoint = {
-                id: `temp_event_${eventData.eventId}`,
-                coords: [eventData.latitude, eventData.longitude],
-                title: `📅 ${eventData.title}`,
-                description: `Event on ${eventData.eventDate} at ${eventData.eventTime}\n\n${eventData.description}`,
-                type: 'event',
-                time: 'Event',
-                author: 'Event Host',
-                interactions: { likes: 0, bookmarks: 0 },
-                isTemporary: true // Mark as temporary
-            };
-            
-            // Add temporary waypoint to the list
-            setWaypoints(prev => [...prev, tempEventWaypoint]);
-            
-            // Navigate to it
-            setTargetWaypoint(tempEventWaypoint);
-            setShouldOpenPopup(true);
-            
-            // Clear popup flag and remove temporary waypoint after viewing
-            setTimeout(() => {
-                setShouldOpenPopup(false);
-                // Remove temporary waypoint after 10 seconds
-                setTimeout(() => {
-                    setWaypoints(prev => prev.filter(w => w.id !== tempEventWaypoint.id));
-                }, 10000);
-            }, 3000);
+            // No existing waypoint found - this means the event may have ended and been cleaned up
+            // Show a message to the user
+            alert('This event waypoint is no longer available on the map. The event may have ended or expired.');
         }
     };
 
@@ -479,7 +456,7 @@ function Waypoint() {
         }
     }, [waypoints]); // Depend on waypoints being loaded
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 30 seconds to catch cleanup events
     useEffect(() => {
         const interval = setInterval(() => {
             fetchWaypoints();
@@ -517,6 +494,8 @@ function Waypoint() {
             <Sidebar />
             <div className="ml-64 h-full overflow-y-auto p-6">
                 <div className="max-w-full mx-auto h-full flex flex-col">
+
+
                     {/* Header */}
                     <WaypointHeader
                         placementMode={placementMode}

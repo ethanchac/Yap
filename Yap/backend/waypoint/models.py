@@ -40,11 +40,72 @@ class Waypoint:
         return waypoint_doc
     
     @staticmethod
-    def get_waypoints_in_area(center_lat, center_lng, radius_km=5, limit=50, skip=0):
-        """Get waypoints within a certain radius of a point"""
+    def cleanup_expired_waypoints():
+        """Remove expired waypoints and past event waypoints from the database"""
         db = current_app.config["DB"]
         
         try:
+            deleted_count = 0
+            
+            # 1. Delete waypoints that have explicit expiration dates that have passed
+            result1 = db.waypoint.delete_many({
+                "expires_at": {"$lt": datetime.utcnow()}
+            })
+            deleted_count += result1.deleted_count
+            
+            # 2. Delete event waypoints that are past their event time
+            # Look for event waypoints with event info in title/description
+            event_waypoints = db.waypoint.find({
+                "$or": [
+                    {"type": "event"},
+                    {"title": {"$regex": "^📅", "$options": "i"}},
+                    {"description": {"$regex": "Event on", "$options": "i"}}
+                ]
+            })
+            
+            for waypoint in event_waypoints:
+                # Try to extract event datetime from description
+                description = waypoint.get("description", "")
+                
+                # Look for patterns like "Event on 2024-12-15 at 14:30"
+                import re
+                date_time_pattern = r"Event on (\d{4}-\d{2}-\d{2}) at (\d{2}:\d{2})"
+                match = re.search(date_time_pattern, description)
+                
+                if match:
+                    try:
+                        event_date = match.group(1)
+                        event_time = match.group(2)
+                        event_datetime_str = f"{event_date} {event_time}"
+                        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+                        
+                        # If event is in the past, delete the waypoint
+                        if event_datetime <= datetime.utcnow():
+                            result2 = db.waypoint.delete_one({"_id": waypoint["_id"]})
+                            if result2.deleted_count > 0:
+                                deleted_count += 1
+                                print(f"Deleted past event waypoint: {waypoint.get('title', 'Unknown')}")
+                    except ValueError as e:
+                        print(f"Error parsing event datetime for waypoint {waypoint.get('_id')}: {e}")
+                        continue
+            
+            if deleted_count > 0:
+                print(f"Cleaned up {deleted_count} expired/past event waypoints")
+            
+            return deleted_count
+        except Exception as e:
+            print(f"Error cleaning up expired waypoints: {e}")
+            return 0
+    
+    @staticmethod
+    def get_waypoints_in_area(center_lat, center_lng, radius_km=5, limit=50, skip=0):
+        """Get waypoints within a certain radius of a point, excluding expired and past event waypoints"""
+        db = current_app.config["DB"]
+        
+        try:
+            # First, cleanup expired and past event waypoints
+            Waypoint.cleanup_expired_waypoints()
+            
             # Create geospatial query
             pipeline = [
                 {
@@ -363,6 +424,9 @@ class Waypoint:
         db = current_app.config["DB"]
         
         try:
+            # First cleanup expired waypoints
+            Waypoint.cleanup_expired_waypoints()
+            
             pipeline = [
                 {"$match": {"bookmarked_users": user_id, "active": True}},
                 {

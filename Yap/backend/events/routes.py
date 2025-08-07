@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 
 events_bp = Blueprint('events', __name__)
 
+# Update the create_event_with_waypoint route in events/routes.py
+
 @events_bp.route('/create', methods=['POST'])
 @token_required
 def create_event_with_waypoint(current_user):
@@ -52,23 +54,26 @@ def create_event_with_waypoint(current_user):
         waypoint_created = False
         if data.get('latitude') and data.get('longitude'):
             try:
-                # Calculate waypoint expiration (2 hours after event)
+                # Calculate waypoint expiration (2 hours after event ends)
                 expires_at = event_datetime + timedelta(hours=2)
+                
+                # Create enhanced waypoint description with structured format for easy parsing
+                waypoint_description = f"Event on {data['event_date']} at {data['event_time']}\n\n{data['description']}"
                 
                 # Create waypoint with event prefix
                 waypoint = Waypoint.create_waypoint(
                     user_id=current_user['_id'],
                     username=current_user['username'],
                     title=f"📅 {data['title']}",
-                    description=f"Event on {data['event_date']} at {data['event_time']}\n\n{data['description']}",
+                    description=waypoint_description,
                     waypoint_type='event',
                     latitude=float(data['latitude']),
                     longitude=float(data['longitude']),
-                    expires_at=expires_at
+                    expires_at=expires_at  # Waypoint will auto-expire 2 hours after event
                 )
                 
                 waypoint_created = True
-                print(f"✅ Created waypoint for event: {waypoint['_id']}")
+                print(f"✅ Created waypoint for event: {waypoint['_id']}, expires at: {expires_at}")
                 
             except Exception as waypoint_error:
                 print(f"⚠️ Failed to create waypoint for event: {waypoint_error}")

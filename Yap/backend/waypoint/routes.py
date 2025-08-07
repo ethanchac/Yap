@@ -259,6 +259,11 @@ def get_tmu_waypoints():
         limit = min(int(request.args.get('limit', 50)), 100)
         skip = int(request.args.get('skip', 0))
         
+        # Clean up expired waypoints before fetching (this will remove past event waypoints)
+        cleanup_count = Waypoint.cleanup_expired_waypoints()
+        if cleanup_count > 0:
+            print(f"Cleaned up {cleanup_count} expired/past waypoints before fetching TMU waypoints")
+        
         waypoints = Waypoint.get_waypoints_in_area(
             center_lat=TMU_LAT,
             center_lng=TMU_LNG,
@@ -275,7 +280,9 @@ def get_tmu_waypoints():
             "campus": "TMU",
             "center": {"latitude": TMU_LAT, "longitude": TMU_LNG},
             "radius_km": radius,
-            "count": len(waypoints)
+            "count": len(waypoints),
+            "cleanup_performed": cleanup_count > 0,
+            "expired_removed": cleanup_count
         }), 200
         
     except Exception as e:
