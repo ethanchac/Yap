@@ -155,9 +155,13 @@ const ETInput = ({
               value={newPostContent}
               onChange={(e) => setNewPostContent(e.target.value)}
               placeholder={replyingTo ? "Write a reply..." : selectedImages.length > 0 ? "Add a caption (optional)..." : "Share your thoughts about this event..."}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-400"
-              rows="1"
-              style={{ minHeight: '40px', maxHeight: '120px' }}
+              className="w-full border border-gray-600 rounded-lg px-4 py-3 resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-400"
+              style={{ 
+                backgroundColor: '#1c1c1c',
+                minHeight: '60px', 
+                maxHeight: '150px'
+              }}
+              rows="2"
             />
             
             {/* Image Previews */}
