@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Trash2, MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../../services/config';
+import { useTheme } from '../../../../contexts/ThemeContext'; // Add this import
 
 function PostItem({ post, onPostDeleted }) {
     const [liked, setLiked] = useState(false);
@@ -12,6 +13,7 @@ function PostItem({ post, onPostDeleted }) {
     const [showMenu, setShowMenu] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const navigate = useNavigate();
+    const { isDarkMode } = useTheme(); // Add this hook
 
     // Get current user info on component mount
     useEffect(() => {
@@ -181,7 +183,9 @@ function PostItem({ post, onPostDeleted }) {
                     <img 
                         src={post.images[0]} 
                         alt="Post image"
-                        className="max-w-full max-h-96 object-contain rounded-lg border border-gray-600"
+                        className={`max-w-full max-h-96 object-contain rounded-lg border ${
+                            isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                        }`}
                         onError={(e) => {
                             e.target.style.display = 'none';
                         }}
@@ -198,7 +202,9 @@ function PostItem({ post, onPostDeleted }) {
                             key={index}
                             src={image} 
                             alt={`Post image ${index + 1}`}
-                            className="max-w-full max-h-48 object-contain rounded-lg border border-gray-600"
+                            className={`max-w-full max-h-48 object-contain rounded-lg border ${
+                                isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                            }`}
                             onError={(e) => {
                                 e.target.style.display = 'none';
                             }}
@@ -214,7 +220,9 @@ function PostItem({ post, onPostDeleted }) {
                     <img 
                         src={post.images[0]} 
                         alt="Post image 1"
-                        className="max-w-full max-h-48 object-contain rounded-lg border border-gray-600"
+                        className={`max-w-full max-h-48 object-contain rounded-lg border ${
+                            isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                        }`}
                         onError={(e) => {
                             e.target.style.display = 'none';
                         }}
@@ -225,7 +233,9 @@ function PostItem({ post, onPostDeleted }) {
                                 key={index + 1}
                                 src={image} 
                                 alt={`Post image ${index + 2}`}
-                                className="max-w-full max-h-32 object-contain rounded-lg border border-gray-600"
+                                className={`max-w-full max-h-32 object-contain rounded-lg border ${
+                                    isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                                }`}
                                 onError={(e) => {
                                     e.target.style.display = 'none';
                                 }}
@@ -244,7 +254,9 @@ function PostItem({ post, onPostDeleted }) {
                             key={index}
                             src={image} 
                             alt={`Post image ${index + 1}`}
-                            className="max-w-full max-h-32 object-contain rounded-lg border border-gray-600"
+                            className={`max-w-full max-h-32 object-contain rounded-lg border ${
+                                isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                            }`}
                             onError={(e) => {
                                 e.target.style.display = 'none';
                             }}
@@ -261,7 +273,18 @@ function PostItem({ post, onPostDeleted }) {
     const isOwnPost = currentUser && currentUser._id === post.user_id;
 
     return (
-        <div className="rounded-lg p-6 font-bold mb-4 transition-all duration-200 hover:bg-zinc-800 hover:shadow-sm hover:scale-101 cursor-pointer relative" style={{fontFamily: 'Albert Sans', backgroundColor: '#171717'}}>
+        <div 
+            className={`rounded-lg p-6 font-bold mb-4 transition-all duration-200 hover:shadow-sm hover:scale-101 cursor-pointer relative ${
+                isDarkMode 
+                    ? 'hover:bg-zinc-800' 
+                    : 'hover:bg-gray-50'
+            }`} 
+            style={{
+                fontFamily: 'Albert Sans', 
+                backgroundColor: isDarkMode ? '#171717' : '#ffffff',
+                border: isDarkMode ? 'none' : '1px solid #e5e7eb'
+            }}
+        >
             <div className="flex items-start space-x-3">
                 {/* Profile Picture */}
                 <img 
@@ -279,11 +302,17 @@ function PostItem({ post, onPostDeleted }) {
                         <div className="flex items-center space-x-2">
                             <strong 
                                 onClick={handleUsernameClick}
-                                className="text-white hover:text-gray-300 cursor-pointer transition-colors"
+                                className={`cursor-pointer transition-colors ${
+                                    isDarkMode 
+                                        ? 'text-white hover:text-gray-300' 
+                                        : 'text-gray-900 hover:text-gray-600'
+                                }`}
                             >
                                 @{post.username}
                             </strong>
-                            <div className="text-gray-400 text-sm">
+                            <div className={`text-sm ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
                                 {formatDate(post.created_at)}
                             </div>
                         </div>
@@ -296,21 +325,31 @@ function PostItem({ post, onPostDeleted }) {
                                         e.stopPropagation();
                                         setShowMenu(!showMenu);
                                     }}
-                                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-colors"
+                                    className={`p-2 rounded-full transition-colors ${
+                                        isDarkMode
+                                            ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                                    }`}
                                 >
                                     <MoreHorizontal className="w-4 h-4" />
                                 </button>
                                 
                                 {/* Dropdown menu */}
                                 {showMenu && (
-                                    <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 min-w-[120px]">
+                                    <div className={`absolute right-0 top-full mt-1 rounded-lg shadow-lg z-10 min-w-[120px] ${
+                                        isDarkMode
+                                            ? 'bg-gray-800 border border-gray-600'
+                                            : 'bg-white border border-gray-200'
+                                    }`}>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setShowDeleteConfirm(true);
                                                 setShowMenu(false);
                                             }}
-                                            className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 flex items-center space-x-2 rounded-lg"
+                                            className={`w-full px-4 py-2 text-left text-red-400 flex items-center space-x-2 rounded-lg ${
+                                                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                                            }`}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             <span>Delete</span>
@@ -323,7 +362,11 @@ function PostItem({ post, onPostDeleted }) {
                     
                     {/* Post Content */}
                     {post.content && (
-                        <p className="text-white mb-3 leading-relaxed">{post.content}</p>
+                        <p className={`mb-3 leading-relaxed ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                            {post.content}
+                        </p>
                     )}
                     
                     {/* Post Images */}
@@ -334,7 +377,11 @@ function PostItem({ post, onPostDeleted }) {
                         <button 
                             onClick={handleLike}
                             disabled={loading}
-                            className="flex items-center space-x-1 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                            className={`flex items-center space-x-1 transition-colors disabled:opacity-50 ${
+                                isDarkMode
+                                    ? 'text-gray-400 hover:text-red-400'
+                                    : 'text-gray-500 hover:text-red-500'
+                            }`}
                         >
                             <Heart 
                                 className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : ''}`}
@@ -344,7 +391,11 @@ function PostItem({ post, onPostDeleted }) {
                         
                         <button 
                             onClick={handleCommentClick}
-                            className="flex items-center space-x-1 text-gray-400 hover:text-blue-400 transition-colors"
+                            className={`flex items-center space-x-1 transition-colors ${
+                                isDarkMode
+                                    ? 'text-gray-400 hover:text-blue-400'
+                                    : 'text-gray-500 hover:text-blue-500'
+                            }`}
                         >
                             <MessageCircle className="w-5 h-5" />
                             <span className="text-sm font-bold">{post.comments_count}</span>
@@ -356,9 +407,21 @@ function PostItem({ post, onPostDeleted }) {
             {/* Delete Confirmation Modal */}
             {showDeleteConfirm && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-sm mx-4">
-                        <h3 className="text-white text-lg font-bold mb-4">Delete Post?</h3>
-                        <p className="text-gray-300 mb-6">This action cannot be undone. Are you sure you want to delete this post?</p>
+                    <div className={`rounded-lg p-6 max-w-sm mx-4 ${
+                        isDarkMode
+                            ? 'bg-gray-800 border border-gray-600'
+                            : 'bg-white border border-gray-200'
+                    }`}>
+                        <h3 className={`text-lg font-bold mb-4 ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                            Delete Post?
+                        </h3>
+                        <p className={`mb-6 ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>
+                            This action cannot be undone. Are you sure you want to delete this post?
+                        </p>
                         <div className="flex space-x-3">
                             <button
                                 onClick={handleDelete}
@@ -370,7 +433,11 @@ function PostItem({ post, onPostDeleted }) {
                             <button
                                 onClick={() => setShowDeleteConfirm(false)}
                                 disabled={deleting}
-                                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                                className={`flex-1 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 ${
+                                    isDarkMode
+                                        ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                                        : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                                }`}
                             >
                                 Cancel
                             </button>

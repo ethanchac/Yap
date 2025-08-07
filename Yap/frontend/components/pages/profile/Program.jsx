@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext'; // Add this import
 
 const Program = ({ value, onChange, onValidation }) => {
   const [inputValue, setInputValue] = useState(value || '');
@@ -7,6 +8,7 @@ const Program = ({ value, onChange, onValidation }) => {
   const [filteredPrograms, setFilteredPrograms] = useState([]);
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
+  const { isDarkMode } = useTheme(); // Add this hook
 
   // Complete list of TMU undergraduate programs
   const tmuPrograms = [
@@ -178,9 +180,15 @@ const Program = ({ value, onChange, onValidation }) => {
 
   return (
     <div className="space-y-2">
-      <label className="block text-white text-sm mb-1">
+      <label className={`block text-sm mb-1 ${
+        isDarkMode ? 'text-white' : 'text-gray-900'
+      }`}>
         Program
-        <span className="text-gray-400 ml-1">(Toronto Metropolitan University)</span>
+        <span className={`ml-1 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          (Toronto Metropolitan University)
+        </span>
       </label>
       
       <div className="relative" ref={dropdownRef}>
@@ -192,17 +200,27 @@ const Program = ({ value, onChange, onValidation }) => {
             onChange={handleInputChange}
             onFocus={handleFocus}
             placeholder="Search for your program..."
-            className="w-full px-3 py-2 pl-10 pr-10 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+            className={`w-full px-3 py-2 pl-10 pr-10 border rounded focus:outline-none ${
+              isDarkMode
+                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-500'
+            }`}
           />
           
           {/* Search icon */}
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`} />
           
           {/* Dropdown toggle */}
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+            className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors ${
+              isDarkMode 
+                ? 'text-gray-400 hover:text-white' 
+                : 'text-gray-500 hover:text-gray-900'
+            }`}
           >
             {isDropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -210,21 +228,39 @@ const Program = ({ value, onChange, onValidation }) => {
 
         {/* Dropdown */}
         {isDropdownOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className={`absolute z-50 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-y-auto ${
+            isDarkMode 
+              ? 'bg-gray-700 border-gray-600' 
+              : 'bg-white border-gray-200'
+          }`}>
             {filteredPrograms.length > 0 ? (
               <>
-                <div className="p-2 text-xs text-gray-400 border-b border-gray-600">
+                <div className={`p-2 text-xs border-b ${
+                  isDarkMode 
+                    ? 'text-gray-400 border-gray-600' 
+                    : 'text-gray-600 border-gray-200'
+                }`}>
                   {filteredPrograms.length} program{filteredPrograms.length !== 1 ? 's' : ''} found
                 </div>
                 {filteredPrograms.map((program, index) => (
                   <button
                     key={index}
                     onClick={() => handleProgramSelect(program)}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-600 focus:bg-gray-600 focus:outline-none border-b border-gray-600 last:border-b-0"
+                    className={`w-full text-left px-3 py-2 focus:outline-none border-b last:border-b-0 ${
+                      isDarkMode
+                        ? 'hover:bg-gray-600 focus:bg-gray-600 border-gray-600'
+                        : 'hover:bg-gray-50 focus:bg-gray-50 border-gray-200'
+                    }`}
                   >
                     <div className="flex flex-col">
-                      <span className="text-white font-medium">{program.name}</span>
-                      <span className="text-sm text-gray-400">
+                      <span className={`font-medium ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {program.name}
+                      </span>
+                      <span className={`text-sm ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
                         {program.type} • {program.faculty}
                       </span>
                     </div>
@@ -232,12 +268,18 @@ const Program = ({ value, onChange, onValidation }) => {
                 ))}
                 
                 {/* Link to TMU programs page */}
-                <div className="p-2 border-t border-gray-600">
+                <div className={`p-2 border-t ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                }`}>
                   <a
                     href="https://www.torontomu.ca/programs/undergraduate/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center text-xs text-blue-400 hover:text-blue-300"
+                    className={`flex items-center text-xs transition-colors ${
+                      isDarkMode 
+                        ? 'text-blue-400 hover:text-blue-300' 
+                        : 'text-blue-600 hover:text-blue-500'
+                    }`}
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
                     View all TMU programs
@@ -246,8 +288,14 @@ const Program = ({ value, onChange, onValidation }) => {
               </>
             ) : (
               <div className="p-4 text-center">
-                <p className="text-gray-400 mb-2">No programs found</p>
-                <p className="text-xs text-gray-500">
+                <p className={`mb-2 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  No programs found
+                </p>
+                <p className={`text-xs ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                }`}>
                   Can't find your program? You can still type it manually.
                 </p>
               </div>
@@ -257,7 +305,9 @@ const Program = ({ value, onChange, onValidation }) => {
       </div>
       
       {/* Help text */}
-      <p className="text-xs text-gray-400">
+      <p className={`text-xs ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+      }`}>
         Start typing to search from {tmuPrograms.length} undergraduate programs at TMU
       </p>
     </div>

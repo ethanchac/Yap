@@ -1,12 +1,13 @@
 // MindPost.jsx
 import { useState } from 'react';
 import { API_BASE_URL } from '../../../../../services/config';
+import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this import
 
 export default function MindPost({ post, onDelete, isDeleting }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { isDarkMode } = useTheme(); // Add this hook
 
   // format the date
-  
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -43,6 +44,8 @@ export default function MindPost({ post, onDelete, isDeleting }) {
     return `${API_BASE_URL}/static/default/default-avatar.png`;
   };
 
+  const bubbleColor = isDarkMode ? '#1c1c1c' : '#f3f4f6';
+
   return (
     <div className="flex items-start gap-3 group mb-6">
       {/* User Avatar */}
@@ -58,25 +61,44 @@ export default function MindPost({ post, onDelete, isDeleting }) {
       {/* Post Content */}
       <div className="flex-1 min-w-0 relative">
         {/* Username */}
-        <div className="text-sm text-gray-300 mb-1 font-medium ml-2">
+        <div className={`text-sm mb-1 font-medium ml-2 ${
+          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
           @{post.username || 'Unknown User'}
         </div>
 
         {/* Speech Bubble */}
-        <div className="relative text-white rounded-2xl px-4 py-3 shadow-md max-w-lg ml-2" style={{ backgroundColor: '#1c1c1c' }}>
+        <div 
+          className={`relative rounded-2xl px-4 py-3 shadow-md max-w-lg ml-2 ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`} 
+          style={{ backgroundColor: bubbleColor }}
+        >
           {/* Tail */}
-          <div className="absolute -left-2 bottom-2 w-0 h-0 border-l-[10px] border-l-transparent" style={{ borderTopColor: '#1c1c1c', borderTopWidth: '10px' }}></div>
+          <div 
+            className="absolute -left-2 bottom-2 w-0 h-0 border-l-[10px] border-l-transparent" 
+            style={{ 
+              borderTopColor: bubbleColor, 
+              borderTopWidth: '10px' 
+            }}
+          ></div>
 
           {/* Delete Button (hover) */}
           {post.is_own_post && (
             <button
               onClick={handleDeleteClick}
               disabled={isDeleting}
-              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 transition-opacity opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-gray-600"
+              className={`absolute top-2 right-2 transition-opacity opacity-0 group-hover:opacity-100 p-1 rounded-full ${
+                isDarkMode
+                  ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
+                  : 'text-gray-500 hover:text-red-500 hover:bg-gray-200'
+              }`}
               title="Delete this post"
             >
               {isDeleting ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+                <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${
+                  isDarkMode ? 'border-red-400' : 'border-red-500'
+                }`}></div>
               ) : (
                 <svg
                   className="w-4 h-4"
@@ -101,7 +123,9 @@ export default function MindPost({ post, onDelete, isDeleting }) {
           </p>
 
           {/* Timestamp */}
-          <div className="text-xs text-gray-400 mt-2 text-right">
+          <div className={`text-xs mt-2 text-right ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
             {formatDate(post.created_at)}
           </div>
         </div>
@@ -110,9 +134,19 @@ export default function MindPost({ post, onDelete, isDeleting }) {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-sm mx-4">
-            <h3 className="text-white text-lg font-bold mb-4">Delete Post</h3>
-            <p className="text-gray-300 mb-6">
+          <div className={`rounded-lg p-6 max-w-sm mx-4 ${
+            isDarkMode
+              ? 'bg-gray-800'
+              : 'bg-white border border-gray-200'
+          }`}>
+            <h3 className={`text-lg font-bold mb-4 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Delete Post
+            </h3>
+            <p className={`mb-6 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
               Are you sure you want to delete this post? This action cannot be undone.
             </p>
             <div className="flex gap-3">
@@ -126,7 +160,11 @@ export default function MindPost({ post, onDelete, isDeleting }) {
               <button
                 onClick={handleCancelDelete}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold transition-colors"
+                className={`flex-1 px-4 py-2 rounded-lg font-bold transition-colors ${
+                  isDarkMode
+                    ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                }`}
               >
                 Cancel
               </button>

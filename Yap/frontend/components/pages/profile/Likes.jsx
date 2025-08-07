@@ -5,6 +5,7 @@ import Header from '../../header/Header';
 import Sidebar from '../../sidebar/Sidebar';
 import PostItem from '../home/posts/PostItem';
 import { API_BASE_URL } from '../../../services/config';
+import { useTheme } from '../../../contexts/ThemeContext'; 
 
 function Likes() {
     const [likedPosts, setLikedPosts] = useState([]);
@@ -15,6 +16,7 @@ function Likes() {
     const [totalLiked, setTotalLiked] = useState(0);
     const [loadingMore, setLoadingMore] = useState(false);
     const mainContentRef = useRef(null);
+    const { isDarkMode } = useTheme(); // Add this hook
     
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -85,8 +87,14 @@ function Likes() {
         fetchLikedPosts();
     }, []);
 
+    // Dynamic colors based on theme
+    const cardBgColor = isDarkMode ? '#171717' : '#ffffff';
+
     return (
-        <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+        <div className="h-screen overflow-hidden font-bold" style={{
+            backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+            fontFamily: 'Albert Sans'
+        }}>
             <Header />
             <Sidebar />
             <div 
@@ -99,7 +107,11 @@ function Likes() {
                         {fromProfile && (
                             <button 
                                 onClick={handleBackToProfile}
-                                className="flex items-center justify-center w-10 h-10 bg-gray-700 hover:bg-gray-600 text-white rounded-full transition-colors"
+                                className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                                    isDarkMode
+                                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                                        : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                                }`}
                                 aria-label="Back to profile"
                             >
                                 <ArrowLeft className="w-5 h-5" />
@@ -107,26 +119,43 @@ function Likes() {
                         )}
                         
                         <div>
-                            <h1 className="text-white text-2xl font-bold mb-2">Posts You've Liked</h1>
+                            <h1 className={`text-2xl font-bold mb-2 ${
+                                isDarkMode ? 'text-white' : 'text-gray-900'
+                            }`}>
+                                Posts You've Liked
+                            </h1>
                             {totalLiked > 0 && (
-                                <p className="text-gray-400">{totalLiked} liked posts</p>
+                                <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                                    {totalLiked} liked posts
+                                </p>
                             )}
                         </div>
                     </div>
 
                     {loading && (
                         <div className="text-center py-12">
-                            <p className="text-white">Loading your liked posts...</p>
+                            <p className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                                Loading your liked posts...
+                            </p>
                         </div>
                     )}
 
                     {error && (
                         <div className="text-center py-12">
-                            <div className="rounded-lg p-6 mb-6" style={{backgroundColor: '#171717'}}>
+                            <div 
+                                className={`rounded-lg p-6 mb-6 ${
+                                    isDarkMode ? '' : 'border border-gray-200'
+                                }`}
+                                style={{ backgroundColor: cardBgColor }}
+                            >
                                 <p className="text-red-400 mb-4">Error: {error}</p>
                                 <button 
                                     onClick={() => fetchLikedPosts()}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+                                    className={`px-4 py-2 rounded-lg font-bold transition-colors ${
+                                        isDarkMode
+                                            ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                                            : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                    }`}
                                 >
                                     Try Again
                                 </button>
@@ -136,9 +165,20 @@ function Likes() {
 
                     {!loading && !error && likedPosts.length === 0 && (
                         <div className="text-center py-12">
-                            <div className="rounded-lg p-8" style={{backgroundColor: '#171717'}}>
-                                <h2 className="text-white text-xl font-bold mb-2">No liked posts yet</h2>
-                                <p className="text-gray-400">Posts you like will appear here</p>
+                            <div 
+                                className={`rounded-lg p-8 ${
+                                    isDarkMode ? '' : 'border border-gray-200'
+                                }`}
+                                style={{ backgroundColor: cardBgColor }}
+                            >
+                                <h2 className={`text-xl font-bold mb-2 ${
+                                    isDarkMode ? 'text-white' : 'text-gray-900'
+                                }`}>
+                                    No liked posts yet
+                                </h2>
+                                <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                                    Posts you like will appear here
+                                </p>
                             </div>
                         </div>
                     )}
@@ -154,7 +194,11 @@ function Likes() {
                                     <button 
                                         onClick={loadMore} 
                                         disabled={loadingMore}
-                                        className="px-6 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                                        className={`px-6 py-3 rounded-lg font-bold transition-colors ${
+                                            isDarkMode
+                                                ? 'bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:opacity-50 text-white'
+                                                : 'bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:opacity-50 text-gray-800'
+                                        }`}
                                     >
                                         {loadingMore ? 'Loading...' : 'Load More'}
                                     </button>
@@ -163,7 +207,9 @@ function Likes() {
 
                             {!hasMore && likedPosts.length > 0 && (
                                 <div className="text-center mt-8">
-                                    <p className="text-gray-400">You've seen all your liked posts!</p>
+                                    <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                                        You've seen all your liked posts!
+                                    </p>
                                 </div>
                             )}
                         </div>

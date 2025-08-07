@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Calendar, Clock, MapPin, Users } from 'lucide-react';
 import EventLocationMap from './EventLocationMap.jsx';
 import { API_BASE_URL } from '../../../services/config.js';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 function CreateEvent() {
     // Event state
@@ -14,6 +15,7 @@ function CreateEvent() {
     const [isSubmittingEvent, setIsSubmittingEvent] = useState(false);
     const [eventMessage, setEventMessage] = useState('');
     const [eventError, setEventError] = useState('');
+    const { isDarkMode } = useTheme();
 
     // Get today's date for minimum date validation
     const today = new Date().toISOString().split('T')[0];
@@ -174,7 +176,9 @@ function CreateEvent() {
             <form onSubmit={handleEventSubmit} className="space-y-6">
                 {/* Event Title */}
                 <div className="space-y-2">
-                    <label className="block text-gray-300 text-sm font-semibold">
+                    <label className={`block text-sm font-semibold ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                         Event Title *
                     </label>
                     <input
@@ -184,11 +188,23 @@ function CreateEvent() {
                         placeholder="What's your event called?"
                         maxLength={100}
                         disabled={isSubmittingEvent}
-                        className="w-full p-4 bg-gray-800 border-2 border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-gray-750 transition-all duration-200"
+                        className={`w-full p-4 border-2 rounded-xl transition-all duration-200 focus:outline-none ${
+                            isDarkMode
+                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
+                        }`}
                     />
                     <div className="flex justify-between">
-                        <span className="text-xs text-gray-500">Required field</span>
-                        <span className={`text-xs font-medium ${eventTitle.length > 90 ? 'text-red-400' : 'text-gray-400'}`}>
+                        <span className={`text-xs ${
+                            isDarkMode ? 'text-gray-500' : 'text-gray-600'
+                        }`}>
+                            Required field
+                        </span>
+                        <span className={`text-xs font-medium ${
+                            eventTitle.length > 90 
+                                ? 'text-red-400' 
+                                : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
                             {eventTitle.length}/100
                         </span>
                     </div>
@@ -196,7 +212,9 @@ function CreateEvent() {
 
                 {/* Event Description */}
                 <div className="space-y-2">
-                    <label className="block text-gray-300 text-sm font-semibold">
+                    <label className={`block text-sm font-semibold ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                         Event Description *
                     </label>
                     <textarea
@@ -205,11 +223,23 @@ function CreateEvent() {
                         placeholder="Tell people what to expect at your event..."
                         maxLength={500}
                         disabled={isSubmittingEvent}
-                        className="w-full p-4 bg-gray-800 border-2 border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-gray-750 transition-all duration-200 resize-none h-28"
+                        className={`w-full p-4 border-2 rounded-xl transition-all duration-200 resize-none h-28 focus:outline-none ${
+                            isDarkMode
+                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
+                        }`}
                     />
                     <div className="flex justify-between">
-                        <span className="text-xs text-gray-500">Required field</span>
-                        <span className={`text-xs font-medium ${eventDescription.length > 450 ? 'text-red-400' : 'text-gray-400'}`}>
+                        <span className={`text-xs ${
+                            isDarkMode ? 'text-gray-500' : 'text-gray-600'
+                        }`}>
+                            Required field
+                        </span>
+                        <span className={`text-xs font-medium ${
+                            eventDescription.length > 450 
+                                ? 'text-red-400' 
+                                : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
                             {eventDescription.length}/500
                         </span>
                     </div>
@@ -217,7 +247,9 @@ function CreateEvent() {
 
                 {/* Enhanced Date and Time Section */}
                 <div className="space-y-4">
-                    <h3 className="text-gray-300 text-sm font-semibold flex items-center">
+                    <h3 className={`text-sm font-semibold flex items-center ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                         <Calendar className="w-4 h-4 mr-2" />
                         When is your event? *
                     </h3>
@@ -225,7 +257,9 @@ function CreateEvent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Date Picker */}
                         <div className="relative">
-                            <label className="block text-gray-400 text-xs font-medium mb-2 uppercase tracking-wide">
+                            <label className={`block text-xs font-medium mb-2 uppercase tracking-wide ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
                                 Date
                             </label>
                             <div className="relative">
@@ -235,18 +269,28 @@ function CreateEvent() {
                                     onChange={(e) => setEventDate(e.target.value)}
                                     min={today}
                                     disabled={isSubmittingEvent}
-                                    className="w-full p-4 bg-gray-800 border-2 border-gray-700 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:bg-gray-750 transition-all duration-200 appearance-none cursor-pointer"
+                                    className={`w-full p-4 border-2 rounded-xl appearance-none cursor-pointer transition-all duration-200 focus:outline-none ${
+                                        isDarkMode
+                                            ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:bg-gray-750'
+                                            : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-gray-50'
+                                    }`}
                                 />
-                                <Calendar className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                <Calendar className={`absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none ${
+                                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                }`} />
                             </div>
-                            <div className="mt-2 text-sm text-gray-400 font-medium">
+                            <div className={`mt-2 text-sm font-medium ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
                                 {formatDateDisplay(eventDate)}
                             </div>
                         </div>
 
                         {/* Time Picker */}
                         <div className="relative">
-                            <label className="block text-gray-400 text-xs font-medium mb-2 uppercase tracking-wide">
+                            <label className={`block text-xs font-medium mb-2 uppercase tracking-wide ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
                                 Time
                             </label>
                             <div className="relative">
@@ -255,11 +299,19 @@ function CreateEvent() {
                                     value={eventTime}
                                     onChange={(e) => setEventTime(e.target.value)}
                                     disabled={isSubmittingEvent}
-                                    className="w-full p-4 bg-gray-800 border-2 border-gray-700 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:bg-gray-750 transition-all duration-200 appearance-none cursor-pointer"
+                                    className={`w-full p-4 border-2 rounded-xl appearance-none cursor-pointer transition-all duration-200 focus:outline-none ${
+                                        isDarkMode
+                                            ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:bg-gray-750'
+                                            : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-gray-50'
+                                    }`}
                                 />
-                                <Clock className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                <Clock className={`absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none ${
+                                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                }`} />
                             </div>
-                            <div className="mt-2 text-sm text-gray-400 font-medium">
+                            <div className={`mt-2 text-sm font-medium ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
                                 {formatTimeDisplay(eventTime)}
                             </div>
                         </div>
@@ -267,16 +319,24 @@ function CreateEvent() {
 
                     {/* Date/Time Preview Card */}
                     {eventDate && eventTime && (
-                        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-xl p-4">
+                        <div className={`border rounded-xl p-4 ${
+                            isDarkMode
+                                ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-700/50'
+                                : 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200'
+                        }`}>
                             <div className="flex items-center space-x-3">
                                 <div className="bg-blue-600 rounded-lg p-2">
                                     <Calendar className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <div className="text-white font-semibold">
+                                    <div className={`font-semibold ${
+                                        isDarkMode ? 'text-white' : 'text-gray-900'
+                                    }`}>
                                         {formatDateDisplay(eventDate)}
                                     </div>
-                                    <div className="text-blue-300 text-sm">
+                                    <div className={`text-sm ${
+                                        isDarkMode ? 'text-blue-300' : 'text-blue-600'
+                                    }`}>
                                         at {formatTimeDisplay(eventTime)}
                                     </div>
                                 </div>
@@ -287,7 +347,9 @@ function CreateEvent() {
 
                 {/* Location with Map Integration */}
                 <div className="space-y-2">
-                    <label className="block text-gray-300 text-sm font-semibold flex items-center">
+                    <label className={`block text-sm font-semibold flex items-center ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                         <MapPin className="w-4 h-4 mr-2" />
                         Event Location
                     </label>
@@ -300,7 +362,9 @@ function CreateEvent() {
 
                 {/* Max Attendees */}
                 <div className="space-y-2">
-                    <label className="block text-gray-300 text-sm font-semibold flex items-center">
+                    <label className={`block text-sm font-semibold flex items-center ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                         <Users className="w-4 h-4 mr-2" />
                         Maximum Attendees
                     </label>
@@ -311,9 +375,15 @@ function CreateEvent() {
                         placeholder="Leave blank for unlimited capacity"
                         min="1"
                         disabled={isSubmittingEvent}
-                        className="w-full p-4 bg-gray-800 border-2 border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-gray-750 transition-all duration-200"
+                        className={`w-full p-4 border-2 rounded-xl transition-all duration-200 focus:outline-none ${
+                            isDarkMode
+                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
+                        }`}
                     />
-                    <div className="text-xs text-gray-500">
+                    <div className={`text-xs ${
+                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
+                    }`}>
                         Optional - Set a limit on how many people can attend
                     </div>
                 </div>
@@ -339,7 +409,11 @@ function CreateEvent() {
 
             {/* Success/Error Messages */}
             {eventMessage && (
-                <div className="p-4 bg-gradient-to-r from-green-900/50 to-emerald-900/50 border border-green-700/50 text-green-300 rounded-xl backdrop-blur-sm">
+                <div className={`p-4 border rounded-xl backdrop-blur-sm ${
+                    isDarkMode
+                        ? 'bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-green-700/50 text-green-300'
+                        : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700'
+                }`}>
                     <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                         <span className="font-medium">{eventMessage}</span>
@@ -348,7 +422,11 @@ function CreateEvent() {
             )}
 
             {eventError && (
-                <div className="p-4 bg-gradient-to-r from-red-900/50 to-pink-900/50 border border-red-700/50 text-red-300 rounded-xl backdrop-blur-sm">
+                <div className={`p-4 border rounded-xl backdrop-blur-sm ${
+                    isDarkMode
+                        ? 'bg-gradient-to-r from-red-900/50 to-pink-900/50 border-red-700/50 text-red-300'
+                        : 'bg-gradient-to-r from-red-50 to-pink-50 border-red-200 text-red-700'
+                }`}>
                     <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-red-400 rounded-full"></div>
                         <span className="font-medium">{eventError}</span>

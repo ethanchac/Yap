@@ -30,7 +30,6 @@ const Profile = () => {
   const mainContentRef = useRef(null);
   const { isDarkMode } = useTheme();
 
-
   const isOwnProfile = !userId; // if no userId in URL, it's own profile
 
   // get auth headers
@@ -314,6 +313,11 @@ const Profile = () => {
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };
 
+  // Dynamic colors based on theme
+  const headerBgColor = isDarkMode ? '#171717' : '#f8f9fa';
+  const cardBgColor = isDarkMode ? '#171717' : '#ffffff';
+  const inputBgColor = isDarkMode ? '#374151' : '#f9fafb';
+
   if (loading) return (
     <div className="h-screen overflow-hidden font-bold" style={{
       backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
@@ -339,7 +343,11 @@ const Profile = () => {
           <p className="text-red-400 mb-4">Error: {error}</p>
           <button 
             onClick={fetchProfile}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+            className={`px-4 py-2 rounded-lg font-bold transition-colors ${
+              isDarkMode
+                ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
           >
             Try Again
           </button>
@@ -374,17 +382,19 @@ const Profile = () => {
       >
         <div className="max-w-7xl mx-auto">
           {/* Profile Header */}
-          <div className="rounded-lg p-6 mb-6" style={{
-            backgroundColor: isDarkMode ? '#171717' : '#f8f9fa',
-            border: isDarkMode ? 'none' : '1px solid #e5e7eb'
-          }}>
+          <div 
+            className={`rounded-lg p-6 mb-6 ${isDarkMode ? '' : 'border border-gray-200'}`}
+            style={{ backgroundColor: headerBgColor }}
+          >
             <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-6">
               {/* Profile Picture */}
               <div className="relative">
                 <img 
                   src={getProfilePictureUrl()} 
                   alt={profile.username}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-gray-600"
+                  className={`w-32 h-32 rounded-full object-cover border-4 ${
+                    isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                  }`}
                 />
                 {uploadingImage && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
@@ -397,7 +407,11 @@ const Profile = () => {
                   <button
                     onClick={openFilePicker}
                     disabled={uploadingImage}
-                    className="absolute bottom-2 right-2 p-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded-full transition-colors"
+                    className={`absolute bottom-2 right-2 p-2 text-white rounded-full transition-colors ${
+                      isDarkMode
+                        ? 'bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600'
+                        : 'bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400'
+                    }`}
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -417,16 +431,26 @@ const Profile = () => {
               <div className="flex-1">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                   <div>
-                    <h1 className="text-white text-2xl font-bold flex items-center space-x-2">
+                    <h1 className={`text-2xl font-bold flex items-center space-x-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
                       <span>@{profile.username}</span>
                       {profile.is_verified && <Check className="w-5 h-5 text-blue-400" />}
                     </h1>
                     {profile.full_name && (
-                      <p className="text-gray-300 text-lg">{profile.full_name}</p>
+                      <p className={`text-lg ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        {profile.full_name}
+                      </p>
                     )}
                     {/* Always show email if available */}
                     {profile.email && (
-                      <p className="text-gray-400 text-sm">{profile.email}</p>
+                      <p className={`text-sm ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        {profile.email}
+                      </p>
                     )}
                   </div>
 
@@ -437,7 +461,7 @@ const Profile = () => {
                         onClick={handleFollowToggle}
                         className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors ${
                           profile.is_following 
-                            ? 'bg-gray-600 hover:bg-gray-500 text-white' 
+                            ? (isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800')
                             : 'bg-blue-600 hover:bg-blue-500 text-white'
                         }`}
                       >
@@ -448,7 +472,11 @@ const Profile = () => {
                       <button 
                         onClick={handleMessageUser}
                         disabled={messagingUser}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors ${
+                          isDarkMode
+                            ? 'bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white'
+                            : 'bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:opacity-50 text-gray-800'
+                        }`}
                       >
                         <MessageCircle className="w-4 h-4" />
                         <span>{messagingUser ? 'Starting chat...' : 'Message'}</span>
@@ -460,7 +488,11 @@ const Profile = () => {
                   {isOwnProfile && !isEditing && (
                     <button 
                       onClick={() => setIsEditing(true)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold transition-colors mt-4 md:mt-0"
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors mt-4 md:mt-0 ${
+                        isDarkMode
+                          ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                          : 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+                      }`}
                     >
                       <Edit3 className="w-4 h-4" />
                       <span>Edit Profile</span>
@@ -470,20 +502,38 @@ const Profile = () => {
 
                 {/* Stats */}
                 <div className="flex space-x-6 mb-4">
-                  <span className="text-white"><strong>{profile.posts_count || 0}</strong> <span className="text-gray-400">posts</span></span>
-                  <span className="text-white"><strong>{profile.followers_count || 0}</strong> <span className="text-gray-400">followers</span></span>
-                  <span className="text-white"><strong>{profile.following_count || 0}</strong> <span className="text-gray-400">following</span></span>
+                  <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                    <strong>{profile.posts_count || 0}</strong> 
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}> posts</span>
+                  </span>
+                  <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                    <strong>{profile.followers_count || 0}</strong> 
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}> followers</span>
+                  </span>
+                  <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                    <strong>{profile.following_count || 0}</strong> 
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}> following</span>
+                  </span>
                   {profile.liked_posts_count !== undefined && (
-                    <span className="text-white"><strong>{profile.liked_posts_count}</strong> <span className="text-gray-400">likes</span></span>
+                    <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                      <strong>{profile.liked_posts_count}</strong> 
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}> likes</span>
+                    </span>
                   )}
                 </div>
 
                 {/* Profile Details */}
                 {!isEditing ? (
                   <div className="space-y-2">
-                    {profile.bio && <p className="text-white">{profile.bio}</p>}
+                    {profile.bio && (
+                      <p className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                        {profile.bio}
+                      </p>
+                    )}
                     
-                    <div className="flex flex-wrap gap-4 text-gray-400 text-sm">
+                    <div className={`flex flex-wrap gap-4 text-sm ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
                       {profile.program && (
                         <div className="flex items-center space-x-1">
                           <GraduationCap className="w-4 h-4" />
@@ -513,23 +563,39 @@ const Profile = () => {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-white text-sm mb-1">Full Name</label>
+                      <label className={`block text-sm mb-1 ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Full Name
+                      </label>
                       <input
                         type="text"
                         value={editForm.full_name}
                         onChange={(e) => handleInputChange('full_name', e.target.value)}
                         maxLength={100}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                        className={`w-full px-3 py-2 border rounded focus:outline-none ${
+                          isDarkMode
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 focus:border-gray-500'
+                        }`}
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-white text-sm mb-1">Bio</label>
+                      <label className={`block text-sm mb-1 ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Bio
+                      </label>
                       <textarea
                         value={editForm.bio}
                         onChange={(e) => handleInputChange('bio', e.target.value)}
                         maxLength={500}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400 h-20 resize-none"
+                        className={`w-full px-3 py-2 border rounded h-20 resize-none focus:outline-none ${
+                          isDarkMode
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 focus:border-gray-500'
+                        }`}
                       />
                     </div>
 
@@ -541,25 +607,41 @@ const Profile = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-white text-sm mb-1">Website</label>
+                        <label className={`block text-sm mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          Website
+                        </label>
                         <input
                           type="url"
                           value={editForm.website}
                           onChange={(e) => handleInputChange('website', e.target.value)}
                           placeholder="https://yourwebsite.com"
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                          className={`w-full px-3 py-2 border rounded focus:outline-none ${
+                            isDarkMode
+                              ? 'bg-gray-700 border-gray-600 text-white focus:border-gray-400'
+                              : 'bg-white border-gray-300 text-gray-900 focus:border-gray-500'
+                          }`}
                         />
                       </div>
                       
                       <div>
-                        <label className="block text-white text-sm mb-1">Location</label>
+                        <label className={`block text-sm mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          Location
+                        </label>
                         <input
                           type="text"
                           value={editForm.location}
                           onChange={(e) => handleInputChange('location', e.target.value)}
                           maxLength={100}
                           placeholder="City, Country"
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                          className={`w-full px-3 py-2 border rounded focus:outline-none ${
+                            isDarkMode
+                              ? 'bg-gray-700 border-gray-600 text-white focus:border-gray-400'
+                              : 'bg-white border-gray-300 text-gray-900 focus:border-gray-500'
+                          }`}
                         />
                       </div>
                     </div>
@@ -568,13 +650,21 @@ const Profile = () => {
                     <div className="flex space-x-3 pt-4">
                       <button 
                         onClick={handleSave}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+                        className={`px-6 py-2 rounded-lg font-bold transition-colors ${
+                          isDarkMode
+                            ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white'
+                        }`}
                       >
                         Save Changes
                       </button>
                       <button 
                         onClick={handleCancel}
-                        className="px-6 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold transition-colors"
+                        className={`px-6 py-2 rounded-lg font-bold transition-colors ${
+                          isDarkMode
+                            ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                            : 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+                        }`}
                       >
                         Cancel
                       </button>
@@ -594,7 +684,9 @@ const Profile = () => {
             <div className="flex-1 lg:w-3/5">
               {/* Posts Section Header with Liked Posts Button */}
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-white text-xl font-bold">
+                <h3 className={`text-xl font-bold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
                   Recent Posts {profile.recent_posts && profile.recent_posts.length > 0 && `(${profile.recent_posts.length})`}
                 </h3>
                 
@@ -602,7 +694,11 @@ const Profile = () => {
                 {isOwnProfile && (
                   <button 
                     onClick={handleViewLikedPosts}
-                    className="flex items-center space-x-2 px-4 py-2 text-white rounded-lg font-bold transition-colors" style={{backgroundColor: '#171717'}}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-200'
+                    }`}
                   >
                     <Heart className="w-4 h-4" />
                     <span>Liked Posts</span>
@@ -622,8 +718,11 @@ const Profile = () => {
               {/* No posts message */}
               {(!profile.recent_posts || profile.recent_posts.length === 0) && (
                 <div className="text-center py-12">
-                  <div className="rounded-lg p-8" style={{backgroundColor: '#171717'}}>
-                    <p className="text-gray-400">
+                  <div 
+                    className={`rounded-lg p-8 ${isDarkMode ? '' : 'border border-gray-200'}`}
+                    style={{ backgroundColor: cardBgColor }}
+                  >
+                    <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                       {isOwnProfile ? "You haven't posted anything yet." : `${profile.username} hasn't posted anything yet.`}
                     </p>
                   </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ImageIcon, Send, Smile, Hash, AtSign } from 'lucide-react';
 import { API_BASE_URL } from '../../../services/config';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 function CreatePost() {
     // Post state
@@ -8,6 +9,7 @@ function CreatePost() {
     const [isSubmittingPost, setIsSubmittingPost] = useState(false);
     const [postMessage, setPostMessage] = useState('');
     const [postError, setPostError] = useState('');
+    const { isDarkMode } = useTheme();
     
     // Image upload state
     const [selectedImages, setSelectedImages] = useState([]);
@@ -25,7 +27,7 @@ function CreatePost() {
     // Common hashtags for suggestions
     const commonHashtags = ['#yapp', '#life', '#fun', '#friends', '#love', '#happy'];
 
-    // Mock user suggestions for mentions (in real app, this would come from API)
+    // Mock user suggestions for mentions
     const userSuggestions = [
         { id: 1, username: 'john_doe', name: 'John Doe' },
         { id: 2, username: 'jane_smith', name: 'Jane Smith' },
@@ -43,7 +45,6 @@ function CreatePost() {
         setContent(newContent);
         setShowEmojiPicker(false);
         
-        // Set cursor position after emoji
         setTimeout(() => {
             textarea.focus();
             textarea.setSelectionRange(start + emoji.length, start + emoji.length);
@@ -59,7 +60,6 @@ function CreatePost() {
         setContent(newContent);
         setShowHashtagSuggestions(false);
         
-        // Set cursor position after hashtag
         setTimeout(() => {
             textarea.focus();
             textarea.setSelectionRange(start + hashtag.length + 1, start + hashtag.length + 1);
@@ -76,7 +76,6 @@ function CreatePost() {
         setContent(newContent);
         setShowMentionSuggestions(false);
         
-        // Set cursor position after mention
         setTimeout(() => {
             textarea.focus();
             textarea.setSelectionRange(start + mention.length, start + mention.length);
@@ -85,7 +84,6 @@ function CreatePost() {
 
     // Close all dropdowns when clicking outside
     const handleClickOutside = (e) => {
-        // Don't close if clicking on the button itself or inside the dropdown
         if (e.target.closest('.dropdown-container') || e.target.closest('.dropdown-button')) {
             return;
         }
@@ -94,15 +92,13 @@ function CreatePost() {
         setShowMentionSuggestions(false);
     };
 
-    // Add click outside listener
     useEffect(() => {
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    // Debug function to test dropdowns
+    // Test dropdown function
     const testDropdown = (type) => {
-        console.log(`Testing ${type} dropdown`);
         if (type === 'emoji') {
             setShowEmojiPicker(true);
             setShowHashtagSuggestions(false);
@@ -121,8 +117,8 @@ function CreatePost() {
     // Image handling functions
     const handleImageSelect = (e) => {
         const files = Array.from(e.target.files);
-        const maxImages = 4; // Limit to 4 images per post
-        const maxSize = 5 * 1024 * 1024; // 5MB per image
+        const maxImages = 4;
+        const maxSize = 5 * 1024 * 1024; // 5MB
         
         if (selectedImages.length + files.length > maxImages) {
             setPostError(`You can only upload up to ${maxImages} images per post`);
@@ -133,13 +129,11 @@ function CreatePost() {
         const newPreviewUrls = [];
 
         files.forEach(file => {
-            // Check file size
             if (file.size > maxSize) {
                 setPostError(`Image "${file.name}" is too large. Maximum size is 5MB.`);
                 return;
             }
 
-            // Check file type
             if (!file.type.startsWith('image/')) {
                 setPostError(`"${file.name}" is not a valid image file.`);
                 return;
@@ -151,13 +145,11 @@ function CreatePost() {
 
         setSelectedImages(prev => [...prev, ...validFiles]);
         setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
-        setPostError(''); // Clear any previous errors
+        setPostError('');
     };
 
     const removeImage = (index) => {
-        // Revoke the object URL to free memory
         URL.revokeObjectURL(imagePreviewUrls[index]);
-        
         setSelectedImages(prev => prev.filter((_, i) => i !== index));
         setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
@@ -219,7 +211,6 @@ function CreatePost() {
                 return;
             }
 
-            // Upload images first if any are selected
             let imageUrls = [];
             if (selectedImages.length > 0) {
                 imageUrls = await uploadImages();
@@ -233,7 +224,7 @@ function CreatePost() {
                 },
                 body: JSON.stringify({
                     content: content.trim(),
-                    images: imageUrls // Send the uploaded image URLs
+                    images: imageUrls
                 })
             });
 
@@ -241,9 +232,8 @@ function CreatePost() {
 
             if (response.ok) {
                 setPostMessage('Post created successfully!');
-                setContent(''); // clear the form
+                setContent('');
                 
-                // Clear images
                 imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
                 setSelectedImages([]);
                 setImagePreviewUrls([]);
@@ -259,7 +249,6 @@ function CreatePost() {
 
     return (
         <div className="space-y-6">
-            {/* Enhanced Post Creation Form */}
             <form onSubmit={handlePostSubmit} className="space-y-6">
                 {/* Modern Textarea */}
                 <div className="relative">
@@ -269,26 +258,31 @@ function CreatePost() {
                         placeholder="What's on your mind? Share your thoughts, moments, or experiences..."
                         maxLength={280}
                         disabled={isSubmittingPost}
-                        className="w-full p-6 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 resize-none h-40 text-lg leading-relaxed transition-all duration-300 backdrop-blur-sm"
+                        className={`w-full p-6 border rounded-2xl resize-none h-40 text-lg leading-relaxed transition-all duration-300 backdrop-blur-sm focus:outline-none focus:ring-2 ${
+                            isDarkMode
+                                ? 'bg-gray-800/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-orange-500/50 focus:ring-orange-500/20'
+                                : 'bg-white/70 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-orange-500/50 focus:ring-orange-500/20'
+                        }`}
                     />
                     
                     {/* Character Counter */}
                     <div className="absolute bottom-4 right-4">
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-300 ${
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-300 border ${
                             content.length > 260 
-                                ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
                                 : content.length > 200
-                                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                                : 'bg-gray-600/50 text-gray-400 border border-gray-500/30'
+                                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                : isDarkMode
+                                    ? 'bg-gray-600/50 text-gray-400 border-gray-500/30'
+                                    : 'bg-gray-100/80 text-gray-600 border-gray-300/50'
                         }`}>
                             {content.length}/280
                         </div>
                     </div>
                 </div>
                 
-                {/* Enhanced Image Upload Section */}
+                {/* Image Upload Section */}
                 <div className="space-y-4">
-                    {/* Modern Image Upload Button */}
                     <div className="flex items-center justify-between">
                         <label 
                             htmlFor="image-upload"
@@ -306,7 +300,9 @@ function CreatePost() {
                             className="hidden"
                             disabled={isSubmittingPost || uploadingImages}
                         />
-                        <div className="flex items-center space-x-2 text-gray-400">
+                        <div className={`flex items-center space-x-2 ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
                             <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                             <span className="text-sm font-medium">
                                 {selectedImages.length}/4 images
@@ -314,7 +310,7 @@ function CreatePost() {
                         </div>
                     </div>
 
-                    {/* Enhanced Image Previews */}
+                    {/* Image Previews */}
                     {imagePreviewUrls.length > 0 && (
                         <div className="grid grid-cols-2 gap-4">
                             {imagePreviewUrls.map((url, index) => (
@@ -322,7 +318,9 @@ function CreatePost() {
                                     <img 
                                         src={url} 
                                         alt={`Preview ${index + 1}`}
-                                        className="w-full h-40 object-cover rounded-xl border border-gray-600/50 transition-transform duration-300 group-hover:scale-105"
+                                        className={`w-full h-40 object-cover rounded-xl border transition-transform duration-300 group-hover:scale-105 ${
+                                            isDarkMode ? 'border-gray-600/50' : 'border-gray-300/50'
+                                        }`}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                     <button
@@ -338,29 +336,40 @@ function CreatePost() {
                     )}
                 </div>
                 
-                {/* Enhanced Action Bar with Functional Buttons */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-700/50 relative">
+                {/* Action Bar with Functional Buttons */}
+                <div className={`flex items-center justify-between pt-4 border-t relative ${
+                    isDarkMode ? 'border-gray-700/50' : 'border-gray-300/50'
+                }`}>
                     <div className="flex items-center space-x-4">
                         {/* Emoji Button */}
                         <div className="dropdown-container relative">
                             <button 
                                 type="button" 
                                 onClick={() => testDropdown('emoji')}
-                                className="dropdown-button p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all duration-300"
+                                className={`dropdown-button p-2 rounded-lg transition-all duration-300 ${
+                                    isDarkMode
+                                        ? 'text-gray-400 hover:text-orange-400 hover:bg-orange-500/20'
+                                        : 'text-gray-600 hover:text-orange-600 hover:bg-orange-500/10'
+                                }`}
                             >
                                 <Smile className="w-5 h-5" />
                             </button>
                             
-                            {/* Emoji Picker Dropdown */}
                             {showEmojiPicker && (
-                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-gray-800 border border-orange-500 rounded-xl shadow-2xl z-50 min-w-64" style={{display: 'block', position: 'absolute'}}>
+                                <div className={`absolute bottom-full left-0 mb-2 p-3 border rounded-xl shadow-2xl z-50 min-w-64 ${
+                                    isDarkMode
+                                        ? 'bg-gray-800 border-orange-500'
+                                        : 'bg-white border-orange-400'
+                                }`}>
                                     <div className="grid grid-cols-8 gap-2">
                                         {commonEmojis.map((emoji, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
                                                 onClick={() => handleEmojiClick(emoji)}
-                                                className="p-2 text-2xl hover:bg-gray-700 rounded-lg transition-colors duration-200 hover:scale-110"
+                                                className={`p-2 text-2xl rounded-lg transition-colors duration-200 hover:scale-110 ${
+                                                    isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                                                }`}
                                             >
                                                 {emoji}
                                             </button>
@@ -375,21 +384,32 @@ function CreatePost() {
                             <button 
                                 type="button" 
                                 onClick={() => testDropdown('hashtag')}
-                                className="dropdown-button p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all duration-300"
+                                className={`dropdown-button p-2 rounded-lg transition-all duration-300 ${
+                                    isDarkMode
+                                        ? 'text-gray-400 hover:text-orange-400 hover:bg-orange-500/20'
+                                        : 'text-gray-600 hover:text-orange-600 hover:bg-orange-500/10'
+                                }`}
                             >
                                 <Hash className="w-5 h-5" />
                             </button>
                             
-                            {/* Hashtag Suggestions Dropdown */}
                             {showHashtagSuggestions && (
-                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-gray-800 border border-orange-500 rounded-xl shadow-2xl z-50 min-w-48" style={{display: 'block', position: 'absolute'}}>
+                                <div className={`absolute bottom-full left-0 mb-2 p-3 border rounded-xl shadow-2xl z-50 min-w-48 ${
+                                    isDarkMode
+                                        ? 'bg-gray-800 border-orange-500'
+                                        : 'bg-white border-orange-400'
+                                }`}>
                                     <div className="space-y-2">
                                         {commonHashtags.map((hashtag, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
                                                 onClick={() => handleHashtagClick(hashtag)}
-                                                className="w-full p-2 text-left text-gray-300 hover:text-orange-400 hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                                                className={`w-full p-2 text-left rounded-lg transition-colors duration-200 ${
+                                                    isDarkMode
+                                                        ? 'text-gray-300 hover:text-orange-400 hover:bg-gray-700'
+                                                        : 'text-gray-700 hover:text-orange-600 hover:bg-gray-100'
+                                                }`}
                                             >
                                                 {hashtag}
                                             </button>
@@ -404,28 +424,43 @@ function CreatePost() {
                             <button 
                                 type="button" 
                                 onClick={() => testDropdown('mention')}
-                                className="dropdown-button p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all duration-300"
+                                className={`dropdown-button p-2 rounded-lg transition-all duration-300 ${
+                                    isDarkMode
+                                        ? 'text-gray-400 hover:text-orange-400 hover:bg-orange-500/20'
+                                        : 'text-gray-600 hover:text-orange-600 hover:bg-orange-500/10'
+                                }`}
                             >
                                 <AtSign className="w-5 h-5" />
                             </button>
                             
-                            {/* Mention Suggestions Dropdown */}
                             {showMentionSuggestions && (
-                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-gray-800 border border-orange-500 rounded-xl shadow-2xl z-50 min-w-56" style={{display: 'block', position: 'absolute'}}>
+                                <div className={`absolute bottom-full left-0 mb-2 p-3 border rounded-xl shadow-2xl z-50 min-w-56 ${
+                                    isDarkMode
+                                        ? 'bg-gray-800 border-orange-500'
+                                        : 'bg-white border-orange-400'
+                                }`}>
                                     <div className="space-y-2">
                                         {userSuggestions.map((user) => (
                                             <button
                                                 key={user.id}
                                                 type="button"
                                                 onClick={() => handleMentionClick(user)}
-                                                className="w-full p-2 text-left text-gray-300 hover:text-orange-400 hover:bg-gray-700 rounded-lg transition-colors duration-200 flex items-center space-x-3"
+                                                className={`w-full p-2 text-left rounded-lg transition-colors duration-200 flex items-center space-x-3 ${
+                                                    isDarkMode
+                                                        ? 'text-gray-300 hover:text-orange-400 hover:bg-gray-700'
+                                                        : 'text-gray-700 hover:text-orange-600 hover:bg-gray-100'
+                                                }`}
                                             >
                                                 <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                                     {user.name.charAt(0)}
                                                 </div>
                                                 <div>
                                                     <div className="font-medium">{user.name}</div>
-                                                    <div className="text-sm text-gray-400">@{user.username}</div>
+                                                    <div className={`text-sm ${
+                                                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                                    }`}>
+                                                        @{user.username}
+                                                    </div>
                                                 </div>
                                             </button>
                                         ))}
@@ -464,7 +499,7 @@ function CreatePost() {
                 </div>
             </form>
 
-            {/* Enhanced Success/Error Messages */}
+            {/* Success/Error Messages */}
             {postMessage && (
                 <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-green-300 rounded-xl backdrop-blur-sm animate-in slide-in-from-top-2">
                     <div className="flex items-center space-x-2">

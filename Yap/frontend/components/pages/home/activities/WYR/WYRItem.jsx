@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this import
 
 export default function WYRItem({ question, onVote, onDelete, userVote, canDelete }) {
   const [voting, setVoting] = useState(false);
   const [votingOption, setVotingOption] = useState(null);
   const [clickedButton, setClickedButton] = useState(null);
+  const { isDarkMode } = useTheme(); // Add this hook
 
   // Start from 50% to avoid both bars growing from the left
   const [animatedPercentageA, setAnimatedPercentageA] = useState(50);
@@ -93,12 +95,23 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
   };
 
   return (
-    <div className="rounded-lg p-4 border border-gray-700 mb-6" style={{ backgroundColor: '#171717' }}>
+    <div 
+      className={`rounded-lg p-4 mb-6 ${
+        isDarkMode ? 'border border-gray-700' : 'border border-gray-200'
+      }`} 
+      style={{ backgroundColor: isDarkMode ? '#171717' : '#ffffff' }}
+    >
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="text-white text-lg font-bold mb-1">Would You Rather</h3>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
+          <h3 className={`text-lg font-bold mb-1 ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Would You Rather
+          </h3>
+          <div className={`flex items-center gap-2 text-sm ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             <span>by {getCreatorName()}</span>
             {question.created_at && (
               <>
@@ -111,7 +124,11 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
         {canDelete && (
           <button
             onClick={() => onDelete(question._id)}
-            className="text-gray-400 hover:text-red-400 transition-colors p-1 ml-2"
+            className={`transition-colors p-1 ml-2 ${
+              isDarkMode
+                ? 'text-gray-400 hover:text-red-400'
+                : 'text-gray-500 hover:text-red-500'
+            }`}
             title="Delete this question"
           >
             🗑️
@@ -122,16 +139,32 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
       {/* Options Display */}
       <div className="mb-6 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-full bg-black border-2 border-white flex items-center justify-center flex-shrink-0">
+          <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+            isDarkMode
+              ? 'bg-black border-white'
+              : 'bg-gray-900 border-gray-900'
+          }`}>
             <span className="text-white text-lg font-bold">1</span>
           </div>
-          <span className="text-white text-base break-words">{question.option_a}</span>
+          <span className={`text-base break-words ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            {question.option_a}
+          </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-full bg-black border-2 border-white flex items-center justify-center flex-shrink-0">
+          <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+            isDarkMode
+              ? 'bg-black border-white'
+              : 'bg-gray-900 border-gray-900'
+          }`}>
             <span className="text-white text-lg font-bold">2</span>
           </div>
-          <span className="text-white text-base break-words">{question.option_b}</span>
+          <span className={`text-base break-words ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            {question.option_b}
+          </span>
         </div>
       </div>
 
@@ -139,7 +172,11 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
         <div className="flex gap-3 mb-4">
           {/* Vote A Button */}
           <button
-            className={`flex-1 min-w-0 px-4 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-green-700 border-2 border-green-900 text-green-100 hover:bg-green-600 hover:border-green-800 shadow-md relative ${
+            className={`flex-1 min-w-0 px-4 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 shadow-md relative ${
+              isDarkMode
+                ? 'bg-green-700 border-2 border-green-900 text-green-100 hover:bg-green-600 hover:border-green-800'
+                : 'bg-green-600 border-2 border-green-700 text-white hover:bg-green-500 hover:border-green-600'
+            } ${
               voting && votingOption === 'A' ? 'opacity-75' : ''
             } ${clickedButton === 'A' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -148,8 +185,12 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
             <div className="text-center">
               <div className="text-xl font-bold">1</div>
               {voting && votingOption === 'A' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-green-800 bg-opacity-50 rounded-lg">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-100"></div>
+                <div className={`absolute inset-0 flex items-center justify-center bg-opacity-50 rounded-lg ${
+                  isDarkMode ? 'bg-green-800' : 'bg-green-700'
+                }`}>
+                  <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${
+                    isDarkMode ? 'border-green-100' : 'border-white'
+                  }`}></div>
                 </div>
               )}
             </div>
@@ -157,7 +198,11 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
 
           {/* Vote B Button */}
           <button
-            className={`flex-1 min-w-0 px-4 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 bg-red-700 border-2 border-red-900 text-red-100 hover:bg-red-600 hover:border-red-800 shadow-md relative ${
+            className={`flex-1 min-w-0 px-4 py-3 rounded-lg font-bold transition-all duration-300 ease-out transform hover:scale-105 shadow-md relative ${
+              isDarkMode
+                ? 'bg-red-700 border-2 border-red-900 text-red-100 hover:bg-red-600 hover:border-red-800'
+                : 'bg-red-600 border-2 border-red-700 text-white hover:bg-red-500 hover:border-red-600'
+            } ${
               voting && votingOption === 'B' ? 'opacity-75' : ''
             } ${clickedButton === 'B' ? 'scale-95' : ''}`}
             disabled={voting}
@@ -166,8 +211,12 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
             <div className="text-center">
               <div className="text-xl font-bold">2</div>
               {voting && votingOption === 'B' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-red-800 bg-opacity-50 rounded-lg">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-100"></div>
+                <div className={`absolute inset-0 flex items-center justify-center bg-opacity-50 rounded-lg ${
+                  isDarkMode ? 'bg-red-800' : 'bg-red-700'
+                }`}>
+                  <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${
+                    isDarkMode ? 'border-red-100' : 'border-white'
+                  }`}></div>
                 </div>
               )}
             </div>
@@ -179,8 +228,12 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
             {/* Result A */}
             {animatedPercentageA > 0 && (
               <div
-                className={`bg-green-700 flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out min-w-0 ${
-                  userVote === 'A' ? 'ring-4 ring-green-400' : ''
+                className={`flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out min-w-0 ${
+                  isDarkMode ? 'bg-green-700' : 'bg-green-600'
+                } ${
+                  userVote === 'A' 
+                    ? (isDarkMode ? 'ring-4 ring-green-400' : 'ring-4 ring-green-300')
+                    : ''
                 }`}
                 style={{
                   width: `${Math.max(animatedPercentageA, 5)}%`,
@@ -197,8 +250,12 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
             {/* Result B */}
             {animatedPercentageB > 0 && (
               <div
-                className={`bg-red-700 flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out min-w-0 ${
-                  userVote === 'B' ? 'ring-4 ring-red-400' : ''
+                className={`flex items-center justify-center text-white font-bold will-change-[width] transition-[width] duration-700 ease-in-out min-w-0 ${
+                  isDarkMode ? 'bg-red-700' : 'bg-red-600'
+                } ${
+                  userVote === 'B' 
+                    ? (isDarkMode ? 'ring-4 ring-red-400' : 'ring-4 ring-red-300')
+                    : ''
                 }`}
                 style={{
                   width: `${Math.max(animatedPercentageB, 5)}%`,
@@ -214,7 +271,11 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
 
             {/* Show message when both options have 0 votes */}
             {animatedPercentageA === 0 && animatedPercentageB === 0 && (
-              <div className="w-full bg-gray-700 flex items-center justify-center text-gray-400 font-medium">
+              <div className={`w-full flex items-center justify-center font-medium ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-gray-400' 
+                  : 'bg-gray-200 text-gray-600'
+              }`}>
                 No votes yet
               </div>
             )}

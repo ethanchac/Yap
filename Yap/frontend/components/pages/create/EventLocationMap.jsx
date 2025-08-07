@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useTheme } from '../../../contexts/ThemeContext'; // Add this import
 
 // Fix Leaflet default markers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -53,6 +54,7 @@ function MapClickHandler({ onLocationSelect }) {
 
 function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear }) {
     const [showMap, setShowMap] = useState(false);
+    const { isDarkMode } = useTheme(); // Add this hook
     
     // TMU Campus coordinates as default center
     const TMU_COORDS = [43.6577, -79.3788];
@@ -73,25 +75,37 @@ function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear 
 
     return (
         <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">
+            <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
                 Event Location (Optional)
             </label>
             
             {/* Location Input/Display */}
             <div className="space-y-2">
                 {selectedLocation ? (
-                    <div className="p-3 bg-gray-700 border border-gray-600 rounded-lg">
+                    <div className={`p-3 border rounded-lg ${
+                        isDarkMode 
+                            ? 'bg-gray-700 border-gray-600' 
+                            : 'bg-gray-50 border-gray-300'
+                    }`}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-white text-sm font-medium">📍 Location Selected</div>
-                                <div className="text-gray-400 text-xs">
+                                <div className={`text-sm font-medium ${
+                                    isDarkMode ? 'text-white' : 'text-gray-900'
+                                }`}>
+                                    📍 Location Selected
+                                </div>
+                                <div className={`text-xs ${
+                                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
                                     {selectedLocation.address}
                                 </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={handleClearLocation}
-                                className="text-red-400 hover:text-red-300 text-sm font-medium"
+                                className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
                             >
                                 Clear
                             </button>
@@ -101,7 +115,11 @@ function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear 
                     <button
                         type="button"
                         onClick={() => setShowMap(!showMap)}
-                        className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-left"
+                        className={`w-full p-3 border rounded-lg text-left transition-colors ${
+                            isDarkMode
+                                ? 'bg-gray-700 border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
+                                : 'bg-gray-50 border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400'
+                        }`}
                     >
                         {showMap ? '📍 Click on the map to select location' : '🗺️ Click to select location on map'}
                     </button>
@@ -110,9 +128,15 @@ function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear 
 
             {/* Interactive Map Container */}
             {showMap && (
-                <div className="mt-3 rounded-lg overflow-hidden border border-gray-600">
-                    <div className="bg-gray-800 p-2 text-center">
-                        <span className="text-gray-300 text-sm">
+                <div className={`mt-3 rounded-lg overflow-hidden border ${
+                    isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                }`}>
+                    <div className={`p-2 text-center ${
+                        isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                        <span className={`text-sm ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
                             {selectedLocation 
                                 ? '🎯 Click anywhere to move your event location'
                                 : '🎯 Click anywhere on the map to set your event location'
@@ -153,8 +177,12 @@ function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear 
                     </div>
                     
                     {/* Map Controls */}
-                    <div className="bg-gray-800 p-2 flex justify-between items-center">
-                        <div className="text-gray-400 text-xs">
+                    <div className={`p-2 flex justify-between items-center ${
+                        isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                        <div className={`text-xs ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
                             {selectedLocation 
                                 ? '✅ Location set! You can still click to change it.'
                                 : '💡 Tip: Zoom in for more precise location selection'
@@ -164,7 +192,11 @@ function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear 
                             <button
                                 type="button"
                                 onClick={() => setShowMap(false)}
-                                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                                className={`text-sm font-medium transition-colors ${
+                                    isDarkMode 
+                                        ? 'text-blue-400 hover:text-blue-300' 
+                                        : 'text-blue-600 hover:text-blue-500'
+                                }`}
                             >
                                 Done ✓
                             </button>

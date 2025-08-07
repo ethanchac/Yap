@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, ExternalLink } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext'; // Add this import
 
 const EventCard = ({ event, onEventClick }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { isDarkMode } = useTheme(); // Add this hook
 
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
@@ -32,15 +34,35 @@ const EventCard = ({ event, onEventClick }) => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return { status: 'past', text: 'Past Event', color: 'text-gray-500' };
+      return { 
+        status: 'past', 
+        text: 'Past Event', 
+        color: isDarkMode ? 'text-gray-500' : 'text-gray-600' 
+      };
     } else if (diffDays === 0) {
-      return { status: 'today', text: 'Today', color: 'text-green-400' };
+      return { 
+        status: 'today', 
+        text: 'Today', 
+        color: isDarkMode ? 'text-green-400' : 'text-green-600' 
+      };
     } else if (diffDays === 1) {
-      return { status: 'tomorrow', text: 'Tomorrow', color: 'text-blue-400' };
+      return { 
+        status: 'tomorrow', 
+        text: 'Tomorrow', 
+        color: isDarkMode ? 'text-blue-400' : 'text-blue-600' 
+      };
     } else if (diffDays <= 7) {
-      return { status: 'upcoming', text: `${diffDays} days`, color: 'text-yellow-400' };
+      return { 
+        status: 'upcoming', 
+        text: `${diffDays} days`, 
+        color: isDarkMode ? 'text-yellow-400' : 'text-yellow-600' 
+      };
     } else {
-      return { status: 'future', text: `${diffDays} days`, color: 'text-gray-400' };
+      return { 
+        status: 'future', 
+        text: `${diffDays} days`, 
+        color: isDarkMode ? 'text-gray-400' : 'text-gray-500' 
+      };
     }
   };
 
@@ -51,8 +73,8 @@ const EventCard = ({ event, onEventClick }) => {
     <div
       className={`rounded-lg p-4 cursor-pointer transition-all duration-200 ${
         isHovered ? 'transform scale-105 shadow-lg' : 'shadow-md'
-      }`}
-      style={{ backgroundColor: '#1a1a1a' }}
+      } ${isDarkMode ? '' : 'border border-gray-200'}`}
+      style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff' }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onEventClick(event)}
@@ -66,7 +88,9 @@ const EventCard = ({ event, onEventClick }) => {
         {/* Event Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
-            <h4 className="text-white font-semibold text-sm line-clamp-2">
+            <h4 className={`font-semibold text-sm line-clamp-2 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               {event.title}
             </h4>
             <span className={`text-xs font-medium ${timeStatus.color} flex-shrink-0 ml-2`}>
@@ -75,14 +99,18 @@ const EventCard = ({ event, onEventClick }) => {
           </div>
 
           {event.description && (
-            <p className="text-gray-400 text-xs line-clamp-2 mb-3">
+            <p className={`text-xs line-clamp-2 mb-3 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
               {event.description}
             </p>
           )}
 
           {/* Event Details */}
           <div className="space-y-1">
-            <div className="flex items-center text-gray-400 text-xs">
+            <div className={`flex items-center text-xs ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
               <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
               <span>{dateTime.date}</span>
               <Clock className="w-3 h-3 ml-2 mr-1 flex-shrink-0" />
@@ -90,17 +118,25 @@ const EventCard = ({ event, onEventClick }) => {
             </div>
 
             {event.location && (
-              <div className="flex items-center text-gray-400 text-xs">
+              <div className={`flex items-center text-xs ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
                 <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
                 <span className="line-clamp-1">{event.location}</span>
               </div>
             )}
 
-            <div className="flex items-center text-gray-400 text-xs">
+            <div className={`flex items-center text-xs ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
               <Users className="w-3 h-3 mr-1 flex-shrink-0" />
               <span>{event.attendees_count || 0} attending</span>
               {event.max_attendees && (
-                <span className="text-gray-500 ml-1">/ {event.max_attendees}</span>
+                <span className={`ml-1 ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  / {event.max_attendees}
+                </span>
               )}
             </div>
           </div>
@@ -108,11 +144,13 @@ const EventCard = ({ event, onEventClick }) => {
 
         {/* External Link Icon */}
         <div className="flex-shrink-0">
-          <ExternalLink className="w-4 h-4 text-gray-500" />
+          <ExternalLink className={`w-4 h-4 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`} />
         </div>
       </div>
     </div>
   );
 };
 
-export default EventCard; 
+export default EventCard;

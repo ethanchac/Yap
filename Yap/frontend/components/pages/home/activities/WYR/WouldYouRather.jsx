@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import WYRItem from './WYRItem';
 import { API_BASE_URL } from '../../../../../services/config';
+import { useTheme } from '../../../../../contexts/ThemeContext'; 
 
 const API_URL = `${API_BASE_URL}/api/activities/wouldyourather`;
 
@@ -10,6 +11,7 @@ export default function WouldYouRather() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const { isDarkMode } = useTheme(); // Add this hook
   
   // Create question state
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -213,15 +215,32 @@ export default function WouldYouRather() {
     }
   };
 
+  const mainBgColor = isDarkMode ? '#171717' : '#ffffff';
+  const loadingBgColor = isDarkMode ? '#1c1c1c' : '#f3f4f6';
+  const inputBgColor = isDarkMode ? '#374151' : '#f9fafb';
+
   // Show create form
   if (showCreateForm) {
     return (
-      <div className="rounded-lg p-4 border border-gray-700" style={{ backgroundColor: '#171717' }}>
+      <div 
+        className={`rounded-lg p-4 ${
+          isDarkMode ? 'border border-gray-700' : 'border border-gray-200'
+        }`} 
+        style={{ backgroundColor: mainBgColor }}
+      >
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-white text-lg font-bold">Create Would You Rather</h3>
+          <h3 className={`text-lg font-bold ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Create Would You Rather
+          </h3>
           <button
             onClick={resetCreateForm}
-            className="text-gray-400 hover:text-white transition-colors"
+            className={`transition-colors ${
+              isDarkMode 
+                ? 'text-gray-400 hover:text-white' 
+                : 'text-gray-500 hover:text-gray-900'
+            }`}
           >
             ✕
           </button>
@@ -230,7 +249,9 @@ export default function WouldYouRather() {
         <form onSubmit={handleCreateQuestion} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 Option A *
               </label>
               <input
@@ -238,17 +259,25 @@ export default function WouldYouRather() {
                 value={newQuestion.option_a}
                 onChange={(e) => setNewQuestion(prev => ({ ...prev, option_a: e.target.value }))}
                 placeholder="First option"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 ${
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                }`}
                 maxLength={100}
                 disabled={creating}
               />
-              <div className="text-xs text-gray-400 mt-1">
+              <div className={`text-xs mt-1 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
                 {newQuestion.option_a.length}/100 characters
               </div>
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 Option B *
               </label>
               <input
@@ -256,11 +285,17 @@ export default function WouldYouRather() {
                 value={newQuestion.option_b}
                 onChange={(e) => setNewQuestion(prev => ({ ...prev, option_b: e.target.value }))}
                 placeholder="Second option"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 ${
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                }`}
                 maxLength={100}
                 disabled={creating}
               />
-              <div className="text-xs text-gray-400 mt-1">
+              <div className={`text-xs mt-1 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
                 {newQuestion.option_b.length}/100 characters
               </div>
             </div>
@@ -284,7 +319,11 @@ export default function WouldYouRather() {
               type="button"
               onClick={resetCreateForm}
               disabled={creating}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 text-white rounded-lg font-bold transition-colors"
+              className={`px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 ${
+                isDarkMode
+                  ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+              }`}
             >
               Cancel
             </button>
@@ -296,13 +335,16 @@ export default function WouldYouRather() {
 
   if (loading) {
     return (
-      <div className="rounded-lg p-4" style={{ backgroundColor: '#171717' }}>
+      <div 
+        className={`rounded-lg p-4 ${isDarkMode ? '' : 'border border-gray-200'}`}
+        style={{ backgroundColor: mainBgColor }}
+      >
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded w-3/4 mb-4"></div>
-          <div className="h-8 bg-gray-700 rounded mb-4"></div>
+          <div className="h-4 rounded w-3/4 mb-4" style={{ backgroundColor: loadingBgColor }}></div>
+          <div className="h-8 rounded mb-4" style={{ backgroundColor: loadingBgColor }}></div>
           <div className="flex gap-4 mb-4">
-            <div className="flex-1 h-10 bg-gray-700 rounded"></div>
-            <div className="flex-1 h-10 bg-gray-700 rounded"></div>
+            <div className="flex-1 h-10 rounded" style={{ backgroundColor: loadingBgColor }}></div>
+            <div className="flex-1 h-10 rounded" style={{ backgroundColor: loadingBgColor }}></div>
           </div>
         </div>
       </div>
@@ -310,10 +352,17 @@ export default function WouldYouRather() {
   }
 
   return (
-    <div className="rounded-lg p-4 bg-[#171717] flex flex-col h-full">
+    <div 
+      className={`rounded-lg p-4 flex flex-col h-full ${isDarkMode ? '' : 'border border-gray-200'}`}
+      style={{ backgroundColor: mainBgColor }}
+    >
       {/* Header with Create Button */}
       <div className="flex justify-between items-center mb-6 flex-shrink-0">
-        <h2 className="text-white text-xl font-bold">Would You Rather</h2>
+        <h2 className={`text-xl font-bold ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>
+          Would You Rather
+        </h2>
         <button
           onClick={() => setShowCreateForm(true)}
           className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors whitespace-nowrap"
@@ -329,8 +378,17 @@ export default function WouldYouRather() {
       )}
 
       {questions.length === 0 ? (
-        <div className="text-center py-12 rounded-lg border border-gray-700 flex-1 flex flex-col justify-center" style={{ backgroundColor: '#171717' }}>
-          <p className="text-gray-400 mb-4">No questions found. Be the first to create one!</p>
+        <div 
+          className={`text-center py-12 rounded-lg border flex-1 flex flex-col justify-center ${
+            isDarkMode ? 'border-gray-700' : 'border-gray-300'
+          }`}
+          style={{ backgroundColor: mainBgColor }}
+        >
+          <p className={`mb-4 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            No questions found. Be the first to create one!
+          </p>
         </div>
       ) : (
         <div className="space-y-0 flex-1 overflow-y-auto">

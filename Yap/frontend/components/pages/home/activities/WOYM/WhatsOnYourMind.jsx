@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import MindPost from './MindPost';
 import { API_BASE_URL } from '../../../../../services/config';
+import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this import
 
 const API_URL = `${API_BASE_URL}/api/activities/whatsonmind`;
 
@@ -11,6 +12,7 @@ export default function WhatsOnYourMind() {
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const { isDarkMode } = useTheme(); // Add this hook
   
   // Create post state
   const [newPost, setNewPost] = useState('');
@@ -193,20 +195,27 @@ export default function WhatsOnYourMind() {
     }
   };
 
+  const loadingBgColor = isDarkMode ? '#1c1c1c' : '#f3f4f6';
+  const mainBgColor = isDarkMode ? '#171717' : '#ffffff';
+  const inputBgColor = isDarkMode ? '#1c1c1c' : '#f9fafb';
+
   if (loading) {
     return (
-      <div className="rounded-lg p-4" style={{ backgroundColor: '#171717' }}>
+      <div 
+        className={`rounded-lg p-4 ${isDarkMode ? '' : 'border border-gray-200'}`}
+        style={{ backgroundColor: mainBgColor }}
+      >
         <div className="animate-pulse">
-          <div className="h-4 rounded w-3/4 mb-4" style={{ backgroundColor: '#1c1c1c' }}></div>
-          <div className="h-20 rounded mb-4" style={{ backgroundColor: '#1c1c1c' }}></div>
+          <div className="h-4 rounded w-3/4 mb-4" style={{ backgroundColor: loadingBgColor }}></div>
+          <div className="h-20 rounded mb-4" style={{ backgroundColor: loadingBgColor }}></div>
           <div className="space-y-4">
             <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full" style={{ backgroundColor: '#1c1c1c' }}></div>
-              <div className="flex-1 h-16 rounded" style={{ backgroundColor: '#1c1c1c' }}></div>
+              <div className="w-10 h-10 rounded-full" style={{ backgroundColor: loadingBgColor }}></div>
+              <div className="flex-1 h-16 rounded" style={{ backgroundColor: loadingBgColor }}></div>
             </div>
             <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full" style={{ backgroundColor: '#1c1c1c' }}></div>
-              <div className="flex-1 h-12 rounded" style={{ backgroundColor: '#1c1c1c' }}></div>
+              <div className="w-10 h-10 rounded-full" style={{ backgroundColor: loadingBgColor }}></div>
+              <div className="flex-1 h-12 rounded" style={{ backgroundColor: loadingBgColor }}></div>
             </div>
           </div>
         </div>
@@ -215,10 +224,17 @@ export default function WhatsOnYourMind() {
   }
 
   return (
-    <div className="rounded-lg p-4 bg-[#171717] flex flex-col h-full">
+    <div 
+      className={`rounded-lg p-4 flex flex-col h-full ${isDarkMode ? '' : 'border border-gray-200'}`}
+      style={{ backgroundColor: mainBgColor }}
+    >
       {/* Header */}
       <div className="mb-6 flex-shrink-0">
-        <h2 className="text-white text-xl font-bold mb-4">What's on Your Mind?</h2>
+        <h2 className={`text-xl font-bold mb-4 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>
+          What's on Your Mind?
+        </h2>
         
         {/* Create Post Form */}
         <form onSubmit={handleCreatePost} className="space-y-3">
@@ -239,14 +255,20 @@ export default function WhatsOnYourMind() {
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="What's on your mind?"
-                className="w-full px-4 py-3 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none"
-                style={{ backgroundColor: '#1c1c1c' }}
+                className={`w-full px-4 py-3 border rounded-lg resize-none focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 ${
+                  isDarkMode
+                    ? 'border-gray-600 text-white placeholder-gray-400'
+                    : 'border-gray-300 text-gray-900 placeholder-gray-500'
+                }`}
+                style={{ backgroundColor: inputBgColor }}
                 rows={3}
                 maxLength={500}
                 disabled={posting}
               />
               <div className="flex justify-between items-center mt-2">
-                <div className="text-xs text-gray-400">
+                <div className={`text-xs ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   {newPost.length}/500 characters
                 </div>
                 <button
@@ -270,8 +292,17 @@ export default function WhatsOnYourMind() {
 
       {/* Posts List */}
       {posts.length === 0 ? (
-        <div className="text-center py-12 rounded-lg border border-gray-700 flex-1 flex flex-col justify-center" style={{ backgroundColor: '#171717' }}>
-          <p className="text-gray-400 mb-4">No posts yet. Share what's on your mind!</p>
+        <div 
+          className={`text-center py-12 rounded-lg border flex-1 flex flex-col justify-center ${
+            isDarkMode ? 'border-gray-700' : 'border-gray-300'
+          }`}
+          style={{ backgroundColor: mainBgColor }}
+        >
+          <p className={`mb-4 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            No posts yet. Share what's on your mind!
+          </p>
         </div>
       ) : (
         <div className="space-y-4 flex-1 overflow-y-auto">
