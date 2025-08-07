@@ -237,16 +237,15 @@ def attend_event(current_user, event_id):
         if not event.get('is_active', True):
             return jsonify({"error": "Event has been cancelled"}), 400
         
-        # Check if event is in the future
-        event_datetime = event.get('event_datetime')
-        if event_datetime and event_datetime <= datetime.utcnow():
-            return jsonify({"error": "Cannot attend past events"}), 400
+        # Enhanced past event check using the new is_event_past method
+        if Event.is_event_past(event.get('event_datetime')):
+            return jsonify({"error": "Cannot join past events"}), 400
         
-        # Call the original attend_event method
+        # Call the attend_event method
         result = Event.attend_event(event_id, current_user['_id'])
         
         if "error" in result:
-            return jsonify({"error": result["error"]}), 500
+            return jsonify({"error": result["error"]}), 400
         
         # Handle notifications based on whether user joined or left
         if result.get("attending") == True:  # User just joined

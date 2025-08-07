@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus, Map, MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // Assuming you're using React Router
+import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus, Map, MessageCircle, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../../services/config';
 
 const EventModal = ({ event, isOpen, onClose, currentUser }) => {
@@ -12,14 +12,29 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [totalAttendees, setTotalAttendees] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
   const [actionLoading, setActionLoading] = useState({ like: false, attend: false });
+  const [isPastEvent, setIsPastEvent] = useState(false);
   
-  const navigate = useNavigate(); // For navigation to waypoint map and thread
+  const navigate = useNavigate();
+
+  // Check if event is in the past
+  const checkIfEventPast = (eventDateTime) => {
+    if (!eventDateTime) return false;
+    
+    const eventDate = new Date(eventDateTime);
+    const now = new Date();
+    
+    return eventDate <= now;
+  };
 
   const fetchEventDetails = async () => {
     if (!event || !isOpen || !currentUser) return;
     
     setLoading(true);
     try {
+      // Check if event is past
+      const pastCheck = checkIfEventPast(event.event_datetime);
+      setIsPastEvent(pastCheck);
+
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/events/${event._id}/details`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -108,7 +123,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   };
 
   const toggleAttendance = async () => {
-    if (actionLoading.attend) return;
+    if (actionLoading.attend || isPastEvent) return;
     
     setActionLoading(prev => ({ ...prev, attend: true }));
     try {
@@ -204,7 +219,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     
     // Close modal and navigate to waypoint map
     onClose();
-    navigate('/waypoint'); // Adjust the route as needed for your app
+    navigate('/waypoint');
   };
 
   const getProfilePictureUrl = (profilePicture) => {
@@ -235,7 +250,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
 
   // Check if event has location coordinates
   const hasLocationCoordinates = () => {
-    // Check both the event object and eventDetails for coordinates
     const currentEvent = eventDetails || event;
     return (currentEvent.latitude && currentEvent.longitude) || 
            (currentEvent.lat && currentEvent.lng) ||
@@ -278,11 +292,12 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
       setTotalAttendees(0);
       setLikesCount(0);
       setActionLoading({ like: false, attend: false });
+      setIsPastEvent(false);
       
       // Fetch new data
       fetchEventDetails();
     }
-  }, [isOpen, event?._id]); // Include event._id as dependency
+  }, [isOpen, event?._id]);
 
   useEffect(() => {
     if (isOpen) {
@@ -310,7 +325,15 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
           <div className="flex items-center space-x-3">
             <div className="text-4xl">{getEventIcon(0)}</div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{event.title}</h2>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-2xl font-bold text-gray-900">{event.title}</h2>
+                {isPastEvent && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Past Event
+                  </span>
+                )}
+              </div>
               <p className="text-gray-600">Hosted by @{event.host_username || event.username || 'Unknown'}</p>
             </div>
           </div>
@@ -331,8 +354,12 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 <div className="flex items-start space-x-3">
                   <Calendar className="w-5 h-5 text-gray-500 mt-1" />
                   <div>
-                    <p className="font-semibold text-gray-900">{dateTime.date}</p>
-                    <p className="text-gray-600">{dateTime.time}</p>
+                    <p className={`font-semibold ${isPastEvent ? 'text-gray-500' : 'text-gray-900'}`}>
+                      {dateTime.date}
+                    </p>
+                    <p className={`${isPastEvent ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {dateTime.time}
+                    </p>
                   </div>
                 </div>
 
@@ -361,7 +388,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                   <Users className="w-5 h-5 text-gray-500 mt-1" />
                   <div>
                     <p className="font-semibold text-gray-900">
-                      {totalAttendees} {totalAttendees === 1 ? 'person' : 'people'} attending
+                      {totalAttendees} {totalAttendees === 1 ? 'person' : 'people'} {isPastEvent ? 'attended' : 'attending'}
                     </p>
                   </div>
                 </div>
@@ -377,7 +404,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
               {attendingFriends.length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Friends attending ({attendingFriends.length})
+                    Friends {isPastEvent ? 'who attended' : 'attending'} ({attendingFriends.length})
                   </h3>
                   <div className="flex flex-wrap gap-3">
                     {attendingFriends.slice(0, 8).map((friend) => (
@@ -406,28 +433,35 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
               {/* Action buttons - only show if user is logged in */}
               {currentUser && (
                 <div className="space-y-3 pt-4 border-t border-gray-200">
-                  {/* Main action button - Join/Attending */}
-                  <button
-                    onClick={toggleAttendance}
-                    disabled={actionLoading.attend}
-                    className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
-                      isAttending
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {actionLoading.attend ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <UserPlus className="w-5 h-5" />
-                    )}
-                    <span>
-                      {isAttending 
-                        ? 'Attending' 
-                        : 'Join Event'
-                      }
-                    </span>
-                  </button>
+                  {/* Main action button - Join/Attending (disabled for past events) */}
+                  {!isPastEvent ? (
+                    <button
+                      onClick={toggleAttendance}
+                      disabled={actionLoading.attend}
+                      className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                        isAttending
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {actionLoading.attend ? (
+                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <UserPlus className="w-5 h-5" />
+                      )}
+                      <span>
+                        {isAttending 
+                          ? 'Attending' 
+                          : 'Join Event'
+                        }
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gray-100 text-gray-500 rounded-lg font-semibold">
+                      <Clock className="w-5 h-5" />
+                      <span>Event has ended</span>
+                    </div>
+                  )}
 
                   {/* If already attending, show thread access button */}
                   {isAttending && (
@@ -471,7 +505,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold text-gray-900">{totalAttendees}</p>
-                    <p className="text-sm text-gray-600">Attending</p>
+                    <p className="text-sm text-gray-600">{isPastEvent ? 'Attended' : 'Attending'}</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-gray-900">{likesCount}</p>

@@ -302,6 +302,19 @@ class Event:
         try:
             print(f"Attempting to attend/unattend event {event_id} by user {user_id}")
             
+            # Get the event to check if it's past
+            event = Event.get_event_by_id(event_id)
+            if not event:
+                return {"error": "Event not found"}
+            
+            # Check if event is active
+            if not event.get('is_active', True):
+                return {"error": "Event has been cancelled"}
+            
+            # Check if event is in the past
+            if Event.is_event_past(event.get('event_datetime')):
+                return {"error": "Cannot join past events"}
+            
             # Check if user already attending this event
             existing_attendance = db.attendances.find_one({
                 "event_id": event_id,
@@ -328,8 +341,7 @@ class Event:
                 return {"attending": False, "message": "No longer attending event"}
             else:
                 # Check if event has max attendees limit
-                event = Event.get_event_by_id(event_id)
-                if event and event.get("max_attendees") and event["attendees_count"] >= event["max_attendees"]:
+                if event.get("max_attendees") and event["attendees_count"] >= event["max_attendees"]:
                     return {"error": "Event is full"}
                 
                 # Attend - add attendance and increment count
@@ -360,6 +372,24 @@ class Event:
             import traceback
             traceback.print_exc()
             return {"error": str(e)}
+    
+    @staticmethod
+    def is_event_past(event_datetime):
+        """Check if an event is in the past"""
+        if not event_datetime:
+            return False
+        
+        # Handle both datetime objects and string formats
+        if isinstance(event_datetime, str):
+            try:
+                event_datetime = datetime.strptime(event_datetime, "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                try:
+                    event_datetime = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
+                except ValueError:
+                    return False
+        
+        return event_datetime <= datetime.utcnow()
     
     @staticmethod
     def check_user_attending_event(event_id, user_id):
