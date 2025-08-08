@@ -45,6 +45,7 @@ def create_event_with_waypoint(current_user):
                 event_date=data['event_date'],
                 event_time=data['event_time'],
                 location=data.get('location'),
+                location_title=data.get('location_title'),  # Add location_title parameter
                 max_attendees=data.get('max_attendees')
             )
         except ValueError as ve:
@@ -433,6 +434,20 @@ def update_event(current_user, event_id):
             location = data['location'].strip() if data['location'] else None
             update_fields['location'] = location
         
+        # Handle location_title field
+        if 'location_title' in data:
+            location_title = data['location_title'].strip() if data['location_title'] else None
+            if location_title and len(location_title) > 100:
+                return jsonify({"error": "Location title too long (max 100 characters)"}), 400
+            update_fields['location_title'] = location_title
+        
+        # Handle latitude and longitude for location updates
+        if 'latitude' in data:
+            update_fields['latitude'] = data['latitude']
+        
+        if 'longitude' in data:
+            update_fields['longitude'] = data['longitude']
+        
         if 'max_attendees' in data:
             max_attendees = data['max_attendees']
             if max_attendees is not None:
@@ -452,6 +467,7 @@ def update_event(current_user, event_id):
                     return jsonify({"error": "Event must be scheduled for a future date and time"}), 400
                 update_fields['event_date'] = data['event_date']
                 update_fields['event_time'] = data['event_time']
+                update_fields['event_datetime'] = event_datetime
             except ValueError:
                 return jsonify({"error": "Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time"}), 400
         

@@ -61,7 +61,6 @@ socketio = SocketIO(
         "https://*.vercel.app",        # All Vercel preview deployments
         os.getenv("FRONTEND_URL", "")
     ],
-    async_mode='threading',
     ping_timeout=60,
     ping_interval=25,
     transports=['websocket', 'polling'],

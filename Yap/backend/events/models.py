@@ -4,7 +4,7 @@ from flask import current_app
 
 class Event:
     @staticmethod
-    def create_event(user_id, username, title, description, event_date, event_time, location=None, max_attendees=None):
+    def create_event(user_id, username, title, description, event_date, event_time, location=None, location_title=None, max_attendees=None):
         """Create a new event"""
         db = current_app.config["DB"]
         
@@ -24,6 +24,7 @@ class Event:
             "description": description,
             "event_datetime": event_datetime,
             "location": location,
+            "location_title": location_title,  # Add the new field
             "max_attendees": max_attendees,
             "created_at": datetime.utcnow(),
             "attendees_count": 0,
@@ -483,11 +484,17 @@ class Event:
                     event_datetime_str = f"{kwargs['event_date']} {kwargs['event_time']}"
                     event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
                     update_doc["event_datetime"] = event_datetime
+                    # Remove the individual date/time fields since we store as datetime
+                    kwargs.pop('event_date', None)
+                    kwargs.pop('event_time', None)
                 except ValueError as e:
                     return {"error": f"Invalid date or time format: {e}"}
+            elif "event_datetime" in kwargs:
+                # If event_datetime is provided directly
+                update_doc["event_datetime"] = kwargs.pop('event_datetime')
             
             # Handle other fields
-            allowed_fields = ["title", "description", "location", "max_attendees"]
+            allowed_fields = ["title", "description", "location", "location_title", "latitude", "longitude", "max_attendees"]
             for field in allowed_fields:
                 if field in kwargs:
                     update_doc[field] = kwargs[field]

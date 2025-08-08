@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Edit3 } from 'lucide-react';
 import EventLocationMap from './EventLocationMap.jsx';
 import { API_BASE_URL } from '../../../services/config.js';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -11,6 +11,7 @@ function CreateEvent() {
     const [eventDate, setEventDate] = useState('');
     const [eventTime, setEventTime] = useState('');
     const [eventLocation, setEventLocation] = useState(null);
+    const [locationTitle, setLocationTitle] = useState(''); // New state for location title
     const [maxAttendees, setMaxAttendees] = useState('');
     const [isSubmittingEvent, setIsSubmittingEvent] = useState(false);
     const [eventMessage, setEventMessage] = useState('');
@@ -58,11 +59,23 @@ function CreateEvent() {
     // Handle location selection from map
     const handleLocationSelect = (locationData) => {
         setEventLocation(locationData);
+        // Auto-populate location title with the address if no title is set
+        if (!locationTitle && locationData.address) {
+            setLocationTitle(locationData.address);
+        }
     };
 
     // Handle clearing location
     const handleLocationClear = () => {
         setEventLocation(null);
+        setLocationTitle('');
+    };
+
+    // Get display location (title or coordinates)
+    const getLocationDisplay = () => {
+        if (!eventLocation) return null;
+        if (locationTitle.trim()) return locationTitle.trim();
+        return `${eventLocation.lat.toFixed(6)}, ${eventLocation.lng.toFixed(6)}`;
     };
 
     // Event submit function
@@ -105,7 +118,8 @@ function CreateEvent() {
                 description: eventDescription,
                 event_date: eventDate,
                 event_time: eventTime,
-                location: eventLocation ? eventLocation.address : null,
+                location: getLocationDisplay(), // Use the display location (title or coordinates)
+                location_title: locationTitle.trim() || null, // Store the custom title separately
                 latitude: eventLocation ? eventLocation.lat : null,
                 longitude: eventLocation ? eventLocation.lng : null,
                 max_attendees: maxAttendees ? parseInt(maxAttendees) : null
@@ -159,6 +173,7 @@ function CreateEvent() {
                 setEventDate('');
                 setEventTime('');
                 setEventLocation(null);
+                setLocationTitle('');
                 setMaxAttendees('');
             } else {
                 setEventError(data.error || 'Failed to create event');
@@ -345,19 +360,78 @@ function CreateEvent() {
                     )}
                 </div>
 
-                {/* Location with Map Integration */}
-                <div className="space-y-2">
+                {/* Location with Map Integration and Title Input */}
+                <div className="space-y-4">
                     <label className={`block text-sm font-semibold flex items-center ${
                         isDarkMode ? 'text-gray-300' : 'text-gray-700'
                     }`}>
                         <MapPin className="w-4 h-4 mr-2" />
                         Event Location
                     </label>
+                    
+                    {/* Map Component */}
                     <EventLocationMap
                         selectedLocation={eventLocation}
                         onLocationSelect={handleLocationSelect}
                         onLocationClear={handleLocationClear}
                     />
+                    
+                    {/* Location Title Input - only show when location is selected */}
+                    {eventLocation && (
+                        <div className="space-y-2">
+                            <label className={`block text-sm font-medium flex items-center ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                                <Edit3 className="w-4 h-4 mr-2" />
+                                Location Name (Optional)
+                            </label>
+                            <input
+                                type="text"
+                                value={locationTitle}
+                                onChange={(e) => setLocationTitle(e.target.value)}
+                                placeholder="Give this location a custom name (e.g., 'Main Library', 'Student Center')"
+                                maxLength={100}
+                                disabled={isSubmittingEvent}
+                                className={`w-full p-3 border-2 rounded-xl transition-all duration-200 focus:outline-none ${
+                                    isDarkMode
+                                        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
+                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
+                                }`}
+                            />
+                            <div className="flex justify-between">
+                                <span className={`text-xs ${
+                                    isDarkMode ? 'text-gray-500' : 'text-gray-600'
+                                }`}>
+                                    This will be displayed instead of coordinates
+                                </span>
+                                <span className={`text-xs font-medium ${
+                                    locationTitle.length > 90 
+                                        ? 'text-red-400' 
+                                        : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                    {locationTitle.length}/100
+                                </span>
+                            </div>
+                            
+                            {/* Location Preview */}
+                            <div className={`border rounded-lg p-3 ${
+                                isDarkMode
+                                    ? 'bg-gray-800/50 border-gray-700'
+                                    : 'bg-gray-50 border-gray-200'
+                            }`}>
+                                <div className={`text-sm font-medium ${
+                                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                    Location will display as:
+                                </div>
+                                <div className={`text-sm ${
+                                    isDarkMode ? 'text-blue-300' : 'text-blue-600'
+                                }`}>
+                                    {getLocationDisplay()}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Max Attendees */}
