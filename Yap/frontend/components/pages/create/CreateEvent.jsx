@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Clock, MapPin, Users, Edit3 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ImageIcon, X } from 'lucide-react';
 import EventLocationMap from './EventLocationMap.jsx';
 import { API_BASE_URL } from '../../../services/config.js';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -11,11 +11,17 @@ function CreateEvent() {
     const [eventDate, setEventDate] = useState('');
     const [eventTime, setEventTime] = useState('');
     const [eventLocation, setEventLocation] = useState(null);
-    const [locationTitle, setLocationTitle] = useState(''); // New state for location title
+    const [locationTitle, setLocationTitle] = useState('');
     const [maxAttendees, setMaxAttendees] = useState('');
     const [isSubmittingEvent, setIsSubmittingEvent] = useState(false);
     const [eventMessage, setEventMessage] = useState('');
     const [eventError, setEventError] = useState('');
+    
+    // Image upload state
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+    const [uploadingImage, setUploadingImage] = useState(false);
+    
     const { isDarkMode } = useTheme();
 
     // Get today's date for minimum date validation
@@ -78,6 +84,66 @@ function CreateEvent() {
         return `${eventLocation.lat.toFixed(6)}, ${eventLocation.lng.toFixed(6)}`;
     };
 
+    // Image handling functions
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        
+        if (!file) return;
+
+        if (file.size > maxSize) {
+            setEventError('Image is too large. Maximum size is 5MB.');
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            setEventError('Please select a valid image file.');
+            return;
+        }
+
+        setSelectedImage(file);
+        setImagePreviewUrl(URL.createObjectURL(file));
+        setEventError('');
+    };
+
+    const removeImage = () => {
+        if (imagePreviewUrl) {
+            URL.revokeObjectURL(imagePreviewUrl);
+        }
+        setSelectedImage(null);
+        setImagePreviewUrl('');
+    };
+
+    const uploadImage = async () => {
+        if (!selectedImage) return null;
+
+        setUploadingImage(true);
+        try {
+            const token = localStorage.getItem('token');
+            
+            const formData = new FormData();
+            formData.append('image', selectedImage);
+
+            const response = await fetch(`${API_BASE_URL}/events/upload-image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                return data.imageUrl;
+            } else {
+                throw new Error(data.error || 'Failed to upload image');
+            }
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
     // Event submit function
     const handleEventSubmit = async (e) => {
         e.preventDefault();
@@ -113,16 +179,23 @@ function CreateEvent() {
                 return;
             }
 
+            // Upload image if selected
+            let imageUrl = null;
+            if (selectedImage) {
+                imageUrl = await uploadImage();
+            }
+
             const eventData = {
                 title: eventTitle,
                 description: eventDescription,
                 event_date: eventDate,
                 event_time: eventTime,
-                location: getLocationDisplay(), // Use the display location (title or coordinates)
-                location_title: locationTitle.trim() || null, // Store the custom title separately
+                location: getLocationDisplay(),
+                location_title: locationTitle.trim() || null,
                 latitude: eventLocation ? eventLocation.lat : null,
                 longitude: eventLocation ? eventLocation.lng : null,
-                max_attendees: maxAttendees ? parseInt(maxAttendees) : null
+                max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
+                image: imageUrl
             };
 
             const response = await fetch(`${API_BASE_URL}/events/create`, {
@@ -175,6 +248,7 @@ function CreateEvent() {
                 setEventLocation(null);
                 setLocationTitle('');
                 setMaxAttendees('');
+                removeImage();
             } else {
                 setEventError(data.error || 'Failed to create event');
             }
@@ -189,6 +263,74 @@ function CreateEvent() {
         <div className="space-y-6">
             {/* Event Creation Form */}
             <form onSubmit={handleEventSubmit} className="space-y-6">
+                {/* Event Image Upload */}
+                <div className="space-y-4">
+                    <label className={`block text-sm font-semibold ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                        Event Cover Image
+                    </label>
+                    
+                    {imagePreviewUrl ? (
+                        <div className="relative group">
+                            <img 
+                                src={imagePreviewUrl} 
+                                alt="Event preview"
+                                className="w-full h-48 object-cover rounded-xl border border-gray-300"
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl flex items-center justify-center">
+                                <button
+                                    type="button"
+                                    onClick={removeImage}
+                                    className="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 transition-colors duration-200"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <label 
+                            htmlFor="event-image-upload"
+                            className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 hover:border-blue-500 ${
+                                isDarkMode
+                                    ? 'border-gray-600 bg-gray-800/50 hover:bg-gray-800'
+                                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                            }`}
+                        >
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <ImageIcon className={`w-10 h-10 mb-3 ${
+                                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                }`} />
+                                <p className={`mb-2 text-sm font-semibold ${
+                                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                    Click to upload event image
+                                </p>
+                                <p className={`text-xs ${
+                                    isDarkMode ? 'text-gray-500' : 'text-gray-600'
+                                }`}>
+                                    PNG, JPG, JPEG up to 5MB
+                                </p>
+                            </div>
+                        </label>
+                    )}
+                    
+                    <input
+                        id="event-image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        disabled={isSubmittingEvent || uploadingImage}
+                    />
+                    
+                    <div className={`text-xs ${
+                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
+                    }`}>
+                        Optional - If no image is provided, a random placeholder will be used
+                    </div>
+                </div>
+
                 {/* Event Title */}
                 <div className="space-y-2">
                     <label className={`block text-sm font-semibold ${
@@ -382,7 +524,6 @@ function CreateEvent() {
                             <label className={`block text-sm font-medium flex items-center ${
                                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
                             }`}>
-                                <Edit3 className="w-4 h-4 mr-2" />
                                 Location Name (Optional)
                             </label>
                             <input
@@ -466,13 +607,18 @@ function CreateEvent() {
                 <div className="flex justify-end pt-6">
                     <button 
                         type="submit" 
-                        disabled={isSubmittingEvent || !eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
+                        disabled={isSubmittingEvent || uploadingImage || !eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
                         className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-blue-500/25"
                     >
                         {isSubmittingEvent ? (
                             <div className="flex items-center space-x-2">
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 <span>Creating Event...</span>
+                            </div>
+                        ) : uploadingImage ? (
+                            <div className="flex items-center space-x-2">
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span>Uploading Image...</span>
                             </div>
                         ) : (
                             'Create Event'

@@ -1,14 +1,15 @@
 from flask import Blueprint, request, jsonify, current_app
+from werkzeug.utils import secure_filename
+import os
+import uuid
 from events.models import Event
 from eventthreads.models import EventThread
 from auth.service import token_required
-from datetime import datetime
-from waypoint.models import Waypoint
 from datetime import datetime, timedelta
+from waypoint.models import Waypoint
 
 events_bp = Blueprint('events', __name__)
 
-# Update the create_event_with_waypoint route in events/routes.py
 
 @events_bp.route('/create', methods=['POST'])
 @token_required
@@ -45,7 +46,8 @@ def create_event_with_waypoint(current_user):
                 event_date=data['event_date'],
                 event_time=data['event_time'],
                 location=data.get('location'),
-                location_title=data.get('location_title'),  # Add location_title parameter
+                location_title=data.get('location_title'),
+                image=data.get('image'),  # Add image parameter
                 max_attendees=data.get('max_attendees')
             )
         except ValueError as ve:
@@ -605,3 +607,63 @@ def debug_database():
     except Exception as e:
         print(f"Error in debug route: {e}")
         return jsonify({"error": str(e)}), 500
+
+@events_bp.route('/upload-image', methods=['POST'])
+@token_required
+def upload_event_image(current_user):
+    """Upload a single image for events"""
+    try:
+        # Check if the post request has the file part
+        if 'image' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['image']
+        
+        # If user does not select file, browser also submits an empty part without filename
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        # Check file size
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)  # Reset file position
+        
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+        if file_size > MAX_FILE_SIZE:
+            return jsonify({"error": "File too large. Maximum size is 5MB"}), 400
+        
+        # Allowed extensions
+        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        
+        def allowed_file(filename):
+            return '.' in filename and \
+                   filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        
+        if file and allowed_file(file.filename):
+            # Generate unique filename
+            filename = secure_filename(file.filename)
+            file_extension = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{uuid.uuid4().hex}.{file_extension}"
+            
+            # Create upload directory if it doesn't exist
+            upload_folder = os.path.join(current_app.static_folder, 'uploads', 'event_images')
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            # Save the file
+            file_path = os.path.join(upload_folder, unique_filename)
+            file.save(file_path)
+            
+            # Return the URL for accessing the image
+            image_url = f"{request.url_root}static/uploads/event_images/{unique_filename}"
+            
+            return jsonify({
+                "message": "Image uploaded successfully",
+                "imageUrl": image_url,
+                "filename": unique_filename
+            }), 200
+        else:
+            return jsonify({"error": "Invalid file type. Allowed types: PNG, JPG, JPEG, GIF, WEBP"}), 400
+            
+    except Exception as e:
+        print(f"Error uploading event image: {e}")
+        return jsonify({"error": "Failed to upload image"}), 500

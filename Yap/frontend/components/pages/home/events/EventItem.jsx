@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Calendar, Clock, MapPin, Users, Heart, X } from 'lucide-react';
 import EventModal from './EventModal';
 import { API_BASE_URL } from '../../../../services/config';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 function EventItem() {
     const [events, setEvents] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [currentUserId, setCurrentUserId] = useState(null); // Changed to just store the ID
+    const [currentUserId, setCurrentUserId] = useState(null);
     const [deletingEvent, setDeletingEvent] = useState(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const { isDarkMode } = useTheme();
 
-    // Get current user ID from token - using same pattern as WouldYouRather
+    // Get current user ID from token
     useEffect(() => {
         const getCurrentUserId = () => {
             const token = localStorage.getItem('token');
@@ -24,10 +27,7 @@ function EventItem() {
             
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                
-                // Try different possible user ID fields
                 const userId = payload.sub || payload._id || payload.id || payload.user_id;
-                
                 return userId;
             } catch (e) {
                 console.error('Error parsing token:', e);
@@ -39,7 +39,7 @@ function EventItem() {
         setCurrentUserId(userId);
     }, []);
 
-    // Get auth headers - same pattern as WouldYouRather
+    // Get auth headers
     const getAuthHeaders = () => {
         const token = localStorage.getItem('token');
         
@@ -55,7 +55,7 @@ function EventItem() {
         };
     };
 
-    // Get current user object for EventModal (keeping the existing pattern for modal)
+    // Get current user object for EventModal
     const getCurrentUser = () => {
         const token = localStorage.getItem('token');
         if (!token) return null;
@@ -107,7 +107,7 @@ function EventItem() {
     };
 
     const nextSlide = () => {
-        if (currentIndex < events.length - 2) {
+        if (currentIndex < events.length - 3) {
             setCurrentIndex(currentIndex + 1);
         }
     };
@@ -119,14 +119,14 @@ function EventItem() {
     };
 
     const getVisibleEvents = () => {
-        const maxVisible = 5;
+        const maxVisible = 7; // Show more events for better navigation
         const totalEvents = events.length;
         
         if (totalEvents <= maxVisible) {
             return events;
         }
         
-        let startIndex = Math.max(0, currentIndex - 1);
+        let startIndex = Math.max(0, currentIndex - 2);
         let endIndex = Math.min(totalEvents, startIndex + maxVisible);
         
         if (endIndex - startIndex < maxVisible) {
@@ -170,9 +170,14 @@ function EventItem() {
         }
     };
 
-    const getEventIcon = (index) => {
-        const icons = ['🎉', '🎵', '🎨', '🏃', '🍕', '📚', '🎬', '🎪', '🎯', '🎮'];
-        return icons[index % icons.length];
+    const getEventImage = (event, index) => {
+        // Use event image if available, otherwise use random picsum photo
+        if (event.image) {
+            return event.image;
+        }
+        // Use a consistent seed based on event ID to get the same random image each time
+        const seed = event._id ? event._id.slice(-6) : index.toString().padStart(6, '0');
+        return `https://picsum.photos/seed/${seed}/400/300`;
     };
 
     const handleDeleteEvent = async (eventId) => {
@@ -189,14 +194,14 @@ function EventItem() {
         try {
             const response = await fetch(`${API_BASE_URL}/events/${eventId}/cancel`, {
                 method: 'POST',
-                headers: getAuthHeaders(), // Using same pattern as WouldYouRather
+                headers: getAuthHeaders(),
             });
 
             const data = await response.json();
 
             if (response.ok) {
                 setEvents(prevEvents => prevEvents.filter(event => event._id !== eventId));
-                if (currentIndex > 0 && currentIndex >= events.length - 3) {
+                if (currentIndex > 0 && currentIndex >= events.length - 4) {
                     setCurrentIndex(Math.max(0, currentIndex - 1));
                 }
                 if (selectedEvent && selectedEvent._id === eventId) {
@@ -221,7 +226,7 @@ function EventItem() {
             setIsModalOpen(true);
         } else {
             const originalIndex = events.findIndex(e => e._id === event._id);
-            const newIndex = Math.max(0, Math.min(originalIndex - 1, events.length - 2));
+            const newIndex = Math.max(0, Math.min(originalIndex - 1, events.length - 3));
             setCurrentIndex(newIndex);
         }
     };
@@ -248,8 +253,10 @@ function EventItem() {
         return (
             <div className="flex justify-center items-center h-64">
                 <div className="flex flex-col items-center space-y-4">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <div className="text-gray-400">Loading events...</div>
+                    <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${
+                        isDarkMode ? 'border-blue-400' : 'border-blue-600'
+                    }`}></div>
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Loading events...</div>
                 </div>
             </div>
         );
@@ -260,10 +267,14 @@ function EventItem() {
         return (
             <div className="flex justify-center items-center h-64">
                 <div className="text-center">
-                    <div className="text-red-400 mb-2">{error}</div>
+                    <div className={`mb-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{error}</div>
                     <button 
                         onClick={fetchEvents}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                            isDarkMode 
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
                     >
                         Retry
                     </button>
@@ -277,7 +288,7 @@ function EventItem() {
         return (
             <div className="flex justify-center items-center h-64">
                 <div className="text-center">
-                    <div className="text-gray-400 mb-2">No events found</div>
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>No events found</div>
                 </div>
             </div>
         );
@@ -287,15 +298,19 @@ function EventItem() {
         <>
             <div className="relative w-full p-4">
                 {/* Navigation Arrows */}
-                {events.length > 2 && (
+                {events.length > 3 && (
                     <>
                         <button
                             onClick={prevSlide}
                             disabled={currentIndex === 0}
                             className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
                                 currentIndex === 0 
-                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                                    : 'bg-gray-800 hover:bg-gray-700 text-white hover:scale-110'
+                                    ? isDarkMode 
+                                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
+                                        : 'bg-gray-300 text-gray-400 cursor-not-allowed'
+                                    : isDarkMode
+                                        ? 'bg-[#1c1c1c] hover:bg-[#1f1f1f] text-white hover:scale-110'
+                                        : 'bg-white hover:bg-gray-50 text-gray-800 hover:scale-110'
                             }`}
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,11 +320,15 @@ function EventItem() {
                         
                         <button
                             onClick={nextSlide}
-                            disabled={currentIndex >= events.length - 2}
+                            disabled={currentIndex >= events.length - 3}
                             className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
-                                currentIndex >= events.length - 2 
-                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                                    : 'bg-gray-800 hover:bg-gray-700 text-white hover:scale-110'
+                                currentIndex >= events.length - 3 
+                                    ? isDarkMode 
+                                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
+                                        : 'bg-gray-300 text-gray-400 cursor-not-allowed'
+                                    : isDarkMode
+                                        ? 'bg-[#1c1c1c] hover:bg-[#1f1f1f] text-white hover:scale-110'
+                                        : 'bg-white hover:bg-gray-50 text-gray-800 hover:scale-110'
                             }`}
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +343,7 @@ function EventItem() {
                     <div className="flex gap-2 transition-all duration-500 ease-in-out w-full">
                         {getVisibleEvents().map((event, visibleIndex) => {
                             const originalIndex = events.findIndex(e => e._id === event._id);
-                            const isExpanded = originalIndex >= currentIndex && originalIndex < currentIndex + 2;
+                            const isExpanded = originalIndex >= currentIndex && originalIndex < currentIndex + 3;
                             
                             return (
                                 <div
@@ -332,157 +351,202 @@ function EventItem() {
                                     className={`transition-all duration-500 ease-in-out cursor-pointer ${
                                         isExpanded 
                                             ? 'flex-1 min-w-0' 
-                                            : 'w-16 flex-shrink-0'
+                                            : 'w-20 flex-shrink-0'
                                     }`}
                                     onClick={() => handleEventClick(event, isExpanded)}
                                 >
                                     <div 
-                                        className={`rounded-2xl p-4 h-80 flex flex-col justify-between transition-all duration-500 hover:shadow-lg relative ${
-                                            isExpanded ? 'transform hover:scale-101' : 'items-center justify-center'
-                                        }`}
-                                        style={{ 
-                                            backgroundColor: '#e8e2f0',
-                                            background: `linear-gradient(135deg, ${
-                                                originalIndex % 4 === 0 ? '#e8e2f0' : 
-                                                originalIndex % 4 === 1 ? '#f0e8e2' : 
-                                                originalIndex % 4 === 2 ? '#e2f0e8' : 
-                                                '#e2e8f0'
-                                            }, ${
-                                                originalIndex % 4 === 0 ? '#d1c4e0' : 
-                                                originalIndex % 4 === 1 ? '#e0d1c4' : 
-                                                originalIndex % 4 === 2 ? '#c4e0d1' : 
-                                                '#c4d1e0'
-                                            })`
-                                        }}
+                                        className={`rounded-2xl overflow-hidden h-80 flex flex-col transition-all duration-500 hover:shadow-xl relative ${
+                                            isDarkMode 
+                                                ? 'bg-[#1c1c1c] border border-gray-400' 
+                                                : 'bg-white border border-gray-200'
+                                        } ${isExpanded ? 'transform hover:scale-101 shadow-lg' : 'items-center justify-center'}`}
                                     >
                                         {isExpanded ? (
                                             // Full expanded view
                                             <>
-                                                {/* Delete Button for Event Owner */}
-                                                {canDeleteEvent(event) && (
-                                                    <div className="absolute top-2 right-2 z-10">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDeleteEvent(event._id);
-                                                            }}
-                                                            disabled={deletingEvent === event._id}
-                                                            className="bg-gray-200 hover:bg-red-500 disabled:bg-gray-100 text-gray-700 hover:text-white p-2 rounded-full transition-colors duration-200 shadow-lg"
-                                                            title="Delete Event"
-                                                        >
-                                                            {deletingEvent === event._id ? (
-                                                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                                </svg>
-                                                            ) : (
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                </svg>
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                {/* Event Image */}
+                                                <div className="relative h-40 overflow-hidden">
+                                                    <img 
+                                                        src={getEventImage(event, originalIndex)}
+                                                        alt={event.title}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.target.src = `https://picsum.photos/400/300?random=${originalIndex}`;
+                                                        }}
+                                                    />
+                                                    
+                                                    {/* Gradient Overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                                                    
+                                                    {/* Delete Button for Event Owner */}
+                                                    {canDeleteEvent(event) && (
+                                                        <div className="absolute top-3 right-3 z-10">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteEvent(event._id);
+                                                                }}
+                                                                disabled={deletingEvent === event._id}
+                                                                className="bg-black/50 hover:bg-red-500 disabled:bg-gray-500 text-white p-2 rounded-full transition-all duration-200 backdrop-blur-sm hover:scale-110"
+                                                                title="Delete Event"
+                                                            >
+                                                                {deletingEvent === event._id ? (
+                                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                                ) : (
+                                                                    <X className="w-4 h-4" />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    )}
 
-                                                {/* Event Icon */}
-                                                <div className="flex justify-center mb-4">
-                                                    <div className="text-6xl">
-                                                        {getEventIcon(originalIndex)}
+                                                    {/* Date Badge */}
+                                                    <div className="absolute top-3 left-3">
+                                                        <div className="bg-white/90 backdrop-blur-sm text-gray-900 px-3 py-1 rounded-full text-sm font-bold">
+                                                            {formatDate(event.event_datetime)}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Attendees Count */}
+                                                    <div className="absolute bottom-3 right-3">
+                                                        <div className="bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded-full text-sm flex items-center space-x-1">
+                                                            <Users className="w-3 h-3" />
+                                                            <span>{event.attendees_count || 0}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
 
                                                 {/* Event Content */}
-                                                <div className="flex-1 flex flex-col justify-center text-center">
-                                                    <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                                                        {event.title}
-                                                    </h3>
-                                                    <p className="text-gray-600 mb-4 line-clamp-3 text-sm">
-                                                        {event.description}
-                                                    </p>
-                                                </div>
+                                                <div className={`p-4 flex-1 flex flex-col justify-between ${
+                                                    isDarkMode ? 'bg-[#1c1c1c]' : 'bg-gray-100'
+                                                }`}>
+                                                    <div className="space-y-2">
+                                                        {/* Event Title */}
+                                                        <h3 className={`text-base font-bold line-clamp-1 ${
+                                                            isDarkMode ? 'text-white' : 'text-gray-900'
+                                                        }`}>
+                                                            {event.title}
+                                                        </h3>
 
-                                                {/* Event Details */}
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-center items-center text-gray-700">
-                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
-                                                        <span className="text-sm font-medium">
-                                                            {formatDate(event.event_datetime)}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <div className="flex justify-center items-center text-gray-700">
-                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span className="text-sm font-medium">
-                                                            {formatTime(event.event_datetime)}
-                                                        </span>
+                                                        {/* Event Description */}
+                                                        <p className={`text-xs line-clamp-2 ${
+                                                            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                                                        }`}>
+                                                            {event.description}
+                                                        </p>
+
+                                                        {/* Event Details */}
+                                                        <div className="space-y-1">
+                                                            {/* Time */}
+                                                            <div className={`flex items-center text-xs ${
+                                                                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                                            }`}>
+                                                                <Clock className="w-3 h-3 mr-1" />
+                                                                <span>{formatTime(event.event_datetime)}</span>
+                                                            </div>
+
+                                                            {/* Location */}
+                                                            {event.location && (
+                                                                <div className={`flex items-center text-xs ${
+                                                                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                                                }`}>
+                                                                    <MapPin className="w-3 h-3 mr-1" />
+                                                                    <span className="truncate">{event.location}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
 
-                                                    {event.location && (
-                                                        <div className="flex justify-center items-center text-gray-700">
-                                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
-                                                            <span className="text-sm font-medium truncate">
-                                                                {event.location}
+                                                    {/* Event Footer */}
+                                                    <div className={`flex items-center justify-between pt-2 border-t ${
+                                                        isDarkMode ? 'border-gray-800' : 'border-gray-300'
+                                                    }`}>
+                                                        {/* Creator Info */}
+                                                        <div className="flex items-center space-x-1">
+                                                            <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                                                {event.username ? event.username.charAt(0).toUpperCase() : 'U'}
+                                                            </div>
+                                                            <span className={`text-xs font-medium ${
+                                                                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                                            }`}>
+                                                                {event.username || 'Unknown'}
                                                             </span>
                                                         </div>
-                                                    )}
 
-                                                    <div className="flex justify-center items-center text-gray-700">
-                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                                                        </svg>
-                                                        <span className="text-sm font-medium">
-                                                            {event.attendees_count || 0} attending
-                                                        </span>
+                                                        {/* Like Button */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // Add like functionality here
+                                                            }}
+                                                            className={`flex items-center space-x-1 px-2 py-1 rounded-full transition-all duration-200 ${
+                                                                isDarkMode
+                                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-red-400/10'
+                                                                    : 'text-gray-500 hover:text-red-500 hover:bg-red-50'
+                                                            }`}
+                                                        >
+                                                            <Heart className="w-3 h-3" />
+                                                            <span className="text-xs">{event.likes_count || 0}</span>
+                                                        </button>
                                                     </div>
-                                                </div>
 
-                                                {/* Click to view more indicator */}
-                                                <div className="flex justify-center mt-4">
-                                                    <div className="bg-white bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded-full text-sm transition-all duration-200">
-                                                        Click to view details
+                                                    {/* Click to view more indicator */}
+                                                    <div className="flex justify-center mt-1">
+                                                        <div className={`px-2 py-1 rounded-full text-xs transition-all duration-200 ${
+                                                            isDarkMode 
+                                                                ? 'bg-gray-800/50 hover:bg-gray-800 text-gray-400' 
+                                                                : 'bg-gray-200/50 hover:bg-gray-200 text-gray-600'
+                                                        }`}>
+                                                            Click to view details
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </>
                                         ) : (
                                             // Compressed view
-                                            <div className="flex flex-col items-center justify-center h-full text-center relative">
+                                            <div className="flex flex-col items-center justify-center h-full text-center relative p-2">
                                                 {/* Delete Button for Event Owner (Compressed View) */}
                                                 {canDeleteEvent(event) && (
-                                                    <div className="absolute top-1 right-1 z-10">
+                                                    <div className="absolute top-2 right-1 z-10">
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 handleDeleteEvent(event._id);
                                                             }}
                                                             disabled={deletingEvent === event._id}
-                                                            className="bg-gray-200 hover:bg-red-500 disabled:bg-gray-100 text-gray-700 hover:text-white p-1 rounded-full transition-colors duration-200 shadow-sm"
+                                                            className={`p-1 rounded-full transition-colors duration-200 shadow-sm ${
+                                                                isDarkMode
+                                                                    ? 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                                                                    : 'bg-gray-200 hover:bg-red-500 text-gray-600 hover:text-white'
+                                                            }`}
                                                             title="Delete Event"
                                                         >
                                                             {deletingEvent === event._id ? (
-                                                                <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                                </svg>
+                                                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
                                                             ) : (
-                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                </svg>
+                                                                <X className="w-3 h-3" />
                                                             )}
                                                         </button>
                                                     </div>
                                                 )}
 
-                                                <div className="text-3xl mb-2">
-                                                    {getEventIcon(originalIndex)}
+                                                {/* Compressed Event Image */}
+                                                <div className="w-12 h-12 rounded-full overflow-hidden mb-2 border-2 border-blue-500">
+                                                    <img 
+                                                        src={getEventImage(event, originalIndex)}
+                                                        alt={event.title}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.target.src = `https://picsum.photos/50/50?random=${originalIndex}`;
+                                                        }}
+                                                    />
                                                 </div>
+                                                
                                                 <div className="writing-mode-vertical-lr text-orientation-mixed">
-                                                    <h4 className="text-sm font-bold text-gray-800 transform rotate-90 whitespace-nowrap">
-                                                        {event.title}
+                                                    <h4 className={`text-sm font-bold transform rotate-90 whitespace-nowrap ${
+                                                        isDarkMode ? 'text-white' : 'text-gray-800'
+                                                    }`}>
+                                                        {event.title.length > 15 ? event.title.substring(0, 15) + '...' : event.title}
                                                     </h4>
                                                 </div>
                                             </div>
@@ -495,16 +559,20 @@ function EventItem() {
                 </div>
 
                 {/* Dots Indicator */}
-                {events.length > 2 && (
+                {events.length > 3 && (
                     <div className="flex justify-center mt-6 space-x-2">
-                        {Array.from({ length: Math.max(0, events.length - 1) }).map((_, index) => (
+                                                        {Array.from({ length: Math.max(0, events.length - 2) }).map((_, index) => (
                             <button
                                 key={index}
                                 onClick={() => setCurrentIndex(index)}
-                                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                                className={`h-2 rounded-full transition-all duration-200 ${
                                     currentIndex === index 
-                                        ? 'bg-gray-600 w-4' 
-                                        : 'bg-gray-400 hover:bg-gray-500'
+                                        ? isDarkMode
+                                            ? 'bg-orange-500 w-4'
+                                            : 'bg-orange-500 w-4'
+                                        : isDarkMode
+                                            ? 'bg-gray-600 hover:bg-gray-500 w-2'
+                                            : 'bg-gray-400 hover:bg-gray-500 w-2'
                                 }`}
                             />
                         ))}
@@ -530,7 +598,7 @@ function EventItem() {
                         event={selectedEvent}
                         isOpen={isModalOpen}
                         onClose={closeModal}
-                        currentUser={getCurrentUser()} // Get full user object for modal
+                        currentUser={getCurrentUser()}
                     />
                 </div>,
                 document.body
