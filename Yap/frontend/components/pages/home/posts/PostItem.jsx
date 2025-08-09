@@ -404,46 +404,59 @@ function PostItem({ post, onPostDeleted }) {
                 </div>
             </div>
             
-            {/* Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal - Fixed to viewport */}
             {showDeleteConfirm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className={`rounded-lg p-6 max-w-sm mx-4 ${
-                        isDarkMode
-                            ? 'bg-gray-800 border border-gray-600'
-                            : 'bg-white border border-gray-200'
-                    }`}>
-                        <h3 className={`text-lg font-bold mb-4 ${
-                            isDarkMode ? 'text-white' : 'text-gray-900'
-                        }`}>
-                            Delete Post?
-                        </h3>
-                        <p className={`mb-6 ${
-                            isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                        }`}>
-                            This action cannot be undone. Are you sure you want to delete this post?
-                        </p>
-                        <div className="flex space-x-3">
-                            <button
-                                onClick={handleDelete}
-                                disabled={deleting}
-                                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-700 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
-                            >
-                                {deleting ? 'Deleting...' : 'Delete'}
-                            </button>
-                            <button
-                                onClick={() => setShowDeleteConfirm(false)}
-                                disabled={deleting}
-                                className={`flex-1 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 ${
-                                    isDarkMode
-                                        ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                                        : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-                                }`}
-                            >
-                                Cancel
-                            </button>
+                <>
+                    {/* Modal Portal - Fixed to entire viewport */}
+                    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[9999]" onClick={() => setShowDeleteConfirm(false)}>
+                        <div 
+                            className={`rounded-lg p-4 w-64 shadow-xl ${
+                                isDarkMode
+                                    ? 'bg-gray-800'
+                                    : 'bg-white'
+                            }`}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="text-center">
+                                <Trash2 className="w-5 h-5 text-red-500 mx-auto mb-2" />
+                                
+                                <h3 className={`text-base font-semibold mb-2 ${
+                                    isDarkMode ? 'text-white' : 'text-gray-900'
+                                }`}>
+                                    Delete Post
+                                </h3>
+                                
+                                <p className={`text-xs mb-4 ${
+                                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                    This action cannot be undone.
+                                </p>
+                                
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                        disabled={deleting}
+                                        className={`flex-1 py-1.5 px-3 rounded text-xs font-medium transition-colors disabled:opacity-50 ${
+                                            isDarkMode
+                                                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                        }`}
+                                    >
+                                        Cancel
+                                    </button>
+                                    
+                                    <button
+                                        onClick={handleDelete}
+                                        disabled={deleting}
+                                        className="flex-1 py-1.5 px-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded text-xs font-medium transition-colors"
+                                    >
+                                        {deleting ? 'Deleting...' : 'Delete'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </>
             )}
             
             {/* Click outside to close menu */}

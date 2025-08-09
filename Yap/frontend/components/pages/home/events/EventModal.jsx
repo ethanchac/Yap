@@ -254,36 +254,68 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     return icons[index % icons.length];
   };
 
-  // Check if event has location coordinates
+  // Check if event has location coordinates - UPDATED FUNCTION
   const hasLocationCoordinates = () => {
     const currentEvent = eventDetails || event;
-    return (currentEvent.latitude && currentEvent.longitude) || 
-           (currentEvent.lat && currentEvent.lng) ||
-           (currentEvent.location && currentEvent.location.includes(',') && currentEvent.location.includes('.'));
+    
+    console.log('Checking coordinates for event:', currentEvent);
+    
+    // Check for direct latitude/longitude properties
+    if (currentEvent.latitude && currentEvent.longitude) {
+      console.log('Found direct lat/lng:', currentEvent.latitude, currentEvent.longitude);
+      return true;
+    }
+    
+    // Check for alternative lat/lng properties
+    if (currentEvent.lat && currentEvent.lng) {
+      console.log('Found alt lat/lng:', currentEvent.lat, currentEvent.lng);
+      return true;
+    }
+    
+    // Check if location string contains coordinates (lat, lng format)
+    if (currentEvent.location && typeof currentEvent.location === 'string') {
+      const coordMatch = currentEvent.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+      if (coordMatch) {
+        console.log('Found coordinates in location string:', coordMatch[1], coordMatch[2]);
+        return true;
+      }
+    }
+    
+    console.log('No coordinates found');
+    return false;
   };
 
-  // Get coordinates from various possible formats
+  // Get coordinates from various possible formats - UPDATED FUNCTION
   const getEventCoordinates = () => {
     const currentEvent = eventDetails || event;
     
+    console.log('Getting coordinates from event:', currentEvent);
+    
     // Direct latitude/longitude properties
     if (currentEvent.latitude && currentEvent.longitude) {
-      return { lat: currentEvent.latitude, lng: currentEvent.longitude };
+      const coords = { lat: parseFloat(currentEvent.latitude), lng: parseFloat(currentEvent.longitude) };
+      console.log('Returning direct coordinates:', coords);
+      return coords;
     }
     
     // Alternative lat/lng properties
     if (currentEvent.lat && currentEvent.lng) {
-      return { lat: currentEvent.lat, lng: currentEvent.lng };
+      const coords = { lat: parseFloat(currentEvent.lat), lng: parseFloat(currentEvent.lng) };
+      console.log('Returning alt coordinates:', coords);
+      return coords;
     }
     
     // Parse from location string if it contains coordinates
     if (currentEvent.location && typeof currentEvent.location === 'string') {
       const coordMatch = currentEvent.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
       if (coordMatch) {
-        return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+        const coords = { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+        console.log('Returning parsed coordinates:', coords);
+        return coords;
       }
     }
     
+    console.log('No coordinates could be extracted');
     return null;
   };
 
