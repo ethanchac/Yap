@@ -117,7 +117,16 @@ function EventItem() {
             setCurrentIndex(currentIndex - 1);
         }
     };
-
+    const getProfilePictureUrl = (profilePicture) => {
+        if (profilePicture) {
+            if (profilePicture.startsWith('http')) {
+                return profilePicture;
+            }
+            return `${API_BASE_URL}/uploads/profile_pictures/${profilePicture}`;
+        }
+        return `${API_BASE_URL}/static/default/default-avatar.png`;
+    };
+    
     const getVisibleEvents = () => {
         const maxVisible = 7; // Show more events for better navigation
         const totalEvents = events.length;
@@ -461,11 +470,15 @@ function EventItem() {
                                                     <div className={`flex items-center justify-between pt-2 border-t ${
                                                         isDarkMode ? 'border-gray-800' : 'border-gray-300'
                                                     }`}>
-                                                        {/* Creator Info */}
                                                         <div className="flex items-center space-x-1">
-                                                            <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                                                {event.username ? event.username.charAt(0).toUpperCase() : 'U'}
-                                                            </div>
+                                                            <img
+                                                                src={getProfilePictureUrl(event.profile_picture)}
+                                                                alt={`${event.username}'s profile`}
+                                                                onError={(e) => {
+                                                                    e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                                                                }}
+                                                                className="w-5 h-5 rounded-full object-cover border border-gray-300"
+                                                            />
                                                             <span className={`text-xs font-medium ${
                                                                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                                             }`}>

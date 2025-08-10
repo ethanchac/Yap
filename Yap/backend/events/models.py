@@ -59,13 +59,7 @@ class Event:
                 {"$match": match_condition},
                 {
                     "$addFields": {
-                        "user_object_id": {
-                            "$cond": {
-                                "if": {"$type": ["$user_id", "objectId"]},
-                                "then": "$user_id",
-                                "else": {"$toObjectId": "$user_id"}
-                            }
-                        }
+                        "user_object_id": {"$toObjectId": "$user_id"}
                     }
                 },
                 {
@@ -77,8 +71,9 @@ class Event:
                     }
                 },
                 {
-                    "$addFields": {
-                        "user_info": {"$arrayElemAt": ["$user_info", 0]}
+                    "$unwind": {
+                        "path": "$user_info",
+                        "preserveNullAndEmptyArrays": True
                     }
                 },
                 {
@@ -90,6 +85,8 @@ class Event:
                         "description": 1,
                         "event_datetime": 1,
                         "location": 1,
+                        "location_title": 1,
+                        "image": 1,
                         "max_attendees": 1,
                         "created_at": 1,
                         "attendees_count": {"$ifNull": ["$attendees_count", 0]},
@@ -105,6 +102,7 @@ class Event:
             ]
             
             events = list(db.events.aggregate(pipeline))
+
             
             # If aggregation returns no results, fall back to simple find
             if not events:
