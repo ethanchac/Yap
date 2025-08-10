@@ -101,7 +101,39 @@ const ETReply = ({
         </div>
       ) : (
         <div>
-          <p className="text-gray-300 text-sm whitespace-pre-wrap mb-2">{reply.content}</p>
+          {/* Text Content */}
+          {reply.content && (
+            <p className="text-gray-300 text-sm whitespace-pre-wrap mb-2">{reply.content}</p>
+          )}
+          
+          {/* Image Content for Replies */}
+          {reply.post_type === 'image' && reply.secure_image_urls && reply.secure_image_urls.length > 0 && (
+            <div className="mb-2">
+              <div className={`grid gap-1 rounded-lg overflow-hidden ${
+                reply.secure_image_urls.length === 1 ? 'grid-cols-1 max-w-xs' :
+                reply.secure_image_urls.length === 2 ? 'grid-cols-2 max-w-sm' :
+                'grid-cols-2 max-w-sm'
+              }`}>
+                {reply.secure_image_urls.map((url, index) => (
+                  <div key={index}>
+                    <img
+                      src={url}
+                      alt={`Reply image ${index + 1}`}
+                      className="w-full h-20 object-contain cursor-pointer hover:opacity-95 transition-opacity rounded"
+                      onClick={() => {
+                        window.open(url, '_blank');
+                      }}
+                      onError={(e) => {
+                        console.error('Failed to load reply image:', url);
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <button
             onClick={() => onLike(reply._id)}
             className={`flex items-center space-x-1 text-xs hover:text-red-400 transition-colors ${

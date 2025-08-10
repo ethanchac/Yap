@@ -4,6 +4,46 @@ from flask import current_app
 import os
 from werkzeug.utils import secure_filename
 import uuid
+import boto3
+from botocore.exceptions import ClientError
+
+def get_s3_client():
+    """Get S3 client with proper configuration"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION', 'ca-central-1')
+    )
+
+def get_s3_bucket_config():
+    """Get appropriate S3 bucket based on environment - consistent with posts"""
+    flask_env = os.getenv('FLASK_ENV', 'production')
+    
+    if flask_env == 'development' or flask_env == 'testing':
+        return {
+            'public_bucket': os.getenv('AWS_S3_PUBLIC_BUCKET_TEST', 'yapptmu-test'),
+            'private_bucket': os.getenv('AWS_S3_PRIVATE_BUCKET_TEST', 'yapptmu-test-private')
+        }
+    else:
+        return {
+            'public_bucket': os.getenv('AWS_S3_PUBLIC_BUCKET', 'yapptmu'),
+            'private_bucket': os.getenv('AWS_S3_PRIVATE_BUCKET', 'yapptmu-private')
+        }
+
+def generate_presigned_url(s3_key, bucket_name, expires_in_hours=2):
+    """Generate a pre-signed URL for private S3 object"""
+    try:
+        s3_client = get_s3_client()
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket_name, 'Key': s3_key},
+            ExpiresIn=expires_in_hours * 3600  # Convert hours to seconds
+        )
+        return presigned_url
+    except ClientError as e:
+        print(f"Error generating presigned URL for {s3_key}: {e}")
+        return None
 
 class EventThread:
     @staticmethod
@@ -23,17 +63,14 @@ class EventThread:
             print(f"Event {event_id} not found or not active")
             return None
         
-        print(f"Event verified: {event['title']}")
-        
         # Create the join notification document
         join_notification = {
             "event_id": event_id,
             "user_id": user_id,
             "username": username,
             "content": f"{username} joined the event",
-            "post_type": "join_notification",  # Special type for join notifications
-            "media_url": None,
-            "media_urls": [],
+            "post_type": "join_notification",
+            "s3_keys": [],  # No images for notifications
             "reply_to": None,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
@@ -42,18 +79,10 @@ class EventThread:
             "is_deleted": False
         }
         
-        print(f"Join notification document created: {join_notification}")
-        
-        # Insert the notification
         try:
             result = db.event_threads.insert_one(join_notification)
-            print(f"Join notification inserted successfully with ID: {result.inserted_id}")
-            
-            # Return the created notification with its ID
             join_notification["_id"] = str(result.inserted_id)
-            print(f"Returning join notification: {join_notification['_id']}")
             return join_notification
-            
         except Exception as e:
             print(f"ERROR inserting join notification: {e}")
             return None
@@ -63,29 +92,14 @@ class EventThread:
         """Create a leave notification post when someone leaves an event"""
         db = current_app.config["DB"]
         
-        print(f"Creating leave notification: event_id={event_id}, user_id={user_id}, username={username}")
-        
-        # Verify event exists and is active
-        try:
-            event = db.events.find_one({"_id": ObjectId(event_id), "is_active": True})
-        except:
-            event = db.events.find_one({"_id": event_id, "is_active": True})
-        
-        if not event:
-            print(f"Event {event_id} not found or not active")
-            return None
-        
-        print(f"Event verified: {event['title']}")
-        
-        # Create the leave notification document
+        # Similar to join notification
         leave_notification = {
             "event_id": event_id,
             "user_id": user_id,
             "username": username,
             "content": f"{username} left the event",
-            "post_type": "leave_notification",  # Special type for leave notifications
-            "media_url": None,
-            "media_urls": [],
+            "post_type": "leave_notification",
+            "s3_keys": [],
             "reply_to": None,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
@@ -94,30 +108,22 @@ class EventThread:
             "is_deleted": False
         }
         
-        print(f"Leave notification document created: {leave_notification}")
-        
-        # Insert the notification
         try:
             result = db.event_threads.insert_one(leave_notification)
-            print(f"Leave notification inserted successfully with ID: {result.inserted_id}")
-            
-            # Return the created notification with its ID
             leave_notification["_id"] = str(result.inserted_id)
-            print(f"Returning leave notification: {leave_notification['_id']}")
             return leave_notification
-            
         except Exception as e:
             print(f"ERROR inserting leave notification: {e}")
             return None
 
     @staticmethod
-    def upload_thread_image(file, event_id):
-        """Upload and save thread image with event-specific naming"""
+    def upload_thread_image_to_s3(file, event_id, user_id):
+        """Upload thread image to S3 private bucket"""
         try:
             if not file or file.filename == '':
                 return None
             
-            # Check file extension
+            # Validate file type
             allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
             if not ('.' in file.filename and 
                     file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
@@ -134,17 +140,43 @@ class EventThread:
             # Generate unique filename with event prefix
             filename = secure_filename(file.filename)
             file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{event_id}_{uuid.uuid4().hex}.{file_extension}"
+            unique_filename = f"thread_{event_id}_{user_id}_{uuid.uuid4().hex}.{file_extension}"
             
-            # Create upload directory if it doesn't exist
-            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
-            os.makedirs(upload_dir, exist_ok=True)
+            # Get S3 configuration from app config (consistent with posts)
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
             
-            # Save file
-            file_path = os.path.join(upload_dir, unique_filename)
-            file.save(file_path)
+            if not private_bucket:
+                raise ValueError("S3 private bucket configuration not found")
             
-            return unique_filename
+            # Upload to S3 PRIVATE bucket
+            try:
+                s3_client = get_s3_client()
+                s3_key = f"event_threads/{event_id}/{unique_filename}"
+                
+                s3_client.upload_fileobj(
+                    file,
+                    private_bucket,
+                    s3_key,
+                    ExtraArgs={
+                        # NO 'ACL': 'public-read' - this keeps it private!
+                        'ContentType': file.content_type or f'image/{file_extension}',
+                        'CacheControl': 'max-age=3600',  # Cache for 1 hour only
+                        'Metadata': {
+                            'event_id': event_id,
+                            'user_id': user_id,
+                            'upload_type': 'event_thread_image',
+                            'upload_time': datetime.utcnow().isoformat()
+                        }
+                    }
+                )
+                
+                print(f"Successfully uploaded to S3: {s3_key}")
+                return s3_key  # Return S3 key instead of filename
+                
+            except ClientError as e:
+                print(f"S3 upload error: {e}")
+                raise ValueError("Failed to upload to cloud storage")
             
         except Exception as e:
             print(f"Error uploading thread image: {e}")
@@ -152,7 +184,7 @@ class EventThread:
 
     @staticmethod
     def create_thread_post(event_id, user_id, username, content, post_type='text', media_url=None, reply_to=None, image_files=None):
-        """Create a new post in an event thread - Updated to handle multiple image uploads"""
+        """Create a new post in an event thread with S3 private images"""
         db = current_app.config["DB"]
         
         print(f"Creating thread post: event_id={event_id}, user_id={user_id}, content='{content[:50] if content else 'No content'}...', post_type={post_type}")
@@ -167,8 +199,6 @@ class EventThread:
             print(f"User {user_id} is not attending event {event_id}")
             raise ValueError("You must be attending the event to post in its thread")
         
-        print(f"User attendance verified")
-        
         # Verify event exists and is active
         try:
             event = db.events.find_one({"_id": ObjectId(event_id), "is_active": True})
@@ -179,44 +209,39 @@ class EventThread:
             print(f"Event {event_id} not found or not active")
             raise ValueError("Event not found or is no longer active")
         
-        print(f"Event verified: {event['title']}")
-        
         # Handle multiple image uploads if provided
-        uploaded_images = []
-        media_urls = []
+        uploaded_s3_keys = []
         
         if image_files and len(image_files) > 0:
-            # Limit to 4 images maximum
             if len(image_files) > 4:
                 raise ValueError("Maximum 4 images allowed per post")
             
             try:
                 for image_file in image_files:
                     if image_file and image_file.filename:  # Skip empty files
-                        uploaded_filename = EventThread.upload_thread_image(image_file, event_id)
-                        if uploaded_filename:
-                            uploaded_images.append(uploaded_filename)
-                            media_urls.append(f"/eventthreads/images/{uploaded_filename}")
+                        s3_key = EventThread.upload_thread_image_to_s3(image_file, event_id, user_id)
+                        if s3_key:
+                            uploaded_s3_keys.append(s3_key)
                 
-                print(f"Successfully uploaded {len(uploaded_images)} images: {uploaded_images}")
+                print(f"Successfully uploaded {len(uploaded_s3_keys)} images to S3: {uploaded_s3_keys}")
                 
-                if uploaded_images:
+                if uploaded_s3_keys:
                     if post_type == 'text':  # Auto-detect image post type
                         post_type = 'image'
-                    # For backward compatibility, set media_url to first image
-                    if not media_url and media_urls:
-                        media_url = media_urls[0]
                         
             except Exception as e:
-                # Clean up any uploaded images if there's an error
-                for uploaded_file in uploaded_images:
-                    try:
-                        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
-                        file_path = os.path.join(upload_dir, uploaded_file)
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                    except Exception as cleanup_error:
-                        print(f"Error cleaning up uploaded image {uploaded_file}: {cleanup_error}")
+                # Clean up any uploaded S3 objects on error
+                s3_config = current_app.config.get("S3_CONFIG", {})
+                private_bucket = s3_config.get('private_bucket')
+                
+                if private_bucket:
+                    s3_client = get_s3_client()
+                    for s3_key in uploaded_s3_keys:
+                        try:
+                            s3_client.delete_object(Bucket=private_bucket, Key=s3_key)
+                            print(f"Cleaned up S3 object after error: {s3_key}")
+                        except Exception as cleanup_error:
+                            print(f"Error cleaning up S3 object {s3_key}: {cleanup_error}")
                 
                 print(f"Error uploading images: {e}")
                 raise ValueError(f"Failed to upload images: {str(e)}")
@@ -227,16 +252,15 @@ class EventThread:
         elif post_type != 'image' and (not content or not content.strip()):
             raise ValueError("Post content is required for non-image posts")
         
-        # Create the thread post document
+        # Create the thread post document with S3 keys
         thread_post = {
             "event_id": event_id,
             "user_id": user_id,
             "username": username,
             "content": content or "",
-            "post_type": post_type,  # 'text', 'image', 'link', 'join_notification', etc.
-            "media_url": media_url,  # First image URL for backward compatibility
-            "media_urls": media_urls,  # Array of all image URLs
-            "reply_to": reply_to,  # For nested replies
+            "post_type": post_type,
+            "s3_keys": uploaded_s3_keys,  # Store S3 keys instead of URLs
+            "reply_to": reply_to,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
             "likes_count": 0,
@@ -244,32 +268,24 @@ class EventThread:
             "is_deleted": False
         }
         
-        print(f"Thread post document created: {thread_post}")
-        
-        # Insert the post
         try:
             result = db.event_threads.insert_one(thread_post)
             print(f"Post inserted successfully with ID: {result.inserted_id}")
-            
-            # Verify the post was actually saved
-            saved_post = db.event_threads.find_one({"_id": result.inserted_id})
-            if saved_post:
-                print(f"Post verification successful: {saved_post['_id']}")
-            else:
-                print("ERROR: Post was not found after insertion!")
                 
         except Exception as e:
             print(f"ERROR inserting post: {e}")
-            # If database insertion fails and we uploaded images, clean them up
-            for uploaded_file in uploaded_images:
-                try:
-                    upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
-                    file_path = os.path.join(upload_dir, uploaded_file)
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                        print(f"Cleaned up uploaded image after DB error: {uploaded_file}")
-                except Exception as cleanup_error:
-                    print(f"Error cleaning up uploaded image: {cleanup_error}")
+            # If database insertion fails, clean up S3 objects
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
+            
+            if private_bucket:
+                s3_client = get_s3_client()
+                for s3_key in uploaded_s3_keys:
+                    try:
+                        s3_client.delete_object(Bucket=private_bucket, Key=s3_key)
+                        print(f"Cleaned up S3 object after DB error: {s3_key}")
+                    except Exception as cleanup_error:
+                        print(f"Error cleaning up S3 object: {cleanup_error}")
             raise e
         
         # If this is a reply, increment the parent post's reply count
@@ -279,22 +295,37 @@ class EventThread:
                     {"_id": ObjectId(reply_to)},
                     {"$inc": {"replies_count": 1}}
                 )
-                print(f"Updated reply count for parent post {reply_to}")
             except:
                 db.event_threads.update_one(
                     {"_id": reply_to},
                     {"$inc": {"replies_count": 1}}
                 )
-                print(f"Updated reply count for parent post {reply_to} (string ID)")
         
-        # Return the created post with its ID
+        # Return the created post with its ID and secure URLs
         thread_post["_id"] = str(result.inserted_id)
-        print(f"Returning thread post: {thread_post['_id']}")
+        
+        # Generate secure URLs for immediate frontend use
+        if uploaded_s3_keys:
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
+            
+            if private_bucket:
+                secure_urls = []
+                for s3_key in uploaded_s3_keys:
+                    secure_url = generate_presigned_url(s3_key, private_bucket, expires_in_hours=2)
+                    if secure_url:
+                        secure_urls.append(secure_url)
+                thread_post["secure_image_urls"] = secure_urls
+            else:
+                thread_post["secure_image_urls"] = []
+        else:
+            thread_post["secure_image_urls"] = []
+        
         return thread_post
-    
+
     @staticmethod
-    def get_thread_posts(event_id, user_id, limit=50, skip=0, sort_by="created_at", sort_order=-1):
-        """Get posts from an event thread (only for attendees) - FIXED VERSION"""
+    def get_thread_posts_with_secure_urls(event_id, user_id, limit=50, skip=0, sort_by="created_at", sort_order=-1):
+        """Get posts from an event thread with secure pre-signed URLs"""
         db = current_app.config["DB"]
         
         print(f"Getting thread posts: event_id={event_id}, user_id={user_id}")
@@ -318,6 +349,9 @@ class EventThread:
             }).sort(sort_by, sort_order).skip(skip).limit(limit)
             
             posts = []
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
+            
             for post in posts_cursor:
                 # Convert to expected format
                 formatted_post = {
@@ -327,8 +361,6 @@ class EventThread:
                     "username": post.get("username", "Unknown User"),
                     "content": post["content"],
                     "post_type": post.get("post_type", "text"),
-                    "media_url": post.get("media_url"),
-                    "media_urls": post.get("media_urls", []),  # Include multiple images
                     "created_at": post["created_at"],
                     "updated_at": post.get("updated_at", post["created_at"]),
                     "likes_count": post.get("likes_count", 0),
@@ -336,8 +368,16 @@ class EventThread:
                     "is_liked_by_user": False,
                     "profile_picture": None,
                     "user_full_name": None,
-                    "replies": []
+                    "replies": [],
+                    "secure_image_urls": []  # Will contain pre-signed URLs
                 }
+                
+                # Generate secure URLs for images
+                if post.get("s3_keys") and private_bucket:
+                    for s3_key in post["s3_keys"]:
+                        secure_url = generate_presigned_url(s3_key, private_bucket, expires_in_hours=2)
+                        if secure_url:
+                            formatted_post["secure_image_urls"].append(secure_url)
                 
                 # For join notifications, don't check likes or allow replies
                 if post.get("post_type") not in ["join_notification", "leave_notification"]:
@@ -351,23 +391,21 @@ class EventThread:
                     except Exception as e:
                         print(f"Error checking like status: {e}")
                     
-                    # Get replies for this post
+                    # Get replies for this post (with secure URLs)
                     try:
-                        replies = EventThread.get_post_replies(formatted_post["_id"], user_id, limit=10)
+                        replies = EventThread.get_post_replies_with_secure_urls(formatted_post["_id"], user_id, limit=10)
                         formatted_post["replies"] = replies if isinstance(replies, list) else []
                     except Exception as e:
                         print(f"Error getting replies: {e}")
                         formatted_post["replies"] = []
                 
-                # Get user info - try both ObjectId and string
+                # Get user info
                 try:
                     from bson import ObjectId
-                    # Try with ObjectId first
                     try:
                         user_object_id = ObjectId(formatted_post["user_id"])
                         user_info = db.users.find_one({"_id": user_object_id})
                     except:
-                        # If ObjectId fails, try with string
                         user_info = db.users.find_one({"_id": formatted_post["user_id"]})
                     
                     if user_info:
@@ -379,7 +417,7 @@ class EventThread:
                 
                 posts.append(formatted_post)
             
-            print(f"Successfully retrieved {len(posts)} posts")
+            print(f"Successfully retrieved {len(posts)} posts with secure URLs")
             return posts
             
         except Exception as e:
@@ -387,20 +425,22 @@ class EventThread:
             import traceback
             traceback.print_exc()
             return []
-    
+
     @staticmethod
-    def get_post_replies(post_id, user_id, limit=10, skip=0):
-        """Get replies to a specific post"""
+    def get_post_replies_with_secure_urls(post_id, user_id, limit=10, skip=0):
+        """Get replies to a specific post with secure URLs"""
         db = current_app.config["DB"]
         
         try:
-            # Use simple find instead of complex aggregation
             replies_cursor = db.event_threads.find({
                 "reply_to": post_id,
                 "is_deleted": False
             }).sort("created_at", 1).skip(skip).limit(limit)
             
             replies = []
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
+            
             for reply in replies_cursor:
                 # Convert ObjectId to string
                 reply["_id"] = str(reply["_id"])
@@ -411,7 +451,14 @@ class EventThread:
                 reply["is_liked_by_user"] = False
                 reply["profile_picture"] = None
                 reply["user_full_name"] = None
-                reply["media_urls"] = reply.get("media_urls", [])  # Include multiple images for replies too
+                reply["secure_image_urls"] = []
+                
+                # Generate secure URLs for reply images
+                if reply.get("s3_keys") and private_bucket:
+                    for s3_key in reply["s3_keys"]:
+                        secure_url = generate_presigned_url(s3_key, private_bucket, expires_in_hours=2)
+                        if secure_url:
+                            reply["secure_image_urls"].append(secure_url)
                 
                 # Check if user liked this reply
                 try:
@@ -423,7 +470,7 @@ class EventThread:
                 except Exception as like_error:
                     print(f"Error checking reply like status: {like_error}")
                 
-                # Try to get user info
+                # Get user info
                 try:
                     if reply["user_id"]:
                         from bson import ObjectId
@@ -442,7 +489,7 @@ class EventThread:
         except Exception as e:
             print(f"Error getting post replies: {e}")
             return []
-    
+
     @staticmethod
     def like_thread_post(post_id, user_id):
         """Like or unlike a thread post"""
@@ -513,7 +560,7 @@ class EventThread:
     
     @staticmethod
     def delete_thread_post(post_id, user_id):
-        """Delete a thread post (only by the author) - Updated to handle multiple image cleanup"""
+        """Delete a thread post and its S3 images"""
         db = current_app.config["DB"]
         
         try:
@@ -534,37 +581,7 @@ class EventThread:
             if post["user_id"] != user_id:
                 return {"error": "You can only delete your own posts"}
             
-            # Clean up image files if they exist
-            if post.get("post_type") == "image":
-                # Clean up multiple images
-                media_urls = post.get("media_urls", [])
-                if media_urls:
-                    for media_url in media_urls:
-                        try:
-                            if media_url.startswith("/eventthreads/images/"):
-                                filename = media_url.split("/")[-1]
-                                upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
-                                file_path = os.path.join(upload_dir, filename)
-                                if os.path.exists(file_path):
-                                    os.remove(file_path)
-                                    print(f"Deleted image file: {filename}")
-                        except Exception as e:
-                            print(f"Error deleting image file: {e}")
-                
-                # Also clean up single image for backward compatibility
-                if post.get("media_url"):
-                    try:
-                        if post["media_url"].startswith("/eventthreads/images/"):
-                            filename = post["media_url"].split("/")[-1]
-                            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
-                            file_path = os.path.join(upload_dir, filename)
-                            if os.path.exists(file_path):
-                                os.remove(file_path)
-                                print(f"Deleted image file: {filename}")
-                    except Exception as e:
-                        print(f"Error deleting image file: {e}")
-            
-            # Mark as deleted instead of actually deleting
+            # Mark as deleted in database first
             try:
                 db.event_threads.update_one(
                     {"_id": ObjectId(post_id)},
@@ -575,6 +592,27 @@ class EventThread:
                     {"_id": post_id},
                     {"$set": {"is_deleted": True, "updated_at": datetime.utcnow()}}
                 )
+            
+            # Clean up S3 images if they exist
+            if post.get("s3_keys"):
+                s3_config = current_app.config.get("S3_CONFIG", {})
+                private_bucket = s3_config.get('private_bucket')
+                
+                if private_bucket:
+                    try:
+                        s3_client = get_s3_client()
+                        
+                        for s3_key in post["s3_keys"]:
+                            try:
+                                s3_client.delete_object(Bucket=private_bucket, Key=s3_key)
+                                print(f"Deleted S3 object: {s3_key}")
+                            except Exception as e:
+                                print(f"Error deleting S3 object {s3_key}: {e}")
+                                # Don't fail the entire operation if S3 cleanup fails
+                                
+                    except Exception as e:
+                        print(f"Error during S3 cleanup: {e}")
+                        # Don't fail the operation since the post is already deleted from DB
             
             # If this post has a parent, decrement its reply count
             if post.get("reply_to"):
@@ -628,22 +666,6 @@ class EventThread:
             # Get total attendees
             total_attendees = db.attendances.count_documents({"event_id": event_id})
             
-            # Get recent active users in thread
-            recent_posters_pipeline = [
-                {
-                    "$match": {
-                        "event_id": event_id,
-                        "is_deleted": False,
-                        "created_at": {"$gte": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)}
-                    }
-                },
-                {"$group": {"_id": "$user_id"}},
-                {"$count": "active_users"}
-            ]
-            
-            active_users_result = list(db.event_threads.aggregate(recent_posters_pipeline))
-            active_users = active_users_result[0]["active_users"] if active_users_result else 0
-            
             return {
                 "event": {
                     "_id": str(event["_id"]),
@@ -655,8 +677,7 @@ class EventThread:
                 },
                 "thread_stats": {
                     "total_posts": total_posts,
-                    "total_attendees": total_attendees,
-                    "active_users_today": active_users
+                    "total_attendees": total_attendees
                 }
             }
             

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, MoreVertical, Edit, Trash2, UserPlus, UserMinus } from 'lucide-react';
 import ETReply from './ETReply';
-import { API_BASE_URL } from '../../../../../services/config';
 
 const ETPost = ({ 
   post, 
@@ -21,23 +20,6 @@ const ETPost = ({
   const handleEdit = async () => {
     await onEdit(post._id, editContent);
     setEditingPost(false);
-  };
-
-  const getImageUrl = (mediaUrl) => {
-    if (!mediaUrl) return null;
-    
-    // If it's already a full URL, return as is
-    if (mediaUrl.startsWith('http')) {
-      return mediaUrl;
-    }
-    
-    // If it's a relative path, prepend the base URL
-    if (mediaUrl.startsWith('/eventthreads/images/')) {
-      return `${API_BASE_URL}/${mediaUrl}`;
-    }
-    
-    // If it's just a filename, construct the full URL
-    return `${API_BASE_URL}/eventthreads/images/${mediaUrl}`;
   };
 
   // Special rendering for join notifications
@@ -193,53 +175,34 @@ const ETPost = ({
             <p className="text-gray-300 whitespace-pre-wrap mb-3">{post.content}</p>
           )}
           
-          {/* Image Content */}
-          {post.post_type === 'image' && (post.media_url || post.media_urls) && (
+          {/* Image Content - Updated for S3 with better sizing */}
+          {post.post_type === 'image' && post.secure_image_urls && post.secure_image_urls.length > 0 && (
             <div className="mt-3">
-              {post.media_urls && post.media_urls.length > 0 ? (
-                // Multiple images
-                <div className={`grid gap-2 rounded-lg overflow-hidden ${
-                  post.media_urls.length === 1 ? 'grid-cols-1 max-w-sm' :
-                  post.media_urls.length === 2 ? 'grid-cols-2 max-w-lg' :
-                  post.media_urls.length === 3 ? 'grid-cols-2 max-w-lg' :
-                  'grid-cols-2 max-w-lg'
-                }`}>
-                  {post.media_urls.map((url, index) => (
-                    <div key={index} className={`${
-                      post.media_urls.length === 3 && index === 0 ? 'col-span-2' : ''
-                    }`}>
-                      <img
-                        src={getImageUrl(url)}
-                        alt={`Post image ${index + 1}`}
-                        className="w-full h-32 object-cover cursor-pointer hover:opacity-95 transition-opacity bg-gray-800 rounded-lg"
-                        onClick={() => {
-                          window.open(getImageUrl(url), '_blank');
-                        }}
-                        onError={(e) => {
-                          console.error('Failed to load image:', getImageUrl(url));
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : post.media_url ? (
-                // Single image (backward compatibility)
-                <div className="rounded-lg overflow-hidden max-w-sm">
-                  <img
-                    src={getImageUrl(post.media_url)}
-                    alt="Post image"
-                    className="w-full max-h-48 object-contain cursor-pointer hover:opacity-95 transition-opacity bg-gray-800 rounded-lg"
-                    onClick={() => {
-                      window.open(getImageUrl(post.media_url), '_blank');
-                    }}
-                    onError={(e) => {
-                      console.error('Failed to load image:', getImageUrl(post.media_url));
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </div>
-              ) : null}
+              <div className={`grid gap-2 rounded-lg overflow-hidden ${
+                post.secure_image_urls.length === 1 ? 'grid-cols-1 max-w-md' :
+                post.secure_image_urls.length === 2 ? 'grid-cols-2 max-w-2xl' :
+                post.secure_image_urls.length === 3 ? 'grid-cols-2 max-w-2xl' :
+                'grid-cols-2 max-w-2xl'
+              }`}>
+                {post.secure_image_urls.map((url, index) => (
+                  <div key={index} className={`${
+                    post.secure_image_urls.length === 3 && index === 0 ? 'col-span-2' : ''
+                  }`}>
+                    <img
+                      src={url}
+                      alt={`Post image ${index + 1}`}
+                      className="w-full max-h-80 object-contain cursor-pointer hover:opacity-95 transition-opacity rounded-lg"
+                      onClick={() => {
+                        window.open(url, '_blank');
+                      }}
+                      onError={(e) => {
+                        console.error('Failed to load image:', url);
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

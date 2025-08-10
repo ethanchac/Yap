@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify, current_app, send_from_directory
-from eventthreads.models import EventThread
+from flask import Blueprint, request, jsonify, current_app
+from eventthreads.models import EventThread, get_s3_client, get_s3_bucket_config
 from auth.service import token_required
 from datetime import datetime
 import os
@@ -15,107 +15,6 @@ THREAD_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 def thread_allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in THREAD_ALLOWED_EXTENSIONS
-
-# Route to serve uploaded thread images (without authentication for image loading)
-@eventthreads_bp.route('/images/<filename>')
-def uploaded_file(filename):
-    """Serve uploaded thread images with filename-based access control"""
-    try:
-        # Basic validation - ensure filename has the expected format
-        if '_' not in filename or not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-            return jsonify({"error": "Invalid filename format"}), 400
-        
-        # Extract event_id from filename (format: eventid_uniqueid.ext)
-        event_id = filename.split('_')[0]
-        
-        # Verify the image exists in a post for this event (additional security)
-        db = current_app.config["DB"]
-        image_post = db.event_threads.find_one({
-            "event_id": event_id,
-            "$or": [
-                {"media_url": {"$regex": filename}},
-                {"media_urls": {"$regex": filename}}
-            ],
-            "is_deleted": False
-        })
-        
-        if not image_post:
-            return jsonify({"error": "Image not found or has been deleted"}), 404
-        
-        # Serve the file
-        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
-        file_path = os.path.join(upload_dir, filename)
-        
-        if not os.path.exists(file_path):
-            return jsonify({"error": "Image file not found on server"}), 404
-            
-        return send_from_directory(upload_dir, filename)
-        
-    except Exception as e:
-        print(f"Error serving image {filename}: {e}")
-        return jsonify({"error": "Failed to load image"}), 500
-
-@eventthreads_bp.route('/<event_id>/upload-image', methods=['POST'])
-@token_required
-def upload_thread_image(current_user, event_id):
-    """Upload an image for event thread posts"""
-    try:
-        # Verify user is attending the event first
-        db = current_app.config["DB"]
-        attendance = db.attendances.find_one({
-            "event_id": event_id,
-            "user_id": current_user['_id']
-        })
-        
-        if not attendance:
-            return jsonify({"error": "You must be attending this event to upload images"}), 403
-        
-        # Check if the post request has the file part
-        if 'image' not in request.files:
-            return jsonify({"error": "No file provided"}), 400
-        
-        file = request.files['image']
-        
-        # If user does not select file, browser also submits an empty part without filename
-        if file.filename == '':
-            return jsonify({"error": "No file selected"}), 400
-        
-        # Check file size
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        file.seek(0)  # Reset file position
-        
-        if file_size > THREAD_MAX_FILE_SIZE:
-            return jsonify({"error": "File too large. Maximum size is 10MB"}), 400
-        
-        if file and thread_allowed_file(file.filename):
-            # Generate unique filename
-            filename = secure_filename(file.filename)
-            file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{event_id}_{uuid.uuid4().hex}.{file_extension}"
-            
-            # Create upload directory if it doesn't exist
-            upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'thread_images')
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            # Save the file
-            file_path = os.path.join(upload_folder, unique_filename)
-            file.save(file_path)
-            
-            # Return the URL for accessing the image (through our protected route)
-            image_url = f"/eventthreads/images/{unique_filename}"
-            
-            return jsonify({
-                "message": "Image uploaded successfully",
-                "imageUrl": image_url,
-                "filename": unique_filename
-            }), 200
-        else:
-            return jsonify({"error": "Invalid file type. Allowed types: PNG, JPG, JPEG, GIF, WEBP"}), 400
-            
-    except Exception as e:
-        print(f"Error uploading thread image: {e}")
-        return jsonify({"error": "Failed to upload image"}), 500
 
 @eventthreads_bp.route('/<event_id>/info', methods=['GET'])
 @token_required
@@ -136,7 +35,7 @@ def get_thread_info(current_user, event_id):
 @eventthreads_bp.route('/<event_id>/posts', methods=['GET'])
 @token_required
 def get_thread_posts(current_user, event_id):
-    """Get posts from an event thread"""
+    """Get posts from an event thread with secure pre-signed URLs"""
     try:
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 20))
@@ -144,7 +43,8 @@ def get_thread_posts(current_user, event_id):
         sort_order = int(request.args.get('sort_order', -1))  # -1 for desc, 1 for asc
         skip = (page - 1) * limit
         
-        posts = EventThread.get_thread_posts(
+        # Use the new method that generates secure URLs
+        posts = EventThread.get_thread_posts_with_secure_urls(
             event_id=event_id,
             user_id=current_user['_id'],
             limit=limit,
@@ -171,7 +71,7 @@ def get_thread_posts(current_user, event_id):
 @eventthreads_bp.route('/<event_id>/posts', methods=['POST'])
 @token_required
 def create_thread_post(current_user, event_id):
-    """Create a new post in an event thread - Updated to handle multiple image uploads"""
+    """Create a new post in an event thread with S3 private images"""
     try:
         # Handle both form data (with files) and JSON data
         if request.content_type and 'multipart/form-data' in request.content_type:
@@ -180,7 +80,7 @@ def create_thread_post(current_user, event_id):
             post_type = request.form.get('post_type', 'text')
             reply_to = request.form.get('reply_to')
             
-            # Get multiple image files - support multiple files with same name or different names
+            # Get multiple image files
             image_files = []
             
             # Method 1: Multiple files with same input name (image[])
@@ -248,24 +148,25 @@ def create_thread_post(current_user, event_id):
                 file_size = image_file.tell()
                 image_file.seek(0)
                 
-                if file_size > THREAD_MAX_FILE_SIZE:
+                if file_size > 10 * 1024 * 1024:  # 10MB
                     return jsonify({"error": f"Image {i+1} is too large. Maximum size is 10MB per image."}), 400
                 
                 # Check file extension
-                if not thread_allowed_file(image_file.filename):
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                if not ('.' in image_file.filename and 
+                        image_file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
                     return jsonify({"error": f"Invalid image type for image {i+1}. Only PNG, JPG, JPEG, GIF, and WEBP are allowed."}), 400
             
             # Set post type to image if files are provided
             post_type = 'image'
         
-        # Create the post
+        # Create the post with S3 upload
         post = EventThread.create_thread_post(
             event_id=event_id,
             user_id=current_user['_id'],
             username=current_user['username'],
             content=content,
             post_type=post_type,
-            media_url=None,  # Will be set by the model if images are uploaded
             reply_to=reply_to,
             image_files=image_files if image_files else None
         )
@@ -350,7 +251,7 @@ def get_post_replies(current_user, post_id):
         limit = int(request.args.get('limit', 10))
         skip = (page - 1) * limit
         
-        replies = EventThread.get_post_replies(
+        replies = EventThread.get_post_replies_with_secure_urls(
             post_id=post_id,
             user_id=current_user['_id'],
             limit=limit,
@@ -398,12 +299,49 @@ def update_thread_post(current_user, post_id):
 @eventthreads_bp.route('/posts/<post_id>', methods=['DELETE'])
 @token_required
 def delete_thread_post(current_user, post_id):
-    """Delete a thread post (only by the author)"""
+    """Delete a thread post and its S3 images"""
     try:
+        # Get the post first to access S3 keys
+        db = current_app.config["DB"]
+        try:
+            from bson import ObjectId
+            post = db.event_threads.find_one({"_id": ObjectId(post_id)})
+        except:
+            post = db.event_threads.find_one({"_id": post_id})
+        
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        # Check if user is the author
+        if post["user_id"] != current_user['_id']:
+            return jsonify({"error": "You can only delete your own posts"}), 403
+        
+        # Delete from database first
         result = EventThread.delete_thread_post(post_id, current_user['_id'])
         
         if "error" in result:
             return jsonify({"error": result["error"]}), 400
+        
+        # If database deletion successful, clean up S3 images
+        if result.get("message") == "Post deleted successfully" and post.get("s3_keys"):
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
+            
+            if private_bucket:
+                try:
+                    s3_client = get_s3_client()
+                    
+                    for s3_key in post["s3_keys"]:
+                        try:
+                            s3_client.delete_object(Bucket=private_bucket, Key=s3_key)
+                            print(f"Deleted S3 object: {s3_key}")
+                        except Exception as e:
+                            print(f"Error deleting S3 object {s3_key}: {e}")
+                            # Don't fail the entire operation if S3 cleanup fails
+                            
+                except Exception as e:
+                    print(f"Error during S3 cleanup: {e}")
+                    # Don't fail the operation since the post is already deleted from DB
         
         return jsonify(result), 200
         
@@ -438,7 +376,7 @@ def get_thread_attendees(current_user, event_id):
                     "from": "users",
                     "let": {"user_id": {"$toObjectId": "$user_id"}},
                     "pipeline": [
-                        {"$match": {"$expr": {"$eq": ["$_id", "$$user_id"]}}}
+                        {"$match": {"$expr": {"$eq": ["$_id", "$user_id"]}}}
                     ],
                     "as": "user_info"
                 }

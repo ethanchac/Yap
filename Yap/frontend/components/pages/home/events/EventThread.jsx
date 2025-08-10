@@ -166,13 +166,19 @@ const EventThread = () => {
       if (response.ok) {
         const data = await response.json();
         
-        const newPost = {
-          ...data.post,
-          profile_picture: currentUser.profile_picture,
-          user_full_name: currentUser.full_name,
-          is_liked_by_user: false,
-          replies: []
-        };
+        // Use the complete post data from the server response
+        const newPost = data.post;
+        
+        // Add any missing fields that the frontend expects
+        newPost.profile_picture = newPost.profile_picture || currentUser.profile_picture;
+        newPost.user_full_name = newPost.user_full_name || currentUser.full_name;
+        newPost.is_liked_by_user = false;
+        newPost.replies = newPost.replies || [];
+        
+        // The server should already include secure_image_urls if images were uploaded
+        if (!newPost.secure_image_urls) {
+          newPost.secure_image_urls = [];
+        }
 
         if (replyingTo) {
           setPosts(prevPosts => 
