@@ -305,11 +305,14 @@ const Profile = () => {
 
   const getProfilePictureUrl = () => {
     if (profile.profile_picture && profile.profile_picture.trim() !== '') {
+      // If it's already a full URL (S3), return as is
       if (profile.profile_picture.startsWith('http')) {
         return profile.profile_picture;
       }
+      // Legacy: if it's just a filename, construct local URL
       return `${API_BASE_URL}/uploads/profile_pictures/${profile.profile_picture}`;
     }
+    // Default avatar
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };
 

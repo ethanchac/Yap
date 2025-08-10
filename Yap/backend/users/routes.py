@@ -5,8 +5,21 @@ from auth.service import token_required
 import os
 import uuid
 from werkzeug.utils import secure_filename
+import boto3
+import os
+import uuid
+from botocore.exceptions import ClientError
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def get_s3_client():
+    """Get S3 client"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION', 'ca-central-1')
+    )
 
 def allowed_file(filename):
     """Check if file has allowed extension"""
@@ -348,7 +361,7 @@ def _validate_profile_data(profile_data):
 
 @users_bp.route('/me/picture/upload', methods=['POST', 'OPTIONS'])
 def upload_profile_picture():
-    """Upload profile picture file"""
+    """Upload profile picture to S3"""
     
     # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
@@ -360,7 +373,7 @@ def upload_profile_picture():
         return response
     
     try:
-        # Manual token verification
+        # Manual token verification (your existing code)
         from auth.service import verify_token
         
         token = None
@@ -378,12 +391,11 @@ def upload_profile_picture():
         if not token_data:
             return jsonify({'error': 'Token is invalid'}), 401
         
-        # Get full user data by username since token only has username
+        # Get user
         username = token_data.get('username')
         if not username:
             return jsonify({'error': 'Invalid token data'}), 401
         
-        # Look up user by username to get _id
         current_user = User.get_user_by_username(username)
         if not current_user:
             return jsonify({'error': 'User not found'}), 404
@@ -396,7 +408,6 @@ def upload_profile_picture():
         
         file = request.files['profile_picture']
         
-        # Check if file was selected
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
         
@@ -404,20 +415,52 @@ def upload_profile_picture():
         if not allowed_file(file.filename):
             return jsonify({"error": "Invalid file type. Allowed: PNG, JPG, JPEG, GIF, WebP"}), 400
         
+        # Validate file size (5MB max)
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        if file_size > 5 * 1024 * 1024:  # 5MB
+            return jsonify({"error": "File too large. Maximum size is 5MB"}), 400
+        
         # Generate unique filename
         file_extension = file.filename.rsplit('.', 1)[1].lower()
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        unique_filename = f"profile_{current_user['_id']}_{uuid.uuid4().hex}.{file_extension}"
         
-        # Create user-specific directory
-        user_upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], current_user['_id'])
-        os.makedirs(user_upload_dir, exist_ok=True)
+        # Get S3 configuration from app config
+        s3_config = current_app.config.get("S3_CONFIG", {})
+        public_bucket = s3_config.get('public_bucket')
         
-        # Save file
-        file_path = os.path.join(user_upload_dir, unique_filename)
-        file.save(file_path)
+        if not public_bucket:
+            return jsonify({"error": "S3 configuration not found"}), 500
         
-        # Create URL for the uploaded file
-        picture_url = f"http://localhost:5000/uploads/profile_pictures/{current_user['_id']}/{unique_filename}"
+        # Upload to S3 (PUBLIC bucket since profile pictures are public)
+        try:
+            s3_client = get_s3_client()
+            s3_key = f"profile_pictures/{unique_filename}"
+            
+            s3_client.upload_fileobj(
+                file,
+                public_bucket,
+                s3_key,
+                ExtraArgs={
+                    'ACL': 'public-read',  # Make profile pictures public
+                    'ContentType': file.content_type or f'image/{file_extension}',
+                    'CacheControl': 'max-age=31536000',  # Cache for 1 year
+                    'Metadata': {
+                        'user_id': current_user['_id'],
+                        'upload_type': 'profile_picture'
+                    }
+                }
+            )
+            
+            # Generate public URL
+            region = os.getenv('AWS_REGION', 'ca-central-1')
+            picture_url = f"https://{public_bucket}.s3.{region}.amazonaws.com/{s3_key}"
+            
+        except ClientError as e:
+            print(f"S3 upload error: {e}")
+            return jsonify({"error": "Failed to upload to cloud storage"}), 500
         
         # Update user profile with new picture URL
         result = User.update_user_profile(
@@ -426,9 +469,9 @@ def upload_profile_picture():
         )
         
         if "error" in result:
-            # Clean up uploaded file if database update fails
+            # If database update fails, try to delete the S3 object
             try:
-                os.remove(file_path)
+                s3_client.delete_object(Bucket=public_bucket, Key=s3_key)
             except:
                 pass
             return jsonify({"error": result["error"]}), 400
