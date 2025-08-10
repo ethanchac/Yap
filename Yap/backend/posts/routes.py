@@ -4,12 +4,25 @@ import os
 import uuid
 from posts.models import Post
 from auth.service import token_required
+import boto3
+import os
+import uuid
+from botocore.exceptions import ClientError
 
 posts_bp = Blueprint('posts', __name__)
 
 # Image upload configuration
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+def get_s3_client():
+    """Get S3 client"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION', 'ca-central-1')
+    )
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -18,7 +31,7 @@ def allowed_file(filename):
 @posts_bp.route('/upload-image', methods=['POST'])
 @token_required
 def upload_image(current_user):
-    """Upload a single image for posts"""
+    """Upload image to S3 public bucket for posts"""
     try:
         # Check if the post request has the file part
         if 'image' not in request.files:
@@ -26,14 +39,13 @@ def upload_image(current_user):
         
         file = request.files['image']
         
-        # If user does not select file, browser also submits an empty part without filename
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
         
         # Check file size
         file.seek(0, os.SEEK_END)
         file_size = file.tell()
-        file.seek(0)  # Reset file position
+        file.seek(0)
         
         if file_size > MAX_FILE_SIZE:
             return jsonify({"error": "File too large. Maximum size is 5MB"}), 400
@@ -42,24 +54,49 @@ def upload_image(current_user):
             # Generate unique filename
             filename = secure_filename(file.filename)
             file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{uuid.uuid4().hex}.{file_extension}"
+            unique_filename = f"post_{current_user['_id']}_{uuid.uuid4().hex}.{file_extension}"
             
-            # Create upload directory if it doesn't exist
-            upload_folder = os.path.join(current_app.static_folder, 'uploads', 'post_images')
-            os.makedirs(upload_folder, exist_ok=True)
+            # Get S3 configuration from app config
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            public_bucket = s3_config.get('public_bucket')
             
-            # Save the file
-            file_path = os.path.join(upload_folder, unique_filename)
-            file.save(file_path)
+            if not public_bucket:
+                return jsonify({"error": "S3 configuration not found"}), 500
             
-            # Return the URL for accessing the image
-            image_url = f"{request.url_root}static/uploads/post_images/{unique_filename}"
-            
-            return jsonify({
-                "message": "Image uploaded successfully",
-                "imageUrl": image_url,
-                "filename": unique_filename
-            }), 200
+            # Upload to S3 PUBLIC bucket
+            try:
+                s3_client = get_s3_client()
+                s3_key = f"post_images/{unique_filename}"
+                
+                s3_client.upload_fileobj(
+                    file,
+                    public_bucket,
+                    s3_key,
+                    ExtraArgs={
+                        'ACL': 'public-read',  # Make post images public
+                        'ContentType': file.content_type or f'image/{file_extension}',
+                        'CacheControl': 'max-age=31536000',  # Cache for 1 year
+                        'Metadata': {
+                            'user_id': current_user['_id'],
+                            'upload_type': 'post_image'
+                        }
+                    }
+                )
+                
+                # Generate public URL
+                region = os.getenv('AWS_REGION', 'ca-central-1')
+                image_url = f"https://{public_bucket}.s3.{region}.amazonaws.com/{s3_key}"
+                
+                return jsonify({
+                    "message": "Image uploaded successfully",
+                    "imageUrl": image_url,
+                    "filename": unique_filename,
+                    "s3_key": s3_key
+                }), 200
+                
+            except ClientError as e:
+                print(f"S3 upload error: {e}")
+                return jsonify({"error": "Failed to upload to cloud storage"}), 500
         else:
             return jsonify({"error": "Invalid file type. Allowed types: PNG, JPG, JPEG, GIF, WEBP"}), 400
             
@@ -70,11 +107,10 @@ def upload_image(current_user):
 @posts_bp.route('/create', methods=['POST'])
 @token_required
 def create_post(current_user):
-    """Create a new post with optional images"""
+    """Create a new post with S3 images"""
     try:
         data = request.get_json()
         
-        # Validate input - either content or images must be provided
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
@@ -97,6 +133,14 @@ def create_post(current_user):
         
         if len(images) > 4:
             return jsonify({"error": "Maximum 4 images per post"}), 400
+        
+        # Validate that all image URLs are from our S3 bucket (security check)
+        s3_config = current_app.config.get("S3_CONFIG", {})
+        public_bucket = s3_config.get('public_bucket')
+        
+        for image_url in images:
+            if not image_url.startswith(f"https://{public_bucket}.s3."):
+                return jsonify({"error": "Invalid image URL"}), 400
         
         # Create the post using authenticated user's info
         post = Post.create_post(
@@ -340,13 +384,49 @@ def get_user_liked_posts_public_route(user_id):
 @posts_bp.route('/<post_id>', methods=['DELETE'])
 @token_required
 def delete_post_route(current_user, post_id):
-    """Delete a post (only if user owns it)"""
+    """Delete a post and its S3 images"""
     try:
+        # Get the post first to check ownership and get image URLs
+        post = Post.get_post_by_id(post_id)
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        # Check ownership
+        if post["user_id"] != current_user['_id']:
+            return jsonify({"error": "You can only delete your own posts"}), 403
+        
+        # Delete from database first
         result = Post.delete_post(post_id, current_user['_id'])
         
         if "error" in result:
             status_code = 404 if "not found" in result["error"].lower() else 403
             return jsonify({"error": result["error"]}), status_code
+        
+        # If database deletion successful, clean up S3 images
+        if result.get("success") and post.get("images"):
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            public_bucket = s3_config.get('public_bucket')
+            
+            if public_bucket:
+                try:
+                    s3_client = get_s3_client()
+                    
+                    for image_url in post["images"]:
+                        # Extract S3 key from URL
+                        if f"https://{public_bucket}.s3." in image_url:
+                            # Extract the S3 key (everything after the domain)
+                            s3_key = image_url.split('/')[-2] + '/' + image_url.split('/')[-1]  # post_images/filename.jpg
+                            
+                            try:
+                                s3_client.delete_object(Bucket=public_bucket, Key=s3_key)
+                                print(f"Deleted S3 object: {s3_key}")
+                            except ClientError as e:
+                                print(f"Error deleting S3 object {s3_key}: {e}")
+                                # Don't fail the entire operation if S3 cleanup fails
+                                
+                except Exception as e:
+                    print(f"Error during S3 cleanup: {e}")
+                    # Don't fail the operation since the post is already deleted from DB
         
         return jsonify(result), 200
         
