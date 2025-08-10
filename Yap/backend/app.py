@@ -145,6 +145,27 @@ app.config["DB"] = db
 
 print(f"📊 Connected to database: {db_name}")
 
+# ===== S3 CONFIGURATION =====
+def get_s3_config():
+    """Get S3 bucket names based on environment"""
+    is_test = TEST_MODE
+    
+    if is_test:
+        return {
+            'public_bucket': os.getenv('AWS_S3_PUBLIC_BUCKET_TEST', 'yapptmu-test'),
+            'private_bucket': os.getenv('AWS_S3_PRIVATE_BUCKET_TEST', 'yapptmu-test-private')
+        }
+    else:
+        return {
+            'public_bucket': os.getenv('AWS_S3_PUBLIC_BUCKET', 'yapptmu'),
+            'private_bucket': os.getenv('AWS_S3_PRIVATE_BUCKET', 'yapptmu-private')
+        }
+
+# Store S3 config in app config
+app.config["S3_CONFIG"] = get_s3_config()
+
+print(f"🪣 S3 Buckets - Public: {app.config['S3_CONFIG']['public_bucket']}, Private: {app.config['S3_CONFIG']['private_bucket']}")
+
 # ===== WAYPOINT INDEXES SETUP =====
 def setup_waypoint_indexes():
     """Set up MongoDB indexes for waypoints"""
@@ -322,7 +343,38 @@ def health_check():
         db_status = "error"
         db_error = str(e)
     
-    overall_status = "healthy" if db_status == "connected" else "unhealthy"
+    # Test S3 configuration
+    s3_status = "configured"
+    s3_error = None
+    try:
+        import boto3
+        from botocore.exceptions import NoCredentialsError, ClientError
+        
+        # Test S3 credentials
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+            region_name=os.getenv('AWS_REGION', 'ca-central-1')
+        )
+        
+        # Try to list buckets to verify credentials
+        s3_client.list_buckets()
+        
+    except NoCredentialsError:
+        s3_status = "no_credentials"
+        s3_error = "AWS credentials not found"
+    except ClientError as e:
+        s3_status = "error"
+        s3_error = f"AWS error: {e}"
+    except ImportError:
+        s3_status = "boto3_missing"
+        s3_error = "boto3 not installed"
+    except Exception as e:
+        s3_status = "error"
+        s3_error = str(e)
+    
+    overall_status = "healthy" if (db_status == "connected" and s3_status == "configured") else "unhealthy"
     
     response = {
         "status": overall_status,
@@ -330,6 +382,11 @@ def health_check():
             "name": db_name,
             "status": db_status,
             "error": db_error
+        },
+        "s3": {
+            "status": s3_status,
+            "error": s3_error,
+            "buckets": app.config["S3_CONFIG"]
         },
         "environment": {
             "mode": "TEST" if TEST_MODE else "PRODUCTION",
@@ -346,7 +403,8 @@ def index():
     return jsonify({
         "message": "UniThread API is running!",
         "status": "healthy",
-        "database": db_name
+        "database": db_name,
+        "s3_buckets": app.config["S3_CONFIG"]
     })
 
 if __name__ == "__main__":
