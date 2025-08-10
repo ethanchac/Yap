@@ -7,9 +7,25 @@ from eventthreads.models import EventThread
 from auth.service import token_required
 from datetime import datetime, timedelta
 from waypoint.models import Waypoint
+import boto3
+from botocore.exceptions import ClientError
 
 events_bp = Blueprint('events', __name__)
 
+def get_s3_client():
+    """Get S3 client"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION', 'ca-central-1')
+    )
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @events_bp.route('/create', methods=['POST'])
 @token_required
@@ -36,6 +52,15 @@ def create_event_with_waypoint(current_user):
         except ValueError:
             return jsonify({"error": "Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time"}), 400
         
+        # Validate image URL if provided (ensure it's from our S3 bucket)
+        image_url = data.get('image')
+        if image_url:
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            public_bucket = s3_config.get('public_bucket')
+            
+            if not image_url.startswith(f"https://{public_bucket}.s3."):
+                return jsonify({"error": "Invalid image URL"}), 400
+        
         # Create the event using the Event model
         try:
             event_doc = Event.create_event(
@@ -47,7 +72,7 @@ def create_event_with_waypoint(current_user):
                 event_time=data['event_time'],
                 location=data.get('location'),
                 location_title=data.get('location_title'),
-                image=data.get('image'),  # Add image parameter
+                image=image_url,  # S3 URL
                 max_attendees=data.get('max_attendees')
             )
         except ValueError as ve:
@@ -450,6 +475,17 @@ def update_event(current_user, event_id):
         if 'longitude' in data:
             update_fields['longitude'] = data['longitude']
         
+        # Handle image update with S3 validation
+        if 'image' in data:
+            image_url = data['image']
+            if image_url:
+                s3_config = current_app.config.get("S3_CONFIG", {})
+                public_bucket = s3_config.get('public_bucket')
+                
+                if not image_url.startswith(f"https://{public_bucket}.s3."):
+                    return jsonify({"error": "Invalid image URL"}), 400
+            update_fields['image'] = image_url
+        
         if 'max_attendees' in data:
             max_attendees = data['max_attendees']
             if max_attendees is not None:
@@ -487,12 +523,46 @@ def update_event(current_user, event_id):
 @events_bp.route('/<event_id>/cancel', methods=['POST'])
 @token_required
 def cancel_event(current_user, event_id):
-    """Cancel an event (only by the creator)"""
+    """Cancel an event and clean up S3 images"""
     try:
+        # Get the event first to check ownership and get image URL
+        event = Event.get_event_by_id(event_id)
+        if not event:
+            return jsonify({"error": "Event not found"}), 404
+        
+        # Check ownership
+        if event["user_id"] != current_user['_id']:
+            return jsonify({"error": "You can only cancel your own events"}), 403
+        
+        # Delete from database first
         result = Event.cancel_event(event_id, current_user['_id'])
         
         if "error" in result:
             return jsonify({"error": result["error"]}), 400
+        
+        # If database deletion successful, clean up S3 image
+        if result.get("message") and event.get("image"):
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            public_bucket = s3_config.get('public_bucket')
+            
+            if public_bucket and event["image"].startswith(f"https://{public_bucket}.s3."):
+                try:
+                    s3_client = get_s3_client()
+                    
+                    # Extract S3 key from URL
+                    # URL format: https://bucket.s3.region.amazonaws.com/event_images/filename.jpg
+                    s3_key = '/'.join(event["image"].split('/')[-2:])  # event_images/filename.jpg
+                    
+                    try:
+                        s3_client.delete_object(Bucket=public_bucket, Key=s3_key)
+                        print(f"Deleted S3 object: {s3_key}")
+                    except ClientError as e:
+                        print(f"Error deleting S3 object {s3_key}: {e}")
+                        # Don't fail the entire operation if S3 cleanup fails
+                        
+                except Exception as e:
+                    print(f"Error during S3 cleanup: {e}")
+                    # Don't fail the operation since the event is already deleted from DB
         
         return jsonify(result), 200
         
@@ -611,7 +681,7 @@ def debug_database():
 @events_bp.route('/upload-image', methods=['POST'])
 @token_required
 def upload_event_image(current_user):
-    """Upload a single image for events"""
+    """Upload a single image for events to S3 public bucket"""
     try:
         # Check if the post request has the file part
         if 'image' not in request.files:
@@ -619,48 +689,65 @@ def upload_event_image(current_user):
         
         file = request.files['image']
         
-        # If user does not select file, browser also submits an empty part without filename
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
         
         # Check file size
         file.seek(0, os.SEEK_END)
         file_size = file.tell()
-        file.seek(0)  # Reset file position
+        file.seek(0)
         
         MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
         if file_size > MAX_FILE_SIZE:
             return jsonify({"error": "File too large. Maximum size is 5MB"}), 400
         
-        # Allowed extensions
-        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-        
-        def allowed_file(filename):
-            return '.' in filename and \
-                   filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-        
         if file and allowed_file(file.filename):
             # Generate unique filename
             filename = secure_filename(file.filename)
             file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{uuid.uuid4().hex}.{file_extension}"
+            unique_filename = f"event_{current_user['_id']}_{uuid.uuid4().hex}.{file_extension}"
             
-            # Create upload directory if it doesn't exist
-            upload_folder = os.path.join(current_app.static_folder, 'uploads', 'event_images')
-            os.makedirs(upload_folder, exist_ok=True)
+            # Get S3 configuration from app config
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            public_bucket = s3_config.get('public_bucket')
             
-            # Save the file
-            file_path = os.path.join(upload_folder, unique_filename)
-            file.save(file_path)
+            if not public_bucket:
+                return jsonify({"error": "S3 configuration not found"}), 500
             
-            # Return the URL for accessing the image
-            image_url = f"{request.url_root}static/uploads/event_images/{unique_filename}"
-            
-            return jsonify({
-                "message": "Image uploaded successfully",
-                "imageUrl": image_url,
-                "filename": unique_filename
-            }), 200
+            # Upload to S3 PUBLIC bucket (events are public)
+            try:
+                s3_client = get_s3_client()
+                s3_key = f"event_images/{unique_filename}"
+                
+                s3_client.upload_fileobj(
+                    file,
+                    public_bucket,
+                    s3_key,
+                    ExtraArgs={
+                        'ACL': 'public-read',  # Make event images public
+                        'ContentType': file.content_type or f'image/{file_extension}',
+                        'CacheControl': 'max-age=31536000',  # Cache for 1 year
+                        'Metadata': {
+                            'user_id': current_user['_id'],
+                            'upload_type': 'event_image'
+                        }
+                    }
+                )
+                
+                # Generate public URL
+                region = os.getenv('AWS_REGION', 'ca-central-1')
+                image_url = f"https://{public_bucket}.s3.{region}.amazonaws.com/{s3_key}"
+                
+                return jsonify({
+                    "message": "Image uploaded successfully",
+                    "imageUrl": image_url,
+                    "filename": unique_filename,
+                    "s3_key": s3_key
+                }), 200
+                
+            except ClientError as e:
+                print(f"S3 upload error: {e}")
+                return jsonify({"error": "Failed to upload to cloud storage"}), 500
         else:
             return jsonify({"error": "Invalid file type. Allowed types: PNG, JPG, JPEG, GIF, WEBP"}), 400
             
