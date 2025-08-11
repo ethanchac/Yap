@@ -17,6 +17,7 @@ import {
   Search,
   Shield
 } from 'lucide-react';
+import YappLogo from '../../assets/Yapp White logo.png';
 
 const LandingPage = () => {
   const [currentFeature, setCurrentFeature] = useState(0);
@@ -134,8 +135,11 @@ const LandingPage = () => {
       {/* Navigation */}
       <nav className="relative z-10 flex items-center justify-between px-4 sm:px-8 py-6">
         <div className="flex items-center space-x-2">
-          <div className="text-2xl">🎓</div>
-          <span className="text-white text-xl font-bold">Yapp</span>
+          <img 
+            src={YappLogo} 
+            alt="Yapp Logo" 
+            className="h-16 w-auto"
+          />
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
           <Link 
@@ -302,8 +306,11 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="text-2xl">🎓</div>
-              <span className="text-white text-x2 font-bold">Yapp</span>
+              <img 
+            src={YappLogo} 
+            alt="Yapp Logo" 
+            className="h-16 w-auto"
+          />
             </div>
             <div className="flex items-center space-x-6 text-gray-400">
               <span>© 2024 Yapp. All rights reserved.</span>
