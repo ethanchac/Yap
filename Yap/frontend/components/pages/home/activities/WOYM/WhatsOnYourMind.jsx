@@ -4,6 +4,23 @@ import MindPost from './MindPost';
 import { API_BASE_URL } from '../../../../../services/config';
 import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this import
 
+// Utility: Fisher-Yates shuffle
+function shuffleArray(array) {
+  const arr = array.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Reorder posts: posts not by current user first (shuffled), then user's own posts
+function reorderPosts(posts, currentUser) {
+  const others = posts.filter(p => p.username !== currentUser?.username);
+  const own = posts.filter(p => p.username === currentUser?.username);
+  return [...shuffleArray(others), ...own];
+}
+
 const API_URL = `${API_BASE_URL}/api/activities/whatsonmind`;
 
 export default function WhatsOnYourMind() {
@@ -100,9 +117,8 @@ export default function WhatsOnYourMind() {
       
       const data = await response.json();
       console.log('🔍 Frontend: Data received:', data);
-      
       if (Array.isArray(data)) {
-        setPosts(data);
+        setPosts(reorderPosts(data, currentUser));
       } else {
         setPosts([]);
       }
@@ -153,7 +169,7 @@ export default function WhatsOnYourMind() {
       createdPost.profile_picture = currentUser?.profile_picture;
       
       // Add the new post to the beginning of the list (newest first)
-      setPosts(prev => [createdPost, ...prev]);
+      setPosts(prev => reorderPosts([createdPost, ...prev], currentUser));
       
       // Reset form
       setNewPost('');
@@ -185,7 +201,7 @@ export default function WhatsOnYourMind() {
       }
 
       // Remove the post from the list
-      setPosts(prev => prev.filter(p => p._id !== postId));
+      setPosts(prev => reorderPosts(prev.filter(p => p._id !== postId), currentUser));
 
     } catch (err) {
       console.error('Error deleting post:', err);
