@@ -4,6 +4,24 @@ import WYRItem from './WYRItem';
 import { API_BASE_URL } from '../../../../../services/config';
 import { useTheme } from '../../../../../contexts/ThemeContext'; 
 
+// Utility: Fisher-Yates shuffle
+function shuffleArray(array) {
+  const arr = array.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Reorder: unvoted questions randomized first, then interacted questions at bottom
+function reorderQuestions(questions) {
+  const unvoted = questions.filter(q => q.user_vote == null);
+  const voted = questions.filter(q => q.user_vote != null);
+  const shuffledUnvoted = shuffleArray(unvoted);
+  return [...shuffledUnvoted, ...voted];
+}
+
 const API_URL = `${API_BASE_URL}/api/activities/wouldyourather`;
 
 export default function WouldYouRather() {
@@ -72,9 +90,8 @@ export default function WouldYouRather() {
       
       const data = await response.json();
       console.log('🔍 Frontend: Data received:', data);
-      
       if (Array.isArray(data) && data.length > 0) {
-        setQuestions(data);
+        setQuestions(reorderQuestions(data));
       } else {
         setQuestions([]);
       }
@@ -108,16 +125,11 @@ export default function WouldYouRather() {
 
       const updatedQuestion = await response.json();
       console.log('🔍 Frontend: Updated question received:', updatedQuestion);
-      
       // Update the question in the list with new vote counts and user vote
-      setQuestions(prev => prev.map(q => {
-        if (q._id === questionId) {
-          console.log('🔍 Frontend: Updating question in state:', updatedQuestion);
-          console.log('🔍 Frontend: Question user_vote field:', updatedQuestion.user_vote);
-          return updatedQuestion;
-        }
-        return q;
-      }));
+      setQuestions(prev => {
+        const updatedList = prev.map(q => (q._id === questionId ? updatedQuestion : q));
+        return reorderQuestions(updatedList);
+      });
       
     } catch (err) {
       console.error('Error submitting vote:', err);
