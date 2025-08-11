@@ -42,6 +42,7 @@ function HomepageActivities() {
     const [containerHeight, setContainerHeight] = useState(240);
     const timeoutRef = useRef(null);
     const containerRef = useRef(null);
+    const [isPaused, setIsPaused] = useState(false);
 
     // Update container height when current activity changes or content changes
     useEffect(() => {
@@ -82,9 +83,23 @@ function HomepageActivities() {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => setIsAnimating(false), 400);
     };
+    const handleNext = () => {
+        const next = (current + 1) % activities.length;
+        handleDotClick(next);
+    };
+    // Auto-cycle when not paused
+    useEffect(() => {
+        if (isPaused) return;
+        const interval = setInterval(handleNext, 3000);
+        return () => clearInterval(interval);
+    }, [current, isPaused]);
 
     return (
-        <div className="relative w-full">
+        <div
+            className="relative w-full"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+        >
             <div 
                 ref={containerRef}
                 className="overflow-hidden w-full transition-all duration-400 ease-in-out"
