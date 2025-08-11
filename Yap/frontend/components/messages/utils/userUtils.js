@@ -1,30 +1,36 @@
 export const getCurrentUserIdentifier = () => {
     try {
-        const userString = localStorage.getItem('user');
         const token = localStorage.getItem('token');
-
-        if (userString) {
-            const user = JSON.parse(userString);
-            const userId = user._id || user.id || user.userId || user.user_id || user.username;
-            if (userId) return String(userId);
-        }
 
         if (token) {
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                const tokenIdentifier = payload.userId || payload.id || payload._id || payload.user_id || payload.sub || payload.username;
-                if (tokenIdentifier) return String(tokenIdentifier);
-            } catch (e) {}
+                // Backend stores user_id in JWT payload as the MongoDB _id
+                const userId = payload.user_id;
+                if (userId) {
+                    return String(userId);
+                }
+            } catch (e) {
+                // Token parsing failed, try fallback
+            }
         }
 
-        const altKeys = ['userId', 'user_id', 'currentUserId', 'authUserId', 'username'];
-        for (const key of altKeys) {
-            const altId = localStorage.getItem(key);
-            if (altId) return String(altId);
+        // Fallback to user object in localStorage if token fails
+        const userString = localStorage.getItem('user');
+        if (userString) {
+            try {
+                const user = JSON.parse(userString);
+                const userId = user._id;
+                if (userId) {
+                    return String(userId);
+                }
+            } catch (e) {
+                // User parsing failed
+            }
         }
 
         return null;
-    } catch {
+    } catch (error) {
         return null;
     }
 };

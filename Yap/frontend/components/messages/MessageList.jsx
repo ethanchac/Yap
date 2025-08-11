@@ -19,30 +19,14 @@ const MessageList = forwardRef(({
     const isInitialLoadRef = useRef(true);
     const userScrolledRef = useRef(false);
 
-    // FIXED: Memoize isMyMessage function to prevent recalculation
+    // FIXED: Simplified isMyMessage function to prevent sender mix-up
     const isMyMessage = useCallback((message) => {
-        if (!currentUserIdentifier) return false;
-        const senderVariations = [
-            message.sender_id,
-            message.senderId,
-            message.sender?._id,
-            message.sender?.id,
-            message.sender?.userId,
-            message.sender?.user_id,
-            message.sender?.username,
-            message.user_id,
-            message.userId,
-            message.username,
-            message.from,
-            message.author_id,
-            message.authorId,
-            message.author?.username
-        ].filter(Boolean);
+        if (!currentUserIdentifier || !message) return false;
         
-        for (const senderIdentifier of senderVariations) {
-            if (String(senderIdentifier) === String(currentUserIdentifier)) return true;
-        }
-        return false;
+        // The primary identifier should be sender_id which matches currentUserIdentifier
+        const messageSenderId = message.sender_id;
+        
+        return String(messageSenderId) === String(currentUserIdentifier);
     }, [currentUserIdentifier]);
 
     // FIXED: Memoize message groups to prevent unnecessary recalculation
