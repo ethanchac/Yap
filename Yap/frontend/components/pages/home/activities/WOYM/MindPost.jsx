@@ -4,7 +4,6 @@ import { API_BASE_URL } from '../../../../../services/config';
 import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this import
 
 export default function MindPost({ post, onDelete, isDeleting }) {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { isDarkMode } = useTheme(); // Add this hook
 
   // format the date
@@ -28,13 +27,6 @@ export default function MindPost({ post, onDelete, isDeleting }) {
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
   };
-
-  const handleDeleteClick = () => setShowDeleteConfirm(true);
-  const handleConfirmDelete = () => {
-    onDelete(post._id);
-    setShowDeleteConfirm(false);
-  };
-  const handleCancelDelete = () => setShowDeleteConfirm(false);
 
   const getProfilePictureUrl = () => {
     if (post.profile_picture) {
@@ -83,12 +75,12 @@ export default function MindPost({ post, onDelete, isDeleting }) {
             }}
           ></div>
 
-          {/* Delete Button (hover) */}
+          {/* Delete Button */}
           {post.is_own_post && (
             <button
-              onClick={handleDeleteClick}
+              onClick={() => onDelete(post._id)}
               disabled={isDeleting}
-              className={`absolute top-2 right-2 transition-opacity opacity-0 group-hover:opacity-100 p-1 rounded-full ${
+              className={`absolute top-2 right-2 transition-opacity opacity-70 hover:opacity-100 p-1 rounded-full ${
                 isDarkMode
                   ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600'
                   : 'text-gray-500 hover:text-red-500 hover:bg-gray-200'
@@ -130,48 +122,6 @@ export default function MindPost({ post, onDelete, isDeleting }) {
           </div>
         </div>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-lg p-6 max-w-sm mx-4 ${
-            isDarkMode
-              ? 'bg-gray-800'
-              : 'bg-white border border-gray-200'
-          }`}>
-            <h3 className={`text-lg font-bold mb-4 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Delete Post
-            </h3>
-            <p className={`mb-6 ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              Are you sure you want to delete this post? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded-lg font-bold transition-colors"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-              <button
-                onClick={handleCancelDelete}
-                disabled={isDeleting}
-                className={`flex-1 px-4 py-2 rounded-lg font-bold transition-colors ${
-                  isDarkMode
-                    ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-                }`}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this imp
 export default function WYRItem({ question, onVote, onDelete, userVote, canDelete }) {
   const [voting, setVoting] = useState(false);
   const [votingOption, setVotingOption] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [clickedButton, setClickedButton] = useState(null);
   const { isDarkMode } = useTheme(); // Add this hook
 
@@ -122,8 +123,9 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
           </div>
         </div>
         {canDelete && (
-          <button
-            onClick={() => onDelete(question._id)}
+          <>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
             className={`transition-colors p-1 ml-2 ${
               isDarkMode
                 ? 'text-gray-400 hover:text-red-400'
@@ -133,6 +135,25 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
           >
             🗑️
           </button>
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className={`rounded-lg p-6 max-w-sm mx-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}>
+                  <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Delete Question</h3>
+                  <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Are you sure you want to delete this question? This action cannot be undone.</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { onDelete(question._id); setShowDeleteConfirm(false); }}
+                      className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold"
+                    >Delete</button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className={`flex-1 px-4 py-2 rounded-lg font-bold transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'}`}
+                    >Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
