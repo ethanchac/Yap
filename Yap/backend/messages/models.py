@@ -34,8 +34,8 @@ def format_eastern_timestamp(dt):
 
 class Message:
     @staticmethod
-    def create_message(conversation_id, sender_id, content):
-        """Create a new message with Eastern Time timestamp"""
+    def create_message(conversation_id, sender_id, content, message_type="text", attachment_url=None, attachment_s3_key=None):
+        """Create a new message with Eastern Time timestamp and optional attachment"""
         db = current_app.config["DB"]
         
         try:
@@ -49,7 +49,9 @@ class Message:
                 "content": content,
                 "created_at": et_now,
                 "read_by": [sender_id],
-                "message_type": "text",
+                "message_type": message_type,
+                "attachment_url": attachment_url,
+                "attachment_s3_key": attachment_s3_key,
                 "edited": False,
                 "edited_at": None
             }
@@ -83,7 +85,9 @@ class Message:
                 "sender_id": sender_id,
                 "content": content,
                 "created_at": created_at_iso,
-                "message_type": "text",
+                "message_type": message_type,
+                "attachment_url": attachment_url,
+                "attachment_s3_key": attachment_s3_key,
                 "edited": False,
                 "read_by": [sender_id],
                 "sender": {
@@ -133,6 +137,8 @@ class Message:
                     "content": msg["content"],
                     "created_at": created_at_iso,
                     "message_type": msg.get("message_type", "text"),
+                    "attachment_url": msg.get("attachment_url"),
+                    "attachment_s3_key": msg.get("attachment_s3_key"),
                     "edited": msg.get("edited", False),
                     "edited_at": format_eastern_timestamp(msg.get("edited_at")),
                     "read_by": msg.get("read_by", []),

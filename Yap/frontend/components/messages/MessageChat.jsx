@@ -590,7 +590,7 @@ function MessageChat({ conversation, onNewMessage }) {
     };
 
     // Enhanced message sending with optimized UI updates
-    const handleSendMessage = async (messageContent) => {
+    const handleSendMessage = async (messageContent, attachedImage = null) => {
         const tempId = `temp_${Date.now()}_${Math.random()}`;
         console.log('📤 Preparing to send message:', messageContent);
         console.log('📤 Temp ID for optimistic update:', tempId);
@@ -613,6 +613,9 @@ function MessageChat({ conversation, onNewMessage }) {
                 sender_id: currentUserIdentifier,
                 content: messageContent,
                 created_at: new Date().toISOString(),
+                message_type: attachedImage ? 'image' : 'text',
+                attachment_url: attachedImage?.url || null,
+                attachment_s3_key: attachedImage?.s3_key || null,
                 sender: currentUserInfo || {
                     _id: currentUserIdentifier,
                     username: 'You',
@@ -631,7 +634,8 @@ function MessageChat({ conversation, onNewMessage }) {
             const sentMessage = await messageService.sendMessage(
                 conversation._id,
                 currentUserIdentifier,
-                messageContent
+                messageContent,
+                attachedImage
             );
             
             console.log('✅ Message sent successfully via WebSocket:', sentMessage);

@@ -1,10 +1,33 @@
 import datetime
 from flask import Blueprint, request, jsonify, current_app
+from werkzeug.utils import secure_filename
+import os
+import uuid
 from auth.service import token_required
 from messages.models import Conversation, Message
 from users.models import User
+import boto3
+from botocore.exceptions import ClientError
 
 messages_bp = Blueprint('messages', __name__)
+
+# Image upload configuration
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+def get_s3_client():
+    """Get S3 client"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION', 'ca-central-1')
+    )
+
+def allowed_file(filename):
+    """Check if file has allowed extension"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @messages_bp.route('/conversations', methods=['GET'])
 @token_required
@@ -31,6 +54,118 @@ def get_conversations(current_user):
     except Exception as e:
         print(f"Error fetching conversations: {e}")
         return jsonify({"error": "Failed to fetch conversations"}), 500
+
+@messages_bp.route('/upload-attachment', methods=['POST'])
+@token_required
+def upload_message_attachment(current_user):
+    """Upload image attachment to S3 private bucket for messages"""
+    try:
+        # Check if the post request has the file part
+        if 'image' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['image']
+        
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        # Check file size
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        if file_size > MAX_FILE_SIZE:
+            return jsonify({"error": "File too large. Maximum size is 5MB"}), 400
+        
+        if file and allowed_file(file.filename):
+            # Generate unique filename
+            filename = secure_filename(file.filename)
+            file_extension = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"message_{current_user['_id']}_{uuid.uuid4().hex}.{file_extension}"
+            
+            # Get S3 configuration from app config
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
+            
+            if not private_bucket:
+                return jsonify({"error": "S3 configuration not found"}), 500
+            
+            # Upload to S3 PRIVATE bucket
+            try:
+                s3_client = get_s3_client()
+                s3_key = f"message_attachments/{unique_filename}"
+                
+                s3_client.upload_fileobj(
+                    file,
+                    private_bucket,
+                    s3_key,
+                    ExtraArgs={
+                        'ContentType': file.content_type or f'image/{file_extension}',
+                        'CacheControl': 'max-age=31536000',  # Cache for 1 year
+                        'Metadata': {
+                            'user_id': current_user['_id'],
+                            'upload_type': 'message_attachment'
+                        }
+                    }
+                )
+                
+                # Generate presigned URL for immediate access (valid for 1 hour)
+                presigned_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': private_bucket, 'Key': s3_key},
+                    ExpiresIn=3600  # 1 hour
+                )
+                
+                return jsonify({
+                    "message": "Attachment uploaded successfully",
+                    "imageUrl": presigned_url,
+                    "filename": unique_filename,
+                    "s3_key": s3_key,
+                    "s3_bucket": private_bucket
+                }), 200
+                
+            except ClientError as e:
+                print(f"S3 upload error: {e}")
+                return jsonify({"error": "Failed to upload to cloud storage"}), 500
+        else:
+            return jsonify({"error": "Invalid file type. Allowed types: PNG, JPG, JPEG, GIF, WEBP"}), 400
+            
+    except Exception as e:
+        print(f"Error uploading attachment: {e}")
+        return jsonify({"error": "Failed to upload attachment"}), 500
+
+@messages_bp.route('/attachment/<path:s3_key>', methods=['GET'])
+@token_required
+def get_message_attachment(current_user, s3_key):
+    """Get secure URL for message attachment from private S3 bucket"""
+    try:
+        # Get S3 configuration
+        s3_config = current_app.config.get("S3_CONFIG", {})
+        private_bucket = s3_config.get('private_bucket')
+        
+        if not private_bucket:
+            return jsonify({"error": "S3 configuration not found"}), 500
+        
+        # Generate pre-signed URL for secure access (valid for 1 hour)
+        s3_client = get_s3_client()
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': private_bucket, 'Key': s3_key},
+            ExpiresIn=3600  # 1 hour
+        )
+        
+        return jsonify({
+            "success": True,
+            "presigned_url": presigned_url,
+            "expires_in": 3600
+        }), 200
+        
+    except ClientError as e:
+        print(f"Error generating presigned URL: {e}")
+        return jsonify({"error": "Failed to generate secure URL"}), 500
+    except Exception as e:
+        print(f"Error getting attachment: {e}")
+        return jsonify({"error": "Failed to get attachment"}), 500
 
 @messages_bp.route('/conversations', methods=['POST'])
 @token_required
@@ -143,14 +278,30 @@ def send_message_http(current_user, conversation_id):
         
         data = request.get_json()
         content = data.get('content', '').strip()
+        attachment_url = data.get('attachment_url', '').strip()
+        attachment_s3_key = data.get('attachment_s3_key', '').strip()
         
-        if not content:
-            return jsonify({"error": "Message content required"}), 400
+        # Must have either content or attachment
+        if not content and not attachment_url:
+            return jsonify({"error": "Message content or attachment required"}), 400
+        
+        # Validate attachment URL if provided (ensure it's from our private S3 bucket)
+        if attachment_url:
+            s3_config = current_app.config.get("S3_CONFIG", {})
+            private_bucket = s3_config.get('private_bucket')
+            
+            if not attachment_url.startswith(f"https://{private_bucket}.s3."):
+                return jsonify({"error": "Invalid attachment URL"}), 400
+        
+        message_type = "image" if attachment_url else "text"
         
         message = Message.create_message(
             conversation_id=conversation_id,
             sender_id=current_user['_id'],
-            content=content
+            content=content,
+            message_type=message_type,
+            attachment_url=attachment_url,
+            attachment_s3_key=attachment_s3_key
         )
         
         if not message:

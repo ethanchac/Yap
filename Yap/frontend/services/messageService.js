@@ -344,7 +344,7 @@ class MessageService {
     }
 
     // Send a message
-    async sendMessage(conversationId, senderId, content) {
+    async sendMessage(conversationId, senderId, content, attachedImage = null) {
         if (!this.socket || !this.socket.connected) {
             throw new Error('Not connected to server');
         }
@@ -386,10 +386,18 @@ class MessageService {
             this.socket.once('error', handleError);
 
             // Send the message
-            this.socket.emit('send_message', {
+            const messageData = {
                 conversation_id: conversationId,
                 content: content
-            });
+            };
+
+            // Add attachment data if present
+            if (attachedImage) {
+                messageData.attachment_url = attachedImage.url;
+                messageData.attachment_s3_key = attachedImage.s3_key;
+            }
+
+            this.socket.emit('send_message', messageData);
         });
     }
 

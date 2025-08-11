@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import EmojiPicker from './EmojiPicker';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_BASE_URL } from '../../services/config';
 
 function MessageInput({ 
     conversation, 
@@ -13,7 +14,10 @@ function MessageInput({
     const [newMessage, setNewMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [attachedImage, setAttachedImage] = useState(null);
     const inputRef = useRef(null);
+    const fileInputRef = useRef(null);
     const emojiPickerRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const { isDarkMode } = useTheme();
@@ -70,8 +74,8 @@ function MessageInput({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || sending || disabled) {
-            console.log('❌ Cannot send: empty message, already sending, or disabled');
+        if ((!newMessage.trim() && !attachedImage) || sending || disabled) {
+            console.log('❌ Cannot send: empty message and no attachment, already sending, or disabled');
             return;
         }
 
@@ -90,8 +94,11 @@ function MessageInput({
         setNewMessage('');
         
         try {
-            // Call the parent's send message handler
-            const result = await onSendMessage(messageContent);
+            // Call the parent's send message handler with content and attachment
+            const result = await onSendMessage(messageContent, attachedImage);
+            
+            // Clear attachment after sending
+            setAttachedImage(null);
             
             // If the result is a string, it means there was an error and we should restore the message
             if (typeof result === 'string') {
@@ -101,6 +108,67 @@ function MessageInput({
             console.error('❌ Error in handleSubmit:', error);
             // Restore message content on error
             setNewMessage(messageContent);
+        }
+    };
+
+    const handleFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (PNG, JPG, JPEG, GIF, WEBP)');
+            return;
+        }
+
+        // Validate file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            return;
+        }
+
+        setUploadingImage(true);
+        try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await fetch(`${API_BASE_URL}/messages/upload-attachment`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setAttachedImage({
+                    url: data.imageUrl,
+                    s3_key: data.s3_key,
+                    filename: data.filename
+                });
+            } else {
+                alert(data.error || 'Failed to upload image');
+            }
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to upload image');
+        } finally {
+            setUploadingImage(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const removeAttachment = () => {
+        setAttachedImage(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
@@ -164,6 +232,47 @@ function MessageInput({
                 </div>
             )}
             
+            {/* Image attachment preview */}
+            {attachedImage && (
+                <div className={`mb-3 p-3 rounded-lg ${
+                    isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                }`}>
+                    <div className="flex items-start space-x-3">
+                        <img
+                            src={attachedImage.url}
+                            alt="Attachment preview"
+                            className="w-16 h-16 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                            <p className={`text-sm font-medium ${
+                                isDarkMode ? 'text-white' : 'text-gray-900'
+                            }`}>
+                                Image ready to send
+                            </p>
+                            <p className={`text-xs ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                                {attachedImage.filename}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={removeAttachment}
+                            className={`p-1 rounded-full transition-colors ${
+                                isDarkMode
+                                    ? 'text-gray-400 hover:text-white hover:bg-gray-600'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                            }`}
+                            title="Remove attachment"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="flex items-center space-x-3">
                 {/* Emoji Button with Picker */}
                 <div className="relative" ref={emojiPickerRef}>
@@ -213,25 +322,43 @@ function MessageInput({
                         maxLength={1000}
                     />
                     
-                    {/* Attachment button (placeholder for future feature) */}
+                    {/* Image attachment button */}
                     <button 
                         type="button"
+                        onClick={() => fileInputRef.current?.click()}
                         className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors ${
-                            isDarkMode 
-                                ? 'text-gray-400 hover:text-white' 
-                                : 'text-gray-500 hover:text-gray-700'
+                            uploadingImage
+                                ? 'text-orange-500'
+                                : isDarkMode 
+                                    ? 'text-gray-400 hover:text-white' 
+                                    : 'text-gray-500 hover:text-gray-700'
                         }`}
-                        disabled={sending || disabled}
-                        title="Attach file (coming soon)"
+                        disabled={sending || disabled || uploadingImage}
+                        title="Attach image"
                     >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49" stroke="currentColor" strokeWidth="2"/>
-                        </svg>
+                        {uploadingImage ? (
+                            <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" stroke="currentColor" strokeWidth="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="2"/>
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                        )}
                     </button>
+                    
+                    {/* Hidden file input */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpg,image/jpeg,image/gif,image/webp"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                    />
                 </div>
                 
                 {/* Send Button */}
-                {newMessage.trim() && (
+                {(newMessage.trim() || attachedImage) && (
                     <button 
                         type="submit"
                         disabled={sending || disabled}

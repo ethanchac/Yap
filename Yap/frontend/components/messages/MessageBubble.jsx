@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatMessageTime } from './utils/easternTimeUtils';
+import { API_BASE_URL } from '../../services/config';
 
 function MessageBubble({ 
     message, 
@@ -12,11 +13,59 @@ function MessageBubble({
     getProfilePictureUrl 
 }) {
     const [showTime, setShowTime] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const [imageUrl, setImageUrl] = useState(null);
+    const [loadingImage, setLoadingImage] = useState(false);
     const { isDarkMode } = useTheme();
 
     const toggleTimeDisplay = () => {
         setShowTime(!showTime);
     };
+
+    // Load secure image URL for private S3 attachments
+    const loadSecureImageUrl = async () => {
+        if (!message.attachment_s3_key || loadingImage || imageUrl) return;
+        
+        setLoadingImage(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/messages/attachment/${encodeURIComponent(message.attachment_s3_key)}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                setImageUrl(data.presigned_url);
+            } else {
+                setImageError(true);
+            }
+        } catch (error) {
+            console.error('Error loading secure image:', error);
+            setImageError(true);
+        } finally {
+            setLoadingImage(false);
+        }
+    };
+
+    // Load secure image when component mounts if it's an image message
+    useEffect(() => {
+        if (message.message_type === 'image' && message.attachment_url) {
+            // For optimistic messages, use the direct attachment_url
+            if (message.isOptimistic) {
+                setImageUrl(message.attachment_url);
+            } else {
+                // For real messages from server, we need to get a presigned URL for security
+                if (message.attachment_s3_key && !imageUrl && !loadingImage) {
+                    loadSecureImageUrl();
+                } else if (!message.attachment_s3_key) {
+                    // Fallback to direct URL if no S3 key
+                    setImageUrl(message.attachment_url);
+                }
+            }
+        }
+    }, [message.attachment_s3_key, message.attachment_url, message.message_type, message.isOptimistic]);
 
     // Get message status
     const getMessageStatus = () => {
@@ -118,9 +167,39 @@ function MessageBubble({
                 title="Click to show timestamp"
             >
                 {/* Message content */}
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {message.content}
-                </div>
+                {message.message_type === 'image' && (message.attachment_url || imageUrl) ? (
+                    <div className="space-y-2">
+                        {/* Image attachment */}
+                        <div className="relative">
+                            {loadingImage ? (
+                                <div className="flex items-center justify-center w-64 h-48 bg-gray-300 rounded-lg">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                                </div>
+                            ) : imageError ? (
+                                <div className="flex items-center justify-center w-64 h-48 bg-gray-300 rounded-lg">
+                                    <span className="text-gray-500 text-sm">Failed to load image</span>
+                                </div>
+                            ) : (
+                                <img
+                                    src={imageUrl || message.attachment_url}
+                                    alt="Message attachment"
+                                    className="max-w-xs max-h-80 rounded-lg object-cover"
+                                    onError={() => setImageError(true)}
+                                />
+                            )}
+                        </div>
+                        {/* Caption if present */}
+                        {message.content && (
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                                {message.content}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {message.content}
+                    </div>
+                )}
 
                 {/* Edited indicator */}
                 {message.edited && (

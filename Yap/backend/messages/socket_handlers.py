@@ -229,8 +229,10 @@ def handle_send_message(socketio, data):
     try:
         conversation_id = data.get('conversation_id')
         content = data.get('content', '').strip()
+        attachment_url = data.get('attachment_url', '').strip()
+        attachment_s3_key = data.get('attachment_s3_key', '').strip()
         
-        logger.info(f"📨 Send message attempt from {request.sid}: conv={conversation_id}, length={len(content)}")
+        logger.info(f"📨 Send message attempt from {request.sid}: conv={conversation_id}, length={len(content)}, has_attachment={bool(attachment_url)}")
         
         # Get user from session
         user_info = connected_users.get(request.sid)
@@ -242,9 +244,10 @@ def handle_send_message(socketio, data):
         user_id = user_info['user_id']
         username = user_info['username']
         
-        if not conversation_id or not content:
+        # Must have either content or attachment
+        if not conversation_id or (not content and not attachment_url):
             logger.warning(f"❌ Invalid message data from {username}")
-            emit('error', {'message': 'Conversation ID and content required'})
+            emit('error', {'message': 'Conversation ID and content or attachment required'})
             return
         
         # Verify user is part of conversation
@@ -259,11 +262,17 @@ def handle_send_message(socketio, data):
             emit('error', {'message': 'Access denied to conversation'})
             return
         
+        # Determine message type
+        message_type = "image" if attachment_url else "text"
+        
         # Create message
         message = Message.create_message(
             conversation_id=conversation_id,
             sender_id=user_id,
-            content=content
+            content=content,
+            message_type=message_type,
+            attachment_url=attachment_url,
+            attachment_s3_key=attachment_s3_key
         )
         
         if message:
