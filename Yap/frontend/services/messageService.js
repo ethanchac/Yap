@@ -1,9 +1,11 @@
 // services/messageService.js
 import { io } from 'socket.io-client';
 
-// Configuration - change these URLs as needed
-const API_URL = 'http://localhost:5000';
-const SOCKET_URL = 'http://localhost:5000';
+// Import the shared config instead of duplicating logic
+import { API_BASE_URL, SOCKET_URL } from './config.js';
+
+const API_URL = API_BASE_URL;
+const SOCKET_URL_VAR = SOCKET_URL;
 
 class MessageService {
     constructor() {
@@ -53,7 +55,7 @@ class MessageService {
             }
             
             // Create socket connection with auth
-            this.socket = io(SOCKET_URL, {
+            this.socket = io(SOCKET_URL_VAR, {
                 transports: ['websocket', 'polling'],
                 auth: {
                     token: this.token
@@ -373,6 +375,8 @@ class MessageService {
 
             const handleError = (error) => {
                 clearTimeout(timeout);
+                console.error('❌ WebSocket send error:', error);
+                // Don't redirect on message send errors - just reject
                 reject(new Error(error.message || 'Failed to send message'));
                 cleanup();
             };

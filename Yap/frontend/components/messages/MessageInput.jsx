@@ -74,6 +74,8 @@ function MessageInput({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent event bubbling
+        
         if ((!newMessage.trim() && !attachedImage) || sending || disabled) {
             console.log('❌ Cannot send: empty message and no attachment, already sending, or disabled');
             return;
@@ -90,7 +92,7 @@ function MessageInput({
             }
         }
         
-        // Clear input immediately for better UX
+        // Clear input immediately for better UX (optimistic update)
         setNewMessage('');
         
         try {

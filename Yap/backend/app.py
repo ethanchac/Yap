@@ -19,6 +19,7 @@ from eventthreads.routes import eventthreads_bp
 import os
 import sys
 import logging
+from datetime import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -34,17 +35,28 @@ TEST_MODE = "--test" in sys.argv or os.getenv("FLASK_ENV") == "testing"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# CORS Configuration - Updated for Vercel
+# Get additional CORS origins from environment (for local network IPs)
+additional_origins = os.getenv("ADDITIONAL_CORS_ORIGINS", "").split(",")
+additional_origins = [origin.strip() for origin in additional_origins if origin.strip()]
+
+base_origins = [
+    "http://localhost:5173", 
+    "http://127.0.0.1:5173", 
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "https://yap-mu.vercel.app",  # Your Vercel production URL
+    "https://*.vercel.app",        # All Vercel preview deployments
+    "https://*.railway.app",       # Railway domains
+    os.getenv("FRONTEND_URL", ""),
+    os.getenv("RAILWAY_STATIC_URL", ""),  # Railway static URL if different
+]
+
+# Combine base origins with additional ones
+all_origins = base_origins + additional_origins
+
+# CORS Configuration - Updated for network access
 CORS(app, 
-     origins=[
-         "http://localhost:5173", 
-         "http://127.0.0.1:5173", 
-         "http://localhost:3000",
-         "http://localhost:8080",
-         "https://yap-mu.vercel.app",  # Your Vercel production URL
-         "https://*.vercel.app",        # All Vercel preview deployments
-         os.getenv("FRONTEND_URL", "")
-     ],
+     origins=all_origins,
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "Accept", "X-User-ID"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -52,15 +64,7 @@ CORS(app,
 # SocketIO Configuration (simple, no Redis)
 socketio = SocketIO(
     app, 
-    cors_allowed_origins=[
-        "http://localhost:5173", 
-        "http://127.0.0.1:5173", 
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "https://yap-mu.vercel.app",  # Your Vercel production URL
-        "https://*.vercel.app",        # All Vercel preview deployments
-        os.getenv("FRONTEND_URL", "")
-    ],
+    cors_allowed_origins=all_origins,  # Use the same origins as Flask CORS
     ping_timeout=60,
     ping_interval=25,
     transports=['websocket', 'polling'],
@@ -83,17 +87,16 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 def after_request(response):
     """Enhanced CORS handling"""
     origin = request.headers.get('Origin')
-    allowed_origins = [
-        'http://localhost:5173', 
-        'http://127.0.0.1:5173', 
-        'http://localhost:3000',
-        'http://localhost:8080',
-        'https://yap-mu.vercel.app',  # Your Vercel production URL
-        os.getenv("FRONTEND_URL", "")
-    ]
     
+    # Use the same allowed origins as the CORS config
     # Also allow any .vercel.app subdomain for preview deployments
-    if origin and (origin in allowed_origins or origin.endswith('.vercel.app')):
+    # And allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    if origin and (
+        origin in all_origins or 
+        origin.endswith('.vercel.app') or
+        origin.endswith('.railway.app') or
+        any(origin.startswith(f'http://{prefix}') for prefix in ['192.168.', '10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.'])
+    ):
         response.headers['Access-Control-Allow-Origin'] = origin
     
     response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS,PATCH'
@@ -107,19 +110,16 @@ def handle_options():
     """Handle preflight OPTIONS requests"""
     if request.method == 'OPTIONS':
         origin = request.headers.get('Origin')
-        allowed_origins = [
-            'http://localhost:5173', 
-            'http://127.0.0.1:5173', 
-            'http://localhost:3000',
-            'http://localhost:8080',
-            'https://yap-mu.vercel.app',  # Your Vercel production URL
-            os.getenv("FRONTEND_URL", "")
-        ]
         
         response = jsonify({'status': 'OK'})
         
-        # Also allow any .vercel.app subdomain for preview deployments
-        if origin and (origin in allowed_origins or origin.endswith('.vercel.app')):
+        # Use the same logic as after_request for consistency
+        if origin and (
+            origin in all_origins or 
+            origin.endswith('.vercel.app') or
+            origin.endswith('.railway.app') or
+            any(origin.startswith(f'http://{prefix}') for prefix in ['192.168.', '10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.'])
+        ):
             response.headers['Access-Control-Allow-Origin'] = origin
         
         response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS,PATCH'
@@ -407,6 +407,45 @@ def index():
         "s3_buckets": app.config["S3_CONFIG"]
     })
 
+# Network discovery endpoint (with CORS headers for cross-origin access)
+@app.route('/api/discover')
+def discover():
+    """Network discovery endpoint for clients to find the server"""
+    import socket
+    
+    # Get server's local IP addresses
+    local_ips = []
+    try:
+        # Connect to a remote address to determine the preferred local IP
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            primary_ip = s.getsockname()[0]
+            local_ips.append(primary_ip)
+    except:
+        pass
+    
+    # Add localhost as fallback
+    if "127.0.0.1" not in local_ips:
+        local_ips.append("127.0.0.1")
+    
+    port = int(os.environ.get('PORT', 5000))
+    
+    response = jsonify({
+        "service": "UniThread API",
+        "version": "1.0",
+        "port": port,
+        "local_ips": local_ips,
+        "websocket_path": "/socket.io/",
+        "timestamp": datetime.now().isoformat()
+    })
+    
+    # Add CORS headers for discovery
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET'
+    response.headers['Cache-Control'] = 'no-cache'
+    
+    return response
+
 if __name__ == "__main__":
     logger.info("🚀 Starting Flask-SocketIO server...")
     
@@ -437,14 +476,16 @@ if __name__ == "__main__":
             allow_unsafe_werkzeug=True  # This suppresses the Werkzeug warning
         )
     else:
-        logger.info(f"🌐 Development server starting on localhost:{port}")
-        logger.info(f"🔌 WebSocket endpoint: ws://localhost:{port}/socket.io/")
+        # Get the development host - allow network access by default
+        dev_host = os.environ.get('DEV_HOST', '0.0.0.0')
+        logger.info(f"🌐 Development server starting on {dev_host}:{port}")
+        logger.info(f"🔌 WebSocket endpoint: ws://{dev_host}:{port}/socket.io/")
         
-        # Development settings
+        # Development settings with network access
         socketio.run(
             app, 
             debug=True,
-            host='127.0.0.1',
+            host=dev_host,  # Use 0.0.0.0 to allow connections from other devices
             port=port,
             use_reloader=True,
             log_output=True

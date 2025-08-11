@@ -225,13 +225,15 @@ function MessageChat({ conversation, onNewMessage }) {
             console.log('✅ Reconnected successfully, syncing quietly');
             setRetryCount(0);
             setShowOfflineMessage(false);
-            // Sync messages quietly without showing loading screen
+            // Don't show loading screen on reconnection - just sync quietly
             fetchMessagesQuietly();
         } else if (status === 'disconnected') {
             setRetryCount(prev => prev + 1);
             setShowOfflineMessage(true);
+            // Don't show loading screen on disconnection
         } else if (status === 'failed') {
             setShowOfflineMessage(true);
+            // Don't show loading screen on failure
         }
     }, [retryCount]);
 
@@ -245,7 +247,7 @@ function MessageChat({ conversation, onNewMessage }) {
             return;
         }
 
-        // Mark message as processed
+        // Mark message as processed immediately to prevent race conditions
         messagesRef.current.set(newMessage._id, true);
         
         console.log('📨 Current user identifier:', currentUserIdentifier);
@@ -381,7 +383,7 @@ function MessageChat({ conversation, onNewMessage }) {
         console.log('🔌 Setting up WebSocket subscription for conversation:', conversation._id);
         console.log('🔌 Current user identifier:', currentUserIdentifier);
         
-        // Reset state when conversation changes
+        // Reset state when conversation changes (but prevent flicker)
         setMessages([]);
         setLoading(true);
         setTypingUsers([]);
@@ -428,6 +430,7 @@ function MessageChat({ conversation, onNewMessage }) {
                 console.error('❌ Failed to initialize WebSocket connection:', error);
                 setConnectionStatus('failed');
                 setShowOfflineMessage(true);
+                setLoading(false); // Ensure loading stops on error
             }
         };
 
@@ -602,11 +605,10 @@ function MessageChat({ conversation, onNewMessage }) {
         messageService.stopTyping(conversation._id);
 
         try {
-            // Get current user info for optimistic message
-            const currentUserInfo = await fetchUserInfo(currentUserIdentifier);
-            console.log('📤 Current user info for optimistic message:', currentUserInfo);
+            // Get current user info for optimistic message (fetch in parallel)
+            const currentUserInfoPromise = fetchUserInfo(currentUserIdentifier);
             
-            // Optimistically add message to UI immediately
+            // Create optimistic message immediately to prevent "No messages yet" flicker
             const tempMessage = {
                 _id: tempId,
                 conversation_id: conversation._id,
@@ -616,7 +618,7 @@ function MessageChat({ conversation, onNewMessage }) {
                 message_type: attachedImage ? 'image' : 'text',
                 attachment_url: attachedImage?.url || null,
                 attachment_s3_key: attachedImage?.s3_key || null,
-                sender: currentUserInfo || {
+                sender: {
                     _id: currentUserIdentifier,
                     username: 'You',
                     profile_picture: ''
@@ -626,8 +628,19 @@ function MessageChat({ conversation, onNewMessage }) {
 
             console.log('📤 Adding optimistic message to UI:', tempMessage);
 
-            // Add optimistic message using optimized method
+            // Add optimistic message IMMEDIATELY to prevent any flicker
             setMessages(prev => addMessageOptimized(prev, tempMessage, true)); // true = trigger scroll
+            
+            // Now get user info for better display (non-blocking)
+            const currentUserInfo = await currentUserInfoPromise;
+            console.log('📤 Current user info for optimistic message:', currentUserInfo);
+            
+            // Update the optimistic message with better user info if available
+            if (currentUserInfo) {
+                setMessages(prev => prev.map(msg => 
+                    msg._id === tempId ? { ...msg, sender: currentUserInfo } : msg
+                ));
+            }
 
             // Send the actual message via WebSocket
             console.log('📤 Sending message via WebSocket...');
@@ -726,11 +739,12 @@ function MessageChat({ conversation, onNewMessage }) {
         
         try {
             await messageService.reconnect();
-            // Use quiet sync instead of full refresh
+            // Use quiet sync instead of full refresh - no loading screen
             await fetchMessagesQuietly();
         } catch (error) {
             console.error('❌ Manual retry failed:', error);
             setShowOfflineMessage(true);
+            // Don't show loading screen on retry failure
         }
     };
 
@@ -786,6 +800,7 @@ function MessageChat({ conversation, onNewMessage }) {
                 onScroll={handleScroll}
                 loadingOlderMessages={loadingOlderMessages}
                 hasMoreMessages={hasMoreMessages}
+                sending={sending}
             />
             
             <MessageInput 

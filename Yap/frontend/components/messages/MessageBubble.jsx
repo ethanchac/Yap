@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatMessageTime } from './utils/easternTimeUtils';
 import { API_BASE_URL } from '../../services/config';
 
-function MessageBubble({ 
+// FIXED: Memoize the entire component to prevent unnecessary re-renders
+const MessageBubble = React.memo(function MessageBubble({ 
     message, 
     isMyMessage, 
     isFirstInGroup = true,
@@ -18,12 +19,13 @@ function MessageBubble({
     const [loadingImage, setLoadingImage] = useState(false);
     const { isDarkMode } = useTheme();
 
-    const toggleTimeDisplay = () => {
+    // FIXED: Memoize toggle function to prevent recreation on every render
+    const toggleTimeDisplay = useCallback(() => {
         setShowTime(!showTime);
-    };
+    }, [showTime]);
 
     // Load secure image URL for private S3 attachments
-    const loadSecureImageUrl = async () => {
+    const loadSecureImageUrl = useCallback(async () => {
         if (!message.attachment_s3_key || loadingImage || imageUrl) return;
         
         setLoadingImage(true);
@@ -47,7 +49,7 @@ function MessageBubble({
         } finally {
             setLoadingImage(false);
         }
-    };
+    }, [message.attachment_s3_key, loadingImage, imageUrl]);
 
     // Load secure image when component mounts if it's an image message
     useEffect(() => {
@@ -65,10 +67,10 @@ function MessageBubble({
                 }
             }
         }
-    }, [message.attachment_s3_key, message.attachment_url, message.message_type, message.isOptimistic]);
+    }, [message.attachment_s3_key, message.attachment_url, message.message_type, message.isOptimistic, imageUrl, loadingImage, loadSecureImageUrl]);
 
-    // Get message status
-    const getMessageStatus = () => {
+    // FIXED: Memoize message status calculation
+    const messageStatus = useMemo(() => {
         if (message.isOptimistic) {
             return 'sending';
         }
@@ -79,12 +81,10 @@ function MessageBubble({
             return 'failed';
         }
         return 'sent';
-    };
+    }, [message.isOptimistic, message.isQueued, message.failed]);
 
-    const messageStatus = getMessageStatus();
-
-    // Status icon component
-    const StatusIcon = () => {
+    // FIXED: Memoize status icon component
+    const StatusIcon = useMemo(() => {
         switch (messageStatus) {
             case 'sending':
                 return (
@@ -111,11 +111,10 @@ function MessageBubble({
             default:
                 return null;
         }
-    };
+    }, [messageStatus]);
 
-    // Get bubble styling - UPDATED for better sizing
-    const getBubbleStyles = () => {
-        // Changed max-w-full to specific max widths and added inline-block for content sizing
+    // FIXED: Memoize bubble styles calculation
+    const bubbleStyles = useMemo(() => {
         let baseStyles = "inline-block max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-3 py-2 break-words cursor-pointer transition-all duration-200 hover:scale-[1.02] shadow-sm";
         
         if (isMyMessage) {
@@ -157,12 +156,17 @@ function MessageBubble({
         }
 
         return baseStyles;
-    };
+    }, [isMyMessage, isDarkMode, isFirstInGroup, isLastInGroup, message.isOptimistic, messageStatus]);
+
+    // FIXED: Memoize formatted time to prevent recalculation
+    const formattedTime = useMemo(() => {
+        return formatMessageTime(message.created_at);
+    }, [message.created_at]);
 
     return (
-        <div className={`group relative ${isMyMessage ? 'text-right' : 'text-left'}`}>
+        <div className={`group relative ${isMyMessage ? 'text-right' : 'text-left'} animate-in fade-in-0 slide-in-from-bottom-2 duration-300`}>
             <div 
-                className={getBubbleStyles()}
+                className={bubbleStyles}
                 onClick={toggleTimeDisplay}
                 title="Click to show timestamp"
             >
@@ -222,14 +226,14 @@ function MessageBubble({
                     <span className={`text-xs ${
                         isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}>
-                        {formatMessageTime(message.created_at)}
+                        {formattedTime}
                     </span>
                 )}
 
                 {/* Status icon for my messages */}
                 {isMyMessage && isLastInGroup && (
                     <div className="flex items-center">
-                        <StatusIcon />
+                        {StatusIcon}
                     </div>
                 )}
             </div>
@@ -257,6 +261,6 @@ function MessageBubble({
             )}
         </div>
     );
-}
+});
 
 export default MessageBubble;
