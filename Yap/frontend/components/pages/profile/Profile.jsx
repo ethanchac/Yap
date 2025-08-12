@@ -338,8 +338,8 @@ const Profile = () => {
             onClick={fetchProfile}
             className={`px-4 py-2 rounded-lg font-bold transition-colors ${
               isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                ? 'bg-orange-600 hover:bg-orange-500 text-white'
+                : 'bg-orange-500 hover:bg-orange-600 text-white'
             }`}
           >
             Try Again
@@ -395,15 +395,15 @@ const Profile = () => {
                   </div>
                 )}
                 
-                {/* Upload button for own profile */}
+                {/* Upload button for own profile - CHANGED TO ORANGE */}
                 {isOwnProfile && (
                   <button
                     onClick={openFilePicker}
                     disabled={uploadingImage}
                     className={`absolute bottom-2 right-2 p-2 text-white rounded-full transition-colors ${
                       isDarkMode
-                        ? 'bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600'
-                        : 'bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400'
+                        ? 'bg-orange-600 hover:bg-orange-500 disabled:bg-gray-600'
+                        : 'bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400'
                     }`}
                   >
                     <Camera className="w-4 h-4" />
@@ -639,14 +639,14 @@ const Profile = () => {
                       </div>
                     </div>
 
-                    {/* Save/Cancel buttons */}
+                    {/* Save/Cancel buttons - SAVE BUTTON CHANGED TO ORANGE */}
                     <div className="flex space-x-3 pt-4">
                       <button 
                         onClick={handleSave}
                         className={`px-6 py-2 rounded-lg font-bold transition-colors ${
                           isDarkMode
-                            ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                            : 'bg-blue-500 hover:bg-blue-600 text-white'
+                            ? 'bg-orange-600 hover:bg-orange-500 text-white'
+                            : 'bg-orange-500 hover:bg-orange-600 text-white'
                         }`}
                       >
                         Save Changes
