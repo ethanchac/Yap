@@ -118,6 +118,19 @@ class Event:
                     event["attendees_count"] = event.get("attendees_count", 0)
                     event["likes_count"] = event.get("likes_count", 0)
                     event["comments_count"] = event.get("comments_count", 0)
+                    
+                    # Fetch profile picture from users collection
+                    try:
+                        user = db.users.find_one({"_id": ObjectId(event["user_id"])})
+                        if user:
+                            event["profile_picture"] = user.get("profile_picture")
+                            event["username"] = user.get("username", event.get("username"))
+                        else:
+                            event["profile_picture"] = None
+                    except Exception as user_error:
+                        print(f"Error fetching user info for event {event['_id']}: {user_error}")
+                        event["profile_picture"] = None
+                    
                     events.append(event)
             
             print(f"Found {len(events)} events")
@@ -135,6 +148,19 @@ class Event:
                     event["attendees_count"] = event.get("attendees_count", 0)
                     event["likes_count"] = event.get("likes_count", 0)
                     event["comments_count"] = event.get("comments_count", 0)
+                    
+                    # Fetch profile picture from users collection
+                    try:
+                        user = db.users.find_one({"_id": ObjectId(event["user_id"])})
+                        if user:
+                            event["profile_picture"] = user.get("profile_picture")
+                            event["username"] = user.get("username", event.get("username"))
+                        else:
+                            event["profile_picture"] = None
+                    except Exception as user_error:
+                        print(f"Error fetching user info for event {event['_id']}: {user_error}")
+                        event["profile_picture"] = None
+                    
                     events.append(event)
                 
                 print(f"Fallback query found {len(events)} events")
