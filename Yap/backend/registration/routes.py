@@ -61,8 +61,8 @@ def register():
         return jsonify({"error": "Username already exists"}), 409
 
     # UNCOMMENT THIS PART ONCE EVERYTHING IS FINISHED (REMOVES MAKING MULTI ACCOUNTS WITH SAME EMAIL)
-    if users_collection.find_one({"email": email}):
-        return jsonify({"error": "Email already registered"}), 409
+    #if users_collection.find_one({"email": email}):
+        #return jsonify({"error": "Email already registered"}), 409
 
     # Remove any existing pending registration for this username/email
     pending_registrations.delete_many({"$or": [{"username": username}, {"email": email}]})
