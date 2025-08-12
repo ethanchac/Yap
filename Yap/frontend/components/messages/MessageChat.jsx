@@ -252,10 +252,25 @@ function MessageChat({ conversation, onNewMessage }) {
         
         console.log('📨 Current user identifier:', currentUserIdentifier);
         console.log('📨 Message sender_id:', newMessage.sender_id);
+        console.log('📨 Message sender (object):', newMessage.sender);
         console.log('📨 String comparison:', String(newMessage.sender_id) === String(currentUserIdentifier));
         
-        // Handle messages from other users
-        if (String(newMessage.sender_id) !== String(currentUserIdentifier)) {
+        // CRITICAL FIX: Normalize sender info BEFORE any other processing
+        const isFromCurrentUser = String(newMessage.sender_id) === String(currentUserIdentifier);
+        
+        if (isFromCurrentUser) {
+            console.log('🔧 FIXING: Normalizing current user sender info');
+            console.log('🔧 Before fix:', newMessage.sender);
+            // FORCE correct sender information for our own messages
+            newMessage.sender = {
+                _id: currentUserIdentifier,
+                username: 'You',
+                profile_picture: newMessage.sender?.profile_picture || ''
+            };
+            console.log('🔧 After fix:', newMessage.sender);
+        }
+        
+        if (!isFromCurrentUser) {
             console.log('📨 Message from OTHER user - adding immediately');
             
             try {
@@ -315,16 +330,24 @@ function MessageChat({ conversation, onNewMessage }) {
                 
                 if (optimisticIndex !== -1) {
                     console.log('📨 Replacing optimistic message with real message');
+                    console.log('📨 Server sender info:', newMessage.sender);
+                    console.log('📨 Current user ID:', currentUserIdentifier);
+                    
                     const updated = [...prev];
+                    
+                    // CRITICAL FIX: Always use current user info for our own messages
+                    // Don't trust server sender info for our own messages
                     updated[optimisticIndex] = {
                         ...newMessage,
-                        sender: newMessage.sender || {
+                        sender: {
                             _id: currentUserIdentifier,
                             username: 'You',
-                            profile_picture: ''
+                            profile_picture: newMessage.sender?.profile_picture || ''
                         },
                         isOptimistic: false
                     };
+                    
+                    console.log('📨 Final message sender:', updated[optimisticIndex].sender);
                     // No need to re-sort since we're just replacing in place
                     return updated;
                 } else {
@@ -339,10 +362,10 @@ function MessageChat({ conversation, onNewMessage }) {
                     console.log('📨 No optimistic message found, adding own message normally');
                     const messageWithSender = {
                         ...newMessage,
-                        sender: newMessage.sender || {
-                            _id: newMessage.sender_id,
+                        sender: {
+                            _id: currentUserIdentifier,
                             username: 'You',
-                            profile_picture: ''
+                            profile_picture: newMessage.sender?.profile_picture || ''
                         }
                     };
                     
