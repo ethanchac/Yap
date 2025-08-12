@@ -265,18 +265,17 @@ function CreateEvent() {
             <form onSubmit={handleEventSubmit} className="space-y-6">
                 {/* Event Image Upload */}
                 <div className="space-y-4">
-                    <label className={`block text-sm font-semibold ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                        Event Cover Image
+                    <label className="block text-white text-sm font-semibold mb-2 flex items-center">
+                        <ImageIcon className="w-4 h-4 mr-2 text-orange-400" />
+                        Event Cover Image (Optional)
                     </label>
-                    
+                            
                     {imagePreviewUrl ? (
                         <div className="relative group">
                             <img 
                                 src={imagePreviewUrl} 
                                 alt="Event preview"
-                                className="w-full h-48 object-cover rounded-xl border border-gray-300"
+                                className="w-full h-48 object-cover rounded-xl border border-gray-600"
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl flex items-center justify-center">
                                 <button
@@ -291,76 +290,58 @@ function CreateEvent() {
                     ) : (
                         <label 
                             htmlFor="event-image-upload"
-                            className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 hover:border-blue-500 ${
-                                isDarkMode
-                                    ? 'border-gray-600 bg-gray-800/50 hover:bg-gray-800'
-                                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-                            }`}
+                            className="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-gray-600 rounded-xl cursor-pointer transition-all duration-300 hover:border-orange-500 bg-white/10 hover:bg-white/15"
                         >
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <ImageIcon className={`w-10 h-10 mb-3 ${
-                                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                }`} />
-                                <p className={`mb-2 text-sm font-semibold ${
-                                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
+                                <ImageIcon className="w-10 h-10 mb-3 text-gray-400" />
+                                <p className="mb-2 text-sm font-semibold text-gray-300">
                                     Click to upload event image
                                 </p>
-                                <p className={`text-xs ${
-                                    isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                                }`}>
+                                <p className="text-xs text-gray-500">
                                     PNG, JPG, JPEG up to 5MB
                                 </p>
                             </div>
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                         </label>
                     )}
-                    
-                    <input
-                        id="event-image-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageSelect}
-                        className="hidden"
-                        disabled={isSubmittingEvent || uploadingImage}
-                    />
-                    
-                    <div className={`text-xs ${
-                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                    }`}>
-                        Optional - If no image is provided, a random placeholder will be used
-                    </div>
-                </div>
+                            
+                            <input
+                                id="event-image-upload"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                                disabled={isSubmittingEvent || uploadingImage}
+                            />
+                            
+                            <div className="text-xs text-gray-500">
+                                Optional - If no image is provided, a random placeholder will be used
+                            </div>
+                        </div>
 
                 {/* Event Title */}
                 <div className="space-y-2">
-                    <label className={`block text-sm font-semibold ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
+                    <label className="block text-white text-sm font-semibold mb-2">
                         Event Title *
                     </label>
-                    <input
-                        type="text"
-                        value={eventTitle}
-                        onChange={(e) => setEventTitle(e.target.value)}
-                        placeholder="What's your event called?"
-                        maxLength={100}
-                        disabled={isSubmittingEvent}
-                        className={`w-full p-4 border-2 rounded-xl transition-all duration-200 focus:outline-none ${
-                            isDarkMode
-                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
-                        }`}
-                    />
+                    <div className="relative group">
+                        <input
+                            type="text"
+                            value={eventTitle}
+                            onChange={(e) => setEventTitle(e.target.value)}
+                            placeholder="What's your event called?"
+                            maxLength={100}
+                            disabled={isSubmittingEvent}
+                            className="w-full px-4 py-4 bg-white/10 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300"
+                        />
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
                     <div className="flex justify-between">
-                        <span className={`text-xs ${
-                            isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                        }`}>
+                        <span className="text-xs text-gray-500">
                             Required field
                         </span>
                         <span className={`text-xs font-medium ${
-                            eventTitle.length > 90 
-                                ? 'text-red-400' 
-                                : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            eventTitle.length > 90 ? 'text-red-400' : 'text-gray-400'
                         }`}>
                             {eventTitle.length}/100
                         </span>
@@ -369,33 +350,26 @@ function CreateEvent() {
 
                 {/* Event Description */}
                 <div className="space-y-2">
-                    <label className={`block text-sm font-semibold ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
+                    <label className="block text-white text-sm font-semibold mb-2">
                         Event Description *
                     </label>
-                    <textarea
-                        value={eventDescription}
-                        onChange={(e) => setEventDescription(e.target.value)}
-                        placeholder="Tell people what to expect at your event..."
-                        maxLength={500}
-                        disabled={isSubmittingEvent}
-                        className={`w-full p-4 border-2 rounded-xl transition-all duration-200 resize-none h-28 focus:outline-none ${
-                            isDarkMode
-                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
-                        }`}
-                    />
+                    <div className="relative group">
+                        <textarea
+                            value={eventDescription}
+                            onChange={(e) => setEventDescription(e.target.value)}
+                            placeholder="Tell people what to expect at your event..."
+                            maxLength={500}
+                            disabled={isSubmittingEvent}
+                            className="w-full px-4 py-4 bg-white/10 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300 resize-none h-28"
+                        />
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
                     <div className="flex justify-between">
-                        <span className={`text-xs ${
-                            isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                        }`}>
+                        <span className="text-xs text-gray-500">
                             Required field
                         </span>
                         <span className={`text-xs font-medium ${
-                            eventDescription.length > 450 
-                                ? 'text-red-400' 
-                                : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            eventDescription.length > 450 ? 'text-red-400' : 'text-gray-400'
                         }`}>
                             {eventDescription.length}/500
                         </span>
@@ -404,71 +378,51 @@ function CreateEvent() {
 
                 {/* Enhanced Date and Time Section */}
                 <div className="space-y-4">
-                    <h3 className={`text-sm font-semibold flex items-center ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                        <Calendar className="w-4 h-4 mr-2" />
+                    <h3 className="text-white text-sm font-semibold flex items-center mb-2">
+                        <Calendar className="w-4 h-4 mr-2 text-orange-400" />
                         When is your event? *
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Date Picker */}
                         <div className="relative">
-                            <label className={`block text-xs font-medium mb-2 uppercase tracking-wide ${
-                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
+                            <label className="block text-xs font-medium mb-2 uppercase tracking-wide text-gray-400">
                                 Date
                             </label>
-                            <div className="relative">
+                            <div className="relative group">
                                 <input
                                     type="date"
                                     value={eventDate}
                                     onChange={(e) => setEventDate(e.target.value)}
                                     min={today}
                                     disabled={isSubmittingEvent}
-                                    className={`w-full p-4 border-2 rounded-xl appearance-none cursor-pointer transition-all duration-200 focus:outline-none ${
-                                        isDarkMode
-                                            ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:bg-gray-750'
-                                            : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-gray-50'
-                                    }`}
+                                    className="w-full px-4 py-4 bg-white/10 border-2 border-gray-600 rounded-xl text-white focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300 appearance-none cursor-pointer"
                                 />
-                                <Calendar className={`absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none ${
-                                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                }`} />
+                                <Calendar className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none text-gray-400" />
+                                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                             </div>
-                            <div className={`mt-2 text-sm font-medium ${
-                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
+                            <div className="mt-2 text-sm font-medium text-gray-400">
                                 {formatDateDisplay(eventDate)}
                             </div>
                         </div>
 
                         {/* Time Picker */}
                         <div className="relative">
-                            <label className={`block text-xs font-medium mb-2 uppercase tracking-wide ${
-                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
+                            <label className="block text-xs font-medium mb-2 uppercase tracking-wide text-gray-400">
                                 Time
                             </label>
-                            <div className="relative">
+                            <div className="relative group">
                                 <input
                                     type="time"
                                     value={eventTime}
                                     onChange={(e) => setEventTime(e.target.value)}
                                     disabled={isSubmittingEvent}
-                                    className={`w-full p-4 border-2 rounded-xl appearance-none cursor-pointer transition-all duration-200 focus:outline-none ${
-                                        isDarkMode
-                                            ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:bg-gray-750'
-                                            : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-gray-50'
-                                    }`}
+                                    className="w-full px-4 py-4 bg-white/10 border-2 border-gray-600 rounded-xl text-white focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300 appearance-none cursor-pointer"
                                 />
-                                <Clock className={`absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none ${
-                                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                }`} />
+                                <Clock className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none text-gray-400" />
+                                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                             </div>
-                            <div className={`mt-2 text-sm font-medium ${
-                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
+                            <div className="mt-2 text-sm font-medium text-gray-400">
                                 {formatTimeDisplay(eventTime)}
                             </div>
                         </div>
@@ -476,24 +430,16 @@ function CreateEvent() {
 
                     {/* Date/Time Preview Card */}
                     {eventDate && eventTime && (
-                        <div className={`border rounded-xl p-4 ${
-                            isDarkMode
-                                ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-700/50'
-                                : 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200'
-                        }`}>
+                        <div className="border border-gray-600 rounded-xl p-4 bg-white/10 backdrop-blur-sm">
                             <div className="flex items-center space-x-3">
-                                <div className="bg-blue-600 rounded-lg p-2">
+                                <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-2">
                                     <Calendar className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <div className={`font-semibold ${
-                                        isDarkMode ? 'text-white' : 'text-gray-900'
-                                    }`}>
+                                    <div className="font-semibold text-white">
                                         {formatDateDisplay(eventDate)}
                                     </div>
-                                    <div className={`text-sm ${
-                                        isDarkMode ? 'text-blue-300' : 'text-blue-600'
-                                    }`}>
+                                    <div className="text-sm text-orange-300">
                                         at {formatTimeDisplay(eventTime)}
                                     </div>
                                 </div>
@@ -504,11 +450,9 @@ function CreateEvent() {
 
                 {/* Location with Map Integration and Title Input */}
                 <div className="space-y-4">
-                    <label className={`block text-sm font-semibold flex items-center ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Event Location
+                    <label className="block text-white text-sm font-semibold flex items-center">
+                        <MapPin className="w-4 h-4 mr-2 text-orange-400" />
+                        Event Location (Optional)
                     </label>
                     
                     {/* Map Component */}
@@ -521,34 +465,27 @@ function CreateEvent() {
                     {/* Location Title Input - only show when location is selected */}
                     {eventLocation && (
                         <div className="space-y-2">
-                            <label className={`block text-sm font-medium flex items-center ${
-                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
+                            <label className="block text-white text-sm font-medium">
                                 Location Name (Optional)
                             </label>
-                            <input
-                                type="text"
-                                value={locationTitle}
-                                onChange={(e) => setLocationTitle(e.target.value)}
-                                placeholder="Give this location a custom name (e.g., 'Main Library', 'Student Center')"
-                                maxLength={100}
-                                disabled={isSubmittingEvent}
-                                className={`w-full p-3 border-2 rounded-xl transition-all duration-200 focus:outline-none ${
-                                    isDarkMode
-                                        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
-                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
-                                }`}
-                            />
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={locationTitle}
+                                    onChange={(e) => setLocationTitle(e.target.value)}
+                                    placeholder="Give this location a custom name (e.g., 'Main Library', 'Student Center')"
+                                    maxLength={100}
+                                    disabled={isSubmittingEvent}
+                                    className="w-full px-4 py-3 bg-white/10 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300"
+                                />
+                                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                            </div>
                             <div className="flex justify-between">
-                                <span className={`text-xs ${
-                                    isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                                }`}>
+                                <span className="text-xs text-gray-500">
                                     This will be displayed instead of coordinates
                                 </span>
                                 <span className={`text-xs font-medium ${
-                                    locationTitle.length > 90 
-                                        ? 'text-red-400' 
-                                        : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                    locationTitle.length > 90 ? 'text-red-400' : 'text-gray-400'
                                 }`}>
                                     {locationTitle.length}/100
                                 </span>
@@ -577,51 +514,49 @@ function CreateEvent() {
 
                 {/* Max Attendees */}
                 <div className="space-y-2">
-                    <label className={`block text-sm font-semibold flex items-center ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                        <Users className="w-4 h-4 mr-2" />
-                        Maximum Attendees
+                    <label className="block text-white text-sm font-semibold flex items-center mb-2">
+                        <Users className="w-4 h-4 mr-2 text-orange-400" />
+                        Maximum Attendees (Optional)
                     </label>
-                    <input
-                        type="number"
-                        value={maxAttendees}
-                        onChange={(e) => setMaxAttendees(e.target.value)}
-                        placeholder="Leave blank for unlimited capacity"
-                        min="1"
-                        disabled={isSubmittingEvent}
-                        className={`w-full p-4 border-2 rounded-xl transition-all duration-200 focus:outline-none ${
-                            isDarkMode
-                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-750'
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-gray-50'
-                        }`}
-                    />
-                    <div className={`text-xs ${
-                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                    }`}>
+                    <div className="relative group">
+                        <input
+                            type="number"
+                            value={maxAttendees}
+                            onChange={(e) => setMaxAttendees(e.target.value)}
+                            placeholder="Leave blank for unlimited capacity"
+                            min="1"
+                            disabled={isSubmittingEvent}
+                            className="w-full px-4 py-4 bg-white/10 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300"
+                        />
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
+                    <div className="text-xs text-gray-500">
                         Optional - Set a limit on how many people can attend
                     </div>
                 </div>
 
                 {/* Submit Button */}
-                <div className="flex justify-end pt-6">
+                <div className="flex justify-center pt-6">
                     <button 
                         type="submit" 
                         disabled={isSubmittingEvent || uploadingImage || !eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
-                        className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-blue-500/25"
+                        className="flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100"
                     >
                         {isSubmittingEvent ? (
-                            <div className="flex items-center space-x-2">
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                                 <span>Creating Event...</span>
-                            </div>
+                            </>
                         ) : uploadingImage ? (
-                            <div className="flex items-center space-x-2">
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                                 <span>Uploading Image...</span>
-                            </div>
+                            </>
                         ) : (
-                            'Create Event'
+                            <>
+                                <Calendar className="w-5 h-5" />
+                                <span>Create Event</span>
+                            </>
                         )}
                     </button>
                 </div>
@@ -629,11 +564,7 @@ function CreateEvent() {
 
             {/* Success/Error Messages */}
             {eventMessage && (
-                <div className={`p-4 border rounded-xl backdrop-blur-sm ${
-                    isDarkMode
-                        ? 'bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-green-700/50 text-green-300'
-                        : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700'
-                }`}>
+                <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-green-300 rounded-xl backdrop-blur-sm">
                     <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                         <span className="font-medium">{eventMessage}</span>
@@ -642,11 +573,7 @@ function CreateEvent() {
             )}
 
             {eventError && (
-                <div className={`p-4 border rounded-xl backdrop-blur-sm ${
-                    isDarkMode
-                        ? 'bg-gradient-to-r from-red-900/50 to-pink-900/50 border-red-700/50 text-red-300'
-                        : 'bg-gradient-to-r from-red-50 to-pink-50 border-red-200 text-red-700'
-                }`}>
+                <div className="p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/30 text-red-300 rounded-xl backdrop-blur-sm">
                     <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-red-400 rounded-full"></div>
                         <span className="font-medium">{eventError}</span>

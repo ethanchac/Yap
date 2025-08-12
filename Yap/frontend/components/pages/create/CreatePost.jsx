@@ -250,46 +250,54 @@ function CreatePost() {
     return (
         <div className="space-y-6">
             <form onSubmit={handlePostSubmit} className="space-y-6">
-                {/* Modern Textarea */}
-                <div className="relative">
-                    <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="What's on your mind? Share your thoughts, moments, or experiences..."
-                        maxLength={280}
-                        disabled={isSubmittingPost}
-                        className={`w-full p-6 border rounded-2xl resize-none h-40 text-lg leading-relaxed transition-all duration-300 backdrop-blur-sm focus:outline-none focus:ring-2 ${
-                            isDarkMode
-                                ? 'bg-gray-800/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-orange-500/50 focus:ring-orange-500/20'
-                                : 'bg-white/70 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-orange-500/50 focus:ring-orange-500/20'
-                        }`}
-                    />
+                {/* Content Textarea */}
+                <div className="space-y-2">
+                    <label className="block text-white text-sm font-semibold mb-2">
+                        What's on your mind?
+                    </label>
+                    <div className="relative group">
+                        <textarea
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            placeholder="Share your thoughts, moments, or experiences..."
+                            maxLength={280}
+                            disabled={isSubmittingPost}
+                            className="w-full px-4 py-4 bg-white/10 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:bg-white/15 transition-all duration-300 resize-none h-40 text-lg leading-relaxed"
+                        />
+                            
                     
-                    {/* Character Counter */}
-                    <div className="absolute bottom-4 right-4">
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-300 border ${
-                            content.length > 260 
-                                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
-                                : content.length > 200
-                                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                                : isDarkMode
-                                    ? 'bg-gray-600/50 text-gray-400 border-gray-500/30'
-                                    : 'bg-gray-100/80 text-gray-600 border-gray-300/50'
-                        }`}>
-                            {content.length}/280
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                        
+                        {/* Character Counter */}
+                        <div className="absolute bottom-4 right-4">
+                            <div className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-300 border ${
+                                content.length > 260 
+                                    ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                                    : content.length > 200
+                                    ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                    : 'bg-white/10 text-gray-400 border-gray-500/30'
+                            }`}>
+                                {content.length}/280
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 {/* Image Upload Section */}
                 <div className="space-y-4">
+                    <label className="block text-white text-sm font-semibold mb-2 flex items-center">
+                        <ImageIcon className="w-4 h-4 mr-2 text-orange-400" />
+                        Add Photos (Optional)
+                    </label>
+                    
                     <div className="flex items-center justify-between">
                         <label 
                             htmlFor="image-upload"
-                            className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-orange-500/20 to-pink-500/20 hover:from-orange-500/30 hover:to-pink-500/30 text-orange-400 rounded-xl cursor-pointer transition-all duration-300 border border-orange-500/30 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/25"
+                            className="group flex items-center space-x-3 px-6 py-3 bg-white/10 border-2 border-gray-600 rounded-xl text-orange-400 cursor-pointer transition-all duration-300 hover:border-orange-500 hover:bg-white/15 hover:scale-105 relative"
                         >
                             <ImageIcon className="w-5 h-5" />
-                            <span className="font-semibold">Add Photos</span>
+                            <span className="font-semibold">Choose Images</span>
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                         </label>
                         <input
                             id="image-upload"
@@ -300,9 +308,7 @@ function CreatePost() {
                             className="hidden"
                             disabled={isSubmittingPost || uploadingImages}
                         />
-                        <div className={`flex items-center space-x-2 ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <div className="flex items-center space-x-2 text-gray-400">
                             <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                             <span className="text-sm font-medium">
                                 {selectedImages.length}/4 images
@@ -314,13 +320,11 @@ function CreatePost() {
                     {imagePreviewUrls.length > 0 && (
                         <div className="grid grid-cols-2 gap-4">
                             {imagePreviewUrls.map((url, index) => (
-                                <div key={index} className="relative group overflow-hidden rounded-xl">
+                                <div key={index} className="relative group overflow-hidden rounded-xl border border-gray-600/50">
                                     <img 
                                         src={url} 
                                         alt={`Preview ${index + 1}`}
-                                        className={`w-full h-40 object-cover rounded-xl border transition-transform duration-300 group-hover:scale-105 ${
-                                            isDarkMode ? 'border-gray-600/50' : 'border-gray-300/50'
-                                        }`}
+                                        className="w-full h-40 object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                     <button
@@ -337,39 +341,27 @@ function CreatePost() {
                 </div>
                 
                 {/* Action Bar with Functional Buttons */}
-                <div className={`flex items-center justify-between pt-4 border-t relative ${
-                    isDarkMode ? 'border-gray-700/50' : 'border-gray-300/50'
-                }`}>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-600/50">
                     <div className="flex items-center space-x-4">
                         {/* Emoji Button */}
                         <div className="dropdown-container relative">
                             <button 
                                 type="button" 
                                 onClick={() => testDropdown('emoji')}
-                                className={`dropdown-button p-2 rounded-lg transition-all duration-300 ${
-                                    isDarkMode
-                                        ? 'text-gray-400 hover:text-orange-400 hover:bg-orange-500/20'
-                                        : 'text-gray-600 hover:text-orange-600 hover:bg-orange-500/10'
-                                }`}
+                                className="dropdown-button p-2 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-white/10 transition-all duration-300"
                             >
                                 <Smile className="w-5 h-5" />
                             </button>
                             
                             {showEmojiPicker && (
-                                <div className={`absolute bottom-full left-0 mb-2 p-3 border rounded-xl shadow-2xl z-50 min-w-64 ${
-                                    isDarkMode
-                                        ? 'bg-gray-800 border-orange-500'
-                                        : 'bg-white border-orange-400'
-                                }`}>
+                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl z-50 min-w-64">
                                     <div className="grid grid-cols-8 gap-2">
                                         {commonEmojis.map((emoji, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
                                                 onClick={() => handleEmojiClick(emoji)}
-                                                className={`p-2 text-2xl rounded-lg transition-colors duration-200 hover:scale-110 ${
-                                                    isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                                                }`}
+                                                className="p-2 text-2xl rounded-lg hover:bg-white/10 transition-colors duration-200 hover:scale-110"
                                             >
                                                 {emoji}
                                             </button>
@@ -384,32 +376,20 @@ function CreatePost() {
                             <button 
                                 type="button" 
                                 onClick={() => testDropdown('hashtag')}
-                                className={`dropdown-button p-2 rounded-lg transition-all duration-300 ${
-                                    isDarkMode
-                                        ? 'text-gray-400 hover:text-orange-400 hover:bg-orange-500/20'
-                                        : 'text-gray-600 hover:text-orange-600 hover:bg-orange-500/10'
-                                }`}
+                                className="dropdown-button p-2 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-white/10 transition-all duration-300"
                             >
                                 <Hash className="w-5 h-5" />
                             </button>
                             
                             {showHashtagSuggestions && (
-                                <div className={`absolute bottom-full left-0 mb-2 p-3 border rounded-xl shadow-2xl z-50 min-w-48 ${
-                                    isDarkMode
-                                        ? 'bg-gray-800 border-orange-500'
-                                        : 'bg-white border-orange-400'
-                                }`}>
+                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl z-50 min-w-48">
                                     <div className="space-y-2">
                                         {commonHashtags.map((hashtag, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
                                                 onClick={() => handleHashtagClick(hashtag)}
-                                                className={`w-full p-2 text-left rounded-lg transition-colors duration-200 ${
-                                                    isDarkMode
-                                                        ? 'text-gray-300 hover:text-orange-400 hover:bg-gray-700'
-                                                        : 'text-gray-700 hover:text-orange-600 hover:bg-gray-100'
-                                                }`}
+                                                className="w-full p-2 text-left rounded-lg text-gray-300 hover:text-orange-400 hover:bg-white/10 transition-colors duration-200"
                                             >
                                                 {hashtag}
                                             </button>
@@ -424,41 +404,27 @@ function CreatePost() {
                             <button 
                                 type="button" 
                                 onClick={() => testDropdown('mention')}
-                                className={`dropdown-button p-2 rounded-lg transition-all duration-300 ${
-                                    isDarkMode
-                                        ? 'text-gray-400 hover:text-orange-400 hover:bg-orange-500/20'
-                                        : 'text-gray-600 hover:text-orange-600 hover:bg-orange-500/10'
-                                }`}
+                                className="dropdown-button p-2 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-white/10 transition-all duration-300"
                             >
                                 <AtSign className="w-5 h-5" />
                             </button>
                             
                             {showMentionSuggestions && (
-                                <div className={`absolute bottom-full left-0 mb-2 p-3 border rounded-xl shadow-2xl z-50 min-w-56 ${
-                                    isDarkMode
-                                        ? 'bg-gray-800 border-orange-500'
-                                        : 'bg-white border-orange-400'
-                                }`}>
+                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl z-50 min-w-56">
                                     <div className="space-y-2">
                                         {userSuggestions.map((user) => (
                                             <button
                                                 key={user.id}
                                                 type="button"
                                                 onClick={() => handleMentionClick(user)}
-                                                className={`w-full p-2 text-left rounded-lg transition-colors duration-200 flex items-center space-x-3 ${
-                                                    isDarkMode
-                                                        ? 'text-gray-300 hover:text-orange-400 hover:bg-gray-700'
-                                                        : 'text-gray-700 hover:text-orange-600 hover:bg-gray-100'
-                                                }`}
+                                                className="w-full p-2 text-left rounded-lg text-gray-300 hover:text-orange-400 hover:bg-white/10 transition-colors duration-200 flex items-center space-x-3"
                                             >
                                                 <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                                     {user.name.charAt(0)}
                                                 </div>
                                                 <div>
                                                     <div className="font-medium">{user.name}</div>
-                                                    <div className={`text-sm ${
-                                                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                                    }`}>
+                                                    <div className="text-sm text-gray-400">
                                                         @{user.username}
                                                     </div>
                                                 </div>
@@ -477,21 +443,21 @@ function CreatePost() {
                             uploadingImages || 
                             (!content.trim() && selectedImages.length === 0)
                         }
-                        className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100"
+                        className="flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100"
                     >
                         {isSubmittingPost ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                <span>Posting...</span>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                <span>Creating Post...</span>
                             </>
                         ) : uploadingImages ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                                 <span>Uploading...</span>
                             </>
                         ) : (
                             <>
-                                <Send className="w-4 h-4" />
+                                <Send className="w-5 h-5" />
                                 <span>Create Post</span>
                             </>
                         )}
@@ -499,25 +465,25 @@ function CreatePost() {
                 </div>
             </form>
 
-            {/* Success/Error Messages */}
-            {postMessage && (
-                <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-green-300 rounded-xl backdrop-blur-sm animate-in slide-in-from-top-2">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">{postMessage}</span>
+                {/* Success/Error Messages */}
+                {postMessage && (
+                    <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-green-300 rounded-xl backdrop-blur-sm">
+                        <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            <span className="font-medium">{postMessage}</span>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {postError && (
-                <div className="p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/30 text-red-300 rounded-xl backdrop-blur-sm animate-in slide-in-from-top-2">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">{postError}</span>
+                {postError && (
+                    <div className="p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/30 text-red-300 rounded-xl backdrop-blur-sm">
+                        <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                            <span className="font-medium">{postError}</span>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
     );
 }
 
