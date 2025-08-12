@@ -12,8 +12,28 @@ from datetime import datetime, timedelta
 
 registration_bp = Blueprint("registration", __name__)
 
+def cleanup_expired_registrations():
+    """Clean up expired pending registrations"""
+    try:
+        db = current_app.config["DB"]
+        pending_registrations = db["pending_registrations"]
+        
+        # Remove all registrations that have expired
+        result = pending_registrations.delete_many({
+            "expires_at": {"$lt": datetime.now()}
+        })
+        
+        if result.deleted_count > 0:
+            print(f"[CLEANUP] Removed {result.deleted_count} expired pending registrations")
+            
+    except Exception as e:
+        print(f"[ERROR] Failed to cleanup expired registrations: {e}")
+
 @registration_bp.route("/register", methods=["POST"])
 def register():
+    # Clean up expired registrations first
+    cleanup_expired_registrations()
+    
     data = request.get_json()
     username = data.get("username", "").strip()
     password = data.get("password", "")
@@ -32,10 +52,11 @@ def register():
     if not is_valid_tmu_email(email):
         return jsonify({"error": "Must use a torontomu.ca email"}), 400
 
-    #the users in database
-    users_collection = current_app.config["DB"]["users"]
+    db = current_app.config["DB"]
+    users_collection = db["users"]
+    pending_registrations = db["pending_registrations"]
     
-    # check if username exists
+    # Check if username exists in actual users (not pending)
     if users_collection.find_one({"username": username}):
         return jsonify({"error": "Username already exists"}), 409
 
@@ -43,20 +64,28 @@ def register():
     # if users_collection.find_one({"email": email}):
     #     return jsonify({"error": "Email already registered"}), 409
 
-    # create the user with verification data
+    # Remove any existing pending registration for this username/email
+    pending_registrations.delete_many({"$or": [{"username": username}, {"email": email}]})
+
+    # Create pending registration instead of actual user
     hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     code = generate_6_digit_code()
     verification_data = create_verification_data(code)
 
-    user_doc = create_user_document(username, hashed_pw)
-    user_doc["email"] = email
-    user_doc["email_verification_data"] = verification_data
+    pending_registration = {
+        "username": username,
+        "password": hashed_pw,
+        "email": email,
+        "verification_data": verification_data,
+        "created_at": datetime.now(),
+        "expires_at": datetime.now() + timedelta(hours=24)  # Pending registrations expire after 24 hours
+    }
     
     try:
-        #add to the users
-        users_collection.insert_one(user_doc)
+        # Store in pending registrations collection
+        pending_registrations.insert_one(pending_registration)
         
-        # send the verification email
+        # Send verification email
         email_result = send_verification_email(email, code)
         if not email_result:
             print(f"[WARNING] Failed to send email to {email}")
@@ -79,18 +108,23 @@ def confirm_code():
     if not username or not code:
         return jsonify({"error": "Username and code required"}), 400
 
-    users_collection = current_app.config["DB"]["users"]
+    db = current_app.config["DB"]
+    users_collection = db["users"]
+    pending_registrations = db["pending_registrations"]
 
-    #see if there exists user --> true or false
-    user = users_collection.find_one({"username": username})
+    # Look for pending registration instead of actual user
+    pending_user = pending_registrations.find_one({"username": username})
 
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+    if not pending_user:
+        return jsonify({"error": "Registration not found or expired"}), 404
 
-    if user.get("is_verified"):
-        return jsonify({"error": "Email already verified"}), 400
+    # Check if registration has expired
+    if datetime.now() > pending_user.get("expires_at", datetime.now()):
+        # Clean up expired registration
+        pending_registrations.delete_one({"username": username})
+        return jsonify({"error": "Registration expired. Please register again."}), 400
 
-    verification_data = user.get("email_verification_data")
+    verification_data = pending_user.get("verification_data")
     if not verification_data:
         return jsonify({"error": "No verification code found"}), 400
 
@@ -101,20 +135,20 @@ def confirm_code():
     print(f"[DEBUG] Code created at: {verification_data.get('created_at')}")
     print(f"[DEBUG] Current time: {datetime.now()}")
 
-    # check code if it is expired
+    # Check if code is expired
     if is_code_expired(verification_data.get("created_at")):
         return jsonify({"error": "Verification code expired. Please request a new one."}), 400
 
-    # make sure the limit is 3
+    # Check attempt limit
     if verification_data.get("attempts", 0) >= 3:
         return jsonify({"error": "Too many failed attempts. Please request a new code."}), 400
 
     # Verify code
     if verification_data.get("code") != code:
         # Increment attempts
-        users_collection.update_one(
+        pending_registrations.update_one(
             {"username": username},
-            {"$inc": {"email_verification_data.attempts": 1}}
+            {"$inc": {"verification_data.attempts": 1}}
         )
         
         remaining_attempts = 3 - (verification_data.get("attempts", 0) + 1)
@@ -122,16 +156,24 @@ def confirm_code():
             "error": f"Invalid code. {remaining_attempts} attempts remaining."
         }), 400
 
-    # Success - verify user
-    users_collection.update_one(
-        {"username": username},
-        {
-            "$set": {"is_verified": True, "verified_at": datetime.now()},
-            "$unset": {"email_verification_data": ""}
-        }
-    )
-
-    return jsonify({"message": "Email verified successfully! You can now log in."}), 200
+    # Success - Create actual user account
+    try:
+        user_doc = create_user_document(pending_user["username"], pending_user["password"])
+        user_doc["email"] = pending_user["email"]
+        user_doc["is_verified"] = True
+        user_doc["verified_at"] = datetime.now()
+        
+        # Insert the verified user into users collection
+        users_collection.insert_one(user_doc)
+        
+        # Remove from pending registrations
+        pending_registrations.delete_one({"username": username})
+        
+        return jsonify({"message": "Email verified successfully! You can now log in."}), 200
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to create user after verification: {e}")
+        return jsonify({"error": "Failed to complete registration"}), 500
 
 @registration_bp.route("/resend-verification", methods=["POST"])
 def resend_code():
@@ -141,17 +183,22 @@ def resend_code():
     if not username:
         return jsonify({"error": "Username required"}), 400
 
-    users_collection = current_app.config["DB"]["users"]
-    user = users_collection.find_one({"username": username})
+    db = current_app.config["DB"]
+    pending_registrations = db["pending_registrations"]
+    
+    pending_user = pending_registrations.find_one({"username": username})
 
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+    if not pending_user:
+        return jsonify({"error": "Registration not found or expired"}), 404
 
-    if user.get("is_verified"):
-        return jsonify({"error": "Email already verified"}), 400
+    # Check if registration has expired
+    if datetime.now() > pending_user.get("expires_at", datetime.now()):
+        # Clean up expired registration
+        pending_registrations.delete_one({"username": username})
+        return jsonify({"error": "Registration expired. Please register again."}), 400
 
     # Rate limiting - only allow resend every 60 seconds
-    verification_data = user.get("email_verification_data")
+    verification_data = pending_user.get("verification_data")
     if verification_data:
         last_sent = verification_data.get("created_at")
         if last_sent and datetime.now() - last_sent < timedelta(seconds=60):
@@ -161,16 +208,59 @@ def resend_code():
     code = generate_6_digit_code()
     new_verification_data = create_verification_data(code)
 
-    users_collection.update_one(
+    pending_registrations.update_one(
         {"username": username},
-        {"$set": {"email_verification_data": new_verification_data}}
+        {"$set": {"verification_data": new_verification_data}}
     )
 
     # Send email
-    email = user.get("email")
+    email = pending_user.get("email")
     email_result = send_verification_email(email, code)
     
     if email_result:
         return jsonify({"message": "New verification code sent"}), 200
     else:
         return jsonify({"error": "Failed to send email"}), 500
+
+@registration_bp.route("/cancel-registration", methods=["POST"])
+def cancel_registration():
+    """Allow users to manually cancel their pending registration"""
+    data = request.get_json()
+    username = data.get("username", "").strip()
+
+    if not username:
+        return jsonify({"error": "Username required"}), 400
+
+    db = current_app.config["DB"]
+    pending_registrations = db["pending_registrations"]
+    
+    # Remove pending registration if it exists
+    result = pending_registrations.delete_one({"username": username})
+    
+    if result.deleted_count > 0:
+        return jsonify({"message": "Registration cancelled successfully"}), 200
+    else:
+        return jsonify({"message": "No pending registration found"}), 200
+
+# Initialize database indexes when the module is imported
+def init_pending_registrations_indexes():
+    """Initialize database indexes for pending registrations collection"""
+    try:
+        db = current_app.config["DB"]
+        pending_registrations = db["pending_registrations"]
+        
+        # Create indexes for better performance
+        pending_registrations.create_index("username", unique=True)
+        pending_registrations.create_index("email")
+        pending_registrations.create_index("expires_at")
+        
+        print("[INIT] Created indexes for pending_registrations collection")
+        
+    except Exception as e:
+        print(f"[WARNING] Failed to create indexes: {e}")
+
+# Call this when the app starts up (you might want to call this from app.py instead)
+try:
+    init_pending_registrations_indexes()
+except:
+    pass  # Ignore if current_app is not available during import

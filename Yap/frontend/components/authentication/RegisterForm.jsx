@@ -64,10 +64,22 @@ function RegisterForm() {
         window.location.href = '/login'; // Or use your router's navigation
     };
 
-    const handleBackToRegister = () => {
+    const handleBackToRegister = async () => {
+        // Cancel the pending registration on the backend
+        try {
+            await fetch(`${API_BASE_URL}/users/cancel-registration`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: registeredUsername })
+            });
+        } catch (err) {
+            // Ignore errors - cleanup will happen automatically via expiration
+            console.log('Failed to cancel registration:', err);
+        }
+        
         setShowVerification(false);
         setRegisteredUsername('');
-        // Optionally clear the form
+        // Clear the form
         setForm({
             username: '',
             email: '',
