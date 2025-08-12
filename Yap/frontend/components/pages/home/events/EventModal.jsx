@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, Users, Heart, Share2, UserPlus, Map, MessageCircle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../../services/config';
+import { formatEventDateTime } from '../../../../utils/dateTimeUtils';
 
 const EventModal = ({ event, isOpen, onClose, currentUser }) => {
   const [eventDetails, setEventDetails] = useState(null);
@@ -237,17 +238,6 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     return "data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23bdbdbd'/%3E%3Cellipse cx='50' cy='85' rx='25' ry='20' fill='%23bdbdbd'/%3E%3C/svg%3E";
   };
 
-  const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return {
-      date: date.toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      }),
-      time: date.toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', hour12: true
-      })
-    };
-  };
 
   const getEventIcon = (index) => {
     const icons = ['🎉', '🎵', '🎨', '🏃', '🍕', '📚', '🎬', '🎪', '🎯', '🎮'];
@@ -350,7 +340,7 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
 
   if (!isOpen || !event) return null;
 
-  const dateTime = formatDateTime(event.event_datetime);
+  const dateTime = formatEventDateTime(event.event_datetime);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

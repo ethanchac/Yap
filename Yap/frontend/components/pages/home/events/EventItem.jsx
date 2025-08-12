@@ -4,6 +4,7 @@ import { Calendar, Clock, MapPin, Users, Heart, X } from 'lucide-react';
 import EventModal from './EventModal';
 import { API_BASE_URL } from '../../../../services/config';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { formatEventDate, formatEventTime } from '../../../../utils/dateTimeUtils';
 
 function EventItem() {
     const [events, setEvents] = useState([]);
@@ -145,39 +146,6 @@ function EventItem() {
         return events.slice(startIndex, endIndex);
     };
 
-    const formatDate = (dateString) => {
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return 'Invalid Date';
-            }
-            return date.toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                month: 'short', 
-                day: 'numeric' 
-            });
-        } catch (e) {
-            console.error('Error formatting date:', e);
-            return 'Invalid Date';
-        }
-    };
-
-    const formatTime = (dateString) => {
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return 'Invalid Time';
-            }
-            return date.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-            });
-        } catch (e) {
-            console.error('Error formatting time:', e);
-            return 'Invalid Time';
-        }
-    };
 
     const getEventImage = (event, index) => {
         // Use event image if available, otherwise use random picsum photo
@@ -412,7 +380,7 @@ function EventItem() {
                                                     {/* Date Badge */}
                                                     <div className="absolute top-3 left-3">
                                                         <div className="bg-white/90 backdrop-blur-sm text-gray-900 px-3 py-1 rounded-full text-sm font-bold">
-                                                            {formatDate(event.event_datetime)}
+                                                            {formatEventDate(event.event_datetime)}
                                                         </div>
                                                     </div>
 
@@ -451,7 +419,7 @@ function EventItem() {
                                                                 isDarkMode ? 'text-gray-400' : 'text-gray-500'
                                                             }`}>
                                                                 <Clock className="w-3 h-3 mr-1" />
-                                                                <span>{formatTime(event.event_datetime)}</span>
+                                                                <span>{formatEventTime(event.event_datetime)}</span>
                                                             </div>
 
                                                             {/* Location */}

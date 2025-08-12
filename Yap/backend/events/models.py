@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 from flask import current_app
 
@@ -13,6 +13,10 @@ class Event:
             # Combine date and time strings into datetime
             event_datetime_str = f"{event_date} {event_time}"
             event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+            
+            # Store the datetime as-is (local time as entered by user)
+            # This will be displayed exactly as entered - no timezone conversion
+            
         except ValueError as e:
             raise ValueError(f"Invalid date or time format: {e}")
         
@@ -105,7 +109,6 @@ class Event:
             ]
             
             events = list(db.events.aggregate(pipeline))
-
             
             # If aggregation returns no results, fall back to simple find
             if not events:
