@@ -318,7 +318,11 @@ function MessageChat({ conversation, onNewMessage }) {
                     const updated = [...prev];
                     updated[optimisticIndex] = {
                         ...newMessage,
-                        sender: prev[optimisticIndex].sender,
+                        sender: newMessage.sender || {
+                            _id: currentUserIdentifier,
+                            username: 'You',
+                            profile_picture: ''
+                        },
                         isOptimistic: false
                     };
                     // No need to re-sort since we're just replacing in place
