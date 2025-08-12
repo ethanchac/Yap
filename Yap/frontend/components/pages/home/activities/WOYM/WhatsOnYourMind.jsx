@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import MindPost from './MindPost';
 import { API_BASE_URL } from '../../../../../services/config';
-import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this import
+import { useTheme } from '../../../../../contexts/ThemeContext';
+import { getProfilePictureUrl, getDefaultProfilePicture } from '../../../../../utils/profileUtils';
 
 // Utility: Fisher-Yates shuffle
 function shuffleArray(array) {
@@ -84,13 +85,7 @@ export default function WhatsOnYourMind() {
   };
 
   const getCurrentUserProfilePicture = () => {
-    if (currentUser?.profile_picture) {
-      if (currentUser.profile_picture.startsWith('http')) {
-        return currentUser.profile_picture;
-      }
-      return `${API_BASE_URL}/uploads/profile_pictures/${currentUser.profile_picture}`;
-    }
-    return `${API_BASE_URL}/static/default/default-avatar.png`;
+    return getProfilePictureUrl(currentUser?.profile_picture);
   };
 
   const fetchPosts = async () => {
@@ -260,7 +255,7 @@ export default function WhatsOnYourMind() {
               src={getCurrentUserProfilePicture()}
               alt="Your profile"
               onError={(e) => {
-                e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                e.target.src = getDefaultProfilePicture();
               }}
               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />

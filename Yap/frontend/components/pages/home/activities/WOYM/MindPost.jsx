@@ -1,7 +1,8 @@
 // MindPost.jsx
 import { useState } from 'react';
 import { API_BASE_URL } from '../../../../../services/config';
-import { useTheme } from '../../../../../contexts/ThemeContext'; // Add this import
+import { useTheme } from '../../../../../contexts/ThemeContext';
+import { getProfilePictureUrl, getDefaultProfilePicture } from '../../../../../utils/profileUtils';
 
 export default function MindPost({ post, onDelete, isDeleting }) {
   const { isDarkMode } = useTheme(); // Add this hook
@@ -28,12 +29,8 @@ export default function MindPost({ post, onDelete, isDeleting }) {
     });
   };
 
-  const getProfilePictureUrl = () => {
-    if (post.profile_picture) {
-      if (post.profile_picture.startsWith('http')) return post.profile_picture;
-      return `${API_BASE_URL}/uploads/profile_pictures/${post.profile_picture}`;
-    }
-    return `${API_BASE_URL}/static/default/default-avatar.png`;
+  const getPostProfilePictureUrl = () => {
+    return getProfilePictureUrl(post.profile_picture);
   };
 
   const bubbleColor = isDarkMode ? '#1c1c1c' : '#f3f4f6';
@@ -42,10 +39,10 @@ export default function MindPost({ post, onDelete, isDeleting }) {
     <div className="flex items-start gap-3 group mb-6">
       {/* User Avatar */}
       <img
-        src={getProfilePictureUrl()}
+        src={getPostProfilePictureUrl()}
         alt={`${post.username || 'User'}'s profile`}
         onError={(e) => {
-          e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+          e.target.src = getDefaultProfilePicture();
         }}
         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
       />
