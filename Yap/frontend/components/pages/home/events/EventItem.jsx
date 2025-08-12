@@ -5,6 +5,7 @@ import EventModal from './EventModal';
 import { API_BASE_URL } from '../../../../services/config';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { formatEventDate, formatEventTime } from '../../../../utils/dateTimeUtils';
+import { getProfilePictureUrl, getDefaultProfilePicture } from '../../../../utils/profileUtils';
 
 function EventItem() {
     const [events, setEvents] = useState([]);
@@ -118,15 +119,7 @@ function EventItem() {
             setCurrentIndex(currentIndex - 1);
         }
     };
-    const getProfilePictureUrl = (profilePicture) => {
-        if (profilePicture) {
-            if (profilePicture.startsWith('http')) {
-                return profilePicture;
-            }
-            return `${API_BASE_URL}/uploads/profile_pictures/${profilePicture}`;
-        }
-        return `${API_BASE_URL}/static/default/default-avatar.png`;
-    };
+    // Use centralized profile picture utility
     
     const getVisibleEvents = () => {
         const maxVisible = 7; // Show more events for better navigation
@@ -443,7 +436,7 @@ function EventItem() {
                                                                 src={getProfilePictureUrl(event.profile_picture)}
                                                                 alt={`${event.username}'s profile`}
                                                                 onError={(e) => {
-                                                                    e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                                                                    e.target.src = getDefaultProfilePicture();
                                                                 }}
                                                                 className="w-5 h-5 rounded-full object-cover border border-gray-300"
                                                             />

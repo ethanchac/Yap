@@ -1,5 +1,6 @@
 import { useTheme } from '../../contexts/ThemeContext';
 import { API_BASE_URL } from '../../services/config';
+import { getProfilePictureUrl, getDefaultProfilePicture } from '../../utils/profileUtils';
 
 function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
     const { isDarkMode } = useTheme();
@@ -34,21 +35,7 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
         }
     };
     
-    // Function to get profile picture URL or default
-    const getProfilePictureUrl = () => {
-        const profilePic = other_participant?.profile_picture;
-        
-        if (profilePic) {
-            // If it's already a full URL (like from your upload system), use it directly
-            if (profilePic.startsWith('http')) {
-                return profilePic;
-            }
-            // If it's just a filename, construct the full URL
-            return `${API_BASE_URL}/uploads/profile_pictures/${profilePic}`;
-        }
-        // Default profile picture if none exists
-        return `${API_BASE_URL}/static/default/default-avatar.png`;
-    };
+    // Use centralized profile picture utility
     
     // Format last message preview with better error handling
     const getLastMessagePreview = () => {
@@ -124,7 +111,7 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
         >
             <div className="relative">
                 <img 
-                    src={getProfilePictureUrl()} 
+                    src={getProfilePictureUrl(other_participant?.profile_picture)} 
                     alt={participantName}
                     className={`w-12 h-12 rounded-full object-cover transition-all duration-200 ${
                         isUnseen && !isSelected ? 'ring-2 ring-orange-500 ring-offset-2' : ''
@@ -133,7 +120,7 @@ function MessagePerson({ conversation, isSelected, onClick, formatTime }) {
                     }`}
                     onError={(e) => {
                         // Fallback to default avatar if image fails to load
-                        e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                        e.target.src = getDefaultProfilePicture();
                     }}
                 />
                 

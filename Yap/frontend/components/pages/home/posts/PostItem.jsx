@@ -3,6 +3,7 @@ import { Heart, MessageCircle, Trash2, MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../../services/config';
 import { useTheme } from '../../../../contexts/ThemeContext'; // Add this import
+import { getProfilePictureUrl, getDefaultProfilePicture } from '../../../../utils/profileUtils';
 
 function PostItem({ post, onPostDeleted }) {
     const [liked, setLiked] = useState(false);
@@ -162,15 +163,7 @@ function PostItem({ post, onPostDeleted }) {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     };
 
-    const getProfilePictureUrl = () => {
-        if (post.profile_picture) {
-            if (post.profile_picture.startsWith('http')) {
-                return post.profile_picture;
-            }
-            return `${API_BASE_URL}/uploads/profile_pictures/${post.profile_picture}`;
-        }
-        return `${API_BASE_URL}/static/default/default-avatar.png`;
-    };
+    // Use centralized profile picture utility
 
     const renderPostImages = () => {
         if (!post.images || post.images.length === 0) return null;
@@ -288,11 +281,11 @@ function PostItem({ post, onPostDeleted }) {
             <div className="flex items-start space-x-3">
                 {/* Profile Picture */}
                 <img 
-                    src={getProfilePictureUrl()}
+                    src={getProfilePictureUrl(post.profile_picture)}
                     alt={`${post.username}'s profile`}
                     onClick={handleProfilePhotoClick}
                     onError={(e) => {
-                        e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                        e.target.src = getDefaultProfilePicture();
                     }}
                     className='w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity object-cover'
                 />
