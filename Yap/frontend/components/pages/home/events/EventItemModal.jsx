@@ -18,8 +18,9 @@ function EventItemModal({ isOpen, onClose }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [displayedEvents, setDisplayedEvents] = useState([]);
-    const [itemsPerPage] = useState(20);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsToShow, setItemsToShow] = useState(6);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMoreToLoad, setHasMoreToLoad] = useState(true);
     const { isDarkMode } = useTheme();
 
     // Get current user ID from token
@@ -89,7 +90,9 @@ function EventItemModal({ isOpen, onClose }) {
         if (isOpen) {
             setSearchTerm('');
             setDebouncedSearchTerm('');
-            setCurrentPage(1);
+            setItemsToShow(6);
+            setIsLoadingMore(false);
+            setHasMoreToLoad(true);
             fetchEvents();
         }
     }, [isOpen]);
@@ -136,21 +139,20 @@ function EventItemModal({ isOpen, onClose }) {
         );
     }, [events, debouncedSearchTerm]);
 
-    // Memoized paginated events
-    const paginatedEvents = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        return filteredEvents.slice(startIndex, endIndex);
-    }, [filteredEvents, currentPage, itemsPerPage]);
+    // Memoized visible events (infinite scroll)
+    const visibleEvents = useMemo(() => {
+        return filteredEvents.slice(0, itemsToShow);
+    }, [filteredEvents, itemsToShow]);
 
-    // Total pages calculation
-    const totalPages = useMemo(() => {
-        return Math.ceil(filteredEvents.length / itemsPerPage);
-    }, [filteredEvents.length, itemsPerPage]);
-
-    // Reset to first page when search changes
+    // Check if there are more items to load
     useEffect(() => {
-        setCurrentPage(1);
+        setHasMoreToLoad(filteredEvents.length > itemsToShow);
+    }, [filteredEvents.length, itemsToShow]);
+
+    // Reset items to show when search changes
+    useEffect(() => {
+        setItemsToShow(6);
+        setIsLoadingMore(false);
     }, [debouncedSearchTerm]);
 
     const getEventImage = useCallback((event, index) => {
@@ -207,9 +209,29 @@ function EventItemModal({ isOpen, onClose }) {
         setSearchTerm(e.target.value);
     }, []);
 
-    const handlePageChange = useCallback((page) => {
-        setCurrentPage(page);
-    }, []);
+    // Debounced load more function
+    const loadMoreEvents = useCallback(() => {
+        if (isLoadingMore || !hasMoreToLoad) return;
+        
+        setIsLoadingMore(true);
+        
+        // Simulate loading delay for better UX
+        setTimeout(() => {
+            setItemsToShow(prev => prev + 6);
+            setIsLoadingMore(false);
+        }, 300);
+    }, [isLoadingMore, hasMoreToLoad]);
+
+    // Scroll handler for infinite scroll
+    const handleScroll = useCallback((e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+        
+        // Load more when user scrolls to 90% of the content
+        if (scrollPercentage > 0.9 && hasMoreToLoad && !isLoadingMore) {
+            loadMoreEvents();
+        }
+    }, [hasMoreToLoad, isLoadingMore, loadMoreEvents]);
 
     const closeEventModal = () => {
         setIsEventModalOpen(false);
@@ -269,13 +291,13 @@ function EventItemModal({ isOpen, onClose }) {
             onClick={onClose}
         >
             <div 
-                className={`w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl overflow-hidden ${
+                className={`w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col ${
                     isDarkMode ? 'bg-[#1c1c1c]' : 'bg-white'
                 }`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className={`p-6 border-b ${
+                <div className={`p-6 border-b flex-shrink-0 ${
                     isDarkMode ? 'border-gray-700 bg-[#171717]' : 'border-gray-200 bg-gray-50'
                 }`}>
                     <div className="flex items-center justify-between mb-4">
@@ -324,11 +346,12 @@ function EventItemModal({ isOpen, onClose }) {
 
                 {/* Content */}
                 <div 
-                    className={`h-full overflow-y-auto p-6 ${scrollbarClass}`}
+                    className={`flex-1 overflow-y-auto p-6 ${scrollbarClass}`}
                     style={{
                         scrollbarWidth: 'thin',
                         scrollbarColor: isDarkMode ? '#555 #2a2a2a' : '#c1c1c1 #f1f1f1'
                     }}
+                    onScroll={handleScroll}
                 >
                     {loading ? (
                         <div className="flex justify-center items-center h-64">
@@ -364,9 +387,8 @@ function EventItemModal({ isOpen, onClose }) {
                             </div>
                         </div>
                     ) : (
-                        <>
-                            <div className="space-y-4">
-                                {paginatedEvents.map((event, index) => (
+                        <div className="space-y-4">
+                            {visibleEvents.map((event, index) => (
                                 <div
                                     key={event._id}
                                     className={`rounded-xl p-4 transition-all duration-200 cursor-pointer hover:shadow-lg ${
@@ -510,74 +532,46 @@ function EventItemModal({ isOpen, onClose }) {
                                     </div>
                                 </div>
                             ))}
-                            </div>
                             
-                            {/* Pagination Controls */}
-                            {totalPages > 1 && (
-                                <div className="flex justify-center items-center space-x-2 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                                    <button
-                                        onClick={() => handlePageChange(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        className={`px-3 py-2 rounded-lg transition-colors ${
-                                            currentPage === 1
-                                                ? isDarkMode 
-                                                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                : isDarkMode
-                                                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                                                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                                        }`}
-                                    >
-                                        Previous
-                                    </button>
-                                    
-                                    <div className="flex space-x-1">
-                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                            const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                                            if (pageNumber > totalPages) return null;
-                                            
-                                            return (
-                                                <button
-                                                    key={pageNumber}
-                                                    onClick={() => handlePageChange(pageNumber)}
-                                                    className={`w-10 h-10 rounded-lg transition-colors ${
-                                                        currentPage === pageNumber
-                                                            ? 'bg-orange-500 text-white'
-                                                            : isDarkMode
-                                                                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                                                                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                                                    }`}
-                                                >
-                                                    {pageNumber}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    
-                                    <button
-                                        onClick={() => handlePageChange(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        className={`px-3 py-2 rounded-lg transition-colors ${
-                                            currentPage === totalPages
-                                                ? isDarkMode 
-                                                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                : isDarkMode
-                                                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                                                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                                        }`}
-                                    >
-                                        Next
-                                    </button>
-                                    
-                                    <div className={`ml-4 text-sm ${
-                                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                                    }`}>
-                                        Page {currentPage} of {totalPages}
+                            {/* Loading More Indicator */}
+                            {isLoadingMore && (
+                                <div className="flex justify-center items-center py-8">
+                                    <div className="flex flex-col items-center space-y-2">
+                                        <div className={`animate-spin rounded-full h-6 w-6 border-b-2 ${
+                                            isDarkMode ? 'border-orange-400' : 'border-orange-600'
+                                        }`}></div>
+                                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                            Loading more events...
+                                        </div>
                                     </div>
                                 </div>
                             )}
-                        </>
+                            
+                            {/* Load More Button (fallback for users who prefer clicking) */}
+                            {!isLoadingMore && hasMoreToLoad && (
+                                <div className="flex justify-center mt-6">
+                                    <button
+                                        onClick={loadMoreEvents}
+                                        className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                                            isDarkMode
+                                                ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                                                : 'bg-orange-500 hover:bg-orange-600 text-white'
+                                        }`}
+                                    >
+                                        Load More Events
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {/* End of Results */}
+                            {!hasMoreToLoad && visibleEvents.length > 0 && (
+                                <div className={`text-center py-6 text-sm ${
+                                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                    You've reached the end of the events list
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
