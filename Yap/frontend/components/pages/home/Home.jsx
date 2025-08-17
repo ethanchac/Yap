@@ -3,6 +3,7 @@ import Sidebar from '../../sidebar/Sidebar';
 import PostItem from './posts/PostItem';
 import Header from '../../header/Header';
 import EventItem from './events/EventItem';
+import EventItemModal from './events/EventItemModal';
 import HomepageActivities from './activities/HomepageActivities';
 import { API_BASE_URL } from '../../../services/config';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -15,6 +16,7 @@ function Home() {
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [currentUser, setCurrentUser] = useState(null); 
+    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const mainContentRef = useRef(null);
     const { isDarkMode } = useTheme();
 
@@ -153,8 +155,11 @@ function Home() {
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Events</h2>
-                        <button className="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">
-                            View All Events (not implemented yet)
+                        <button 
+                            onClick={() => setIsEventModalOpen(true)}
+                            className="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors"
+                        >
+                            View All Events
                         </button>
                     </div>
                     <div className="rounded-lg p-4" style={{
@@ -225,6 +230,12 @@ function Home() {
                     </div>
                 </div>
             </div>
+
+            {/* Event Modal */}
+            <EventItemModal 
+                isOpen={isEventModalOpen} 
+                onClose={() => setIsEventModalOpen(false)} 
+            />
         </div>
     );
 }
