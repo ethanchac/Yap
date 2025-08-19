@@ -89,11 +89,95 @@ function Waypoint() {
             
 
             
-            const transformedWaypoints = data.waypoints.map(waypoint => {
-                const currentUsername = getCurrentUser();
-                const currentUserId = getCurrentUserId();
+            // Fetch events data once for all event waypoints
+            const currentUsername = getCurrentUser();
+            const currentUserId = getCurrentUserId();
+            let eventsData = null;
+            
+            // Only fetch events if there are event waypoints
+            const hasEventWaypoints = data.waypoints.some(w => w.type === 'event');
+            if (hasEventWaypoints && currentUserId) {
+                try {
+                    const eventsResponse = await fetch(`${API_BASE_URL}/events/feed?limit=100&include_past=false`, {
+                        headers: getAuthHeaders()
+                    });
+                    if (eventsResponse.ok) {
+                        eventsData = await eventsResponse.json();
+                    }
+                } catch (error) {
+                    console.warn('Error fetching events for attendance info:', error);
+                }
+            }
+
+            const transformedWaypoints = await Promise.all(data.waypoints.map(async waypoint => {
+                let isAttending = false;
+                let attendeesCount = 0;
                 
-                return {
+                // For event waypoints, get attendance information from pre-fetched events
+                if (waypoint.type === 'event' && currentUserId && eventsData) {
+                    try {
+                        const eventTitle = waypoint.title.replace(/^📅\s*/, '');
+                        // First try: strict matching with coordinates
+                        let matchingEvent = eventsData.events?.find(event => {
+                            const titleMatch = event.title.toLowerCase().trim() === eventTitle.toLowerCase().trim();
+                            let coordMatch = false;
+                            if (event.latitude !== null && event.latitude !== undefined && 
+                                event.longitude !== null && event.longitude !== undefined) {
+                                const latDiff = Math.abs(waypoint.latitude - event.latitude);
+                                const lngDiff = Math.abs(waypoint.longitude - event.longitude);
+                                coordMatch = latDiff < 0.0005 && lngDiff < 0.0005;
+                            }
+                            // Debug logging for fetchWaypoints
+                            if (titleMatch) {
+                                console.log(`📍 Found title match for "${eventTitle}":`, {
+                                    eventCoords: [event.latitude, event.longitude],
+                                    waypointCoords: [waypoint.latitude, waypoint.longitude],
+                                    coordMatch,
+                                    eventId: event._id,
+                                    attendeesCount: event.attendees_count
+                                });
+                            }
+                            return titleMatch && coordMatch;
+                        });
+                        
+                        // Fallback: if no coordinate match, try title-only match for attendance
+                        if (!matchingEvent) {
+                            console.log(`🔄 No coordinate match for "${eventTitle}", trying title-only...`);
+                            matchingEvent = eventsData.events?.find(event => {
+                                const titleMatch = event.title.toLowerCase().trim() === eventTitle.toLowerCase().trim();
+                                if (titleMatch) {
+                                    console.log(`✅ Found title-only match for attendance: "${event.title}"`);
+                                }
+                                return titleMatch;
+                            });
+                        }
+                        
+                        if (matchingEvent) {
+                            attendeesCount = matchingEvent.attendees_count || 0;
+                            
+                            // Check if current user is attending
+                            const attendanceResponse = await fetch(`${API_BASE_URL}/events/${matchingEvent._id}/attend-status`, {
+                                headers: getAuthHeaders()
+                            });
+                            if (attendanceResponse.ok) {
+                                const attendanceData = await attendanceResponse.json();
+                                isAttending = attendanceData.attending || false;
+                                console.log(`✅ Attendance status for "${eventTitle}":`, {
+                                    eventId: matchingEvent._id,
+                                    isAttending,
+                                    attendeesCount,
+                                    attendanceData
+                                });
+                            } else {
+                                console.warn(`❌ Failed to get attendance status for "${eventTitle}"`);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Error fetching attendance for waypoint:', waypoint.title, error);
+                    }
+                }
+                
+                const waypointData = {
                     id: waypoint._id,
                     coords: [waypoint.latitude, waypoint.longitude],
                     title: waypoint.title,
@@ -109,9 +193,24 @@ function Waypoint() {
                     isBookmarked: currentUserId ? waypoint.bookmarked_users?.includes(currentUserId) : false,
                     isOwner: currentUsername && waypoint.username === currentUsername,
                     liked_users: waypoint.liked_users || [],
-                    bookmarked_users: waypoint.bookmarked_users || []
+                    bookmarked_users: waypoint.bookmarked_users || [],
+                    // Event-specific fields
+                    isAttending: isAttending,
+                    attendeesCount: attendeesCount
                 };
-            });
+                
+                // Debug logging for event waypoints
+                if (waypoint.type === 'event') {
+                    console.log(`🎯 Final waypoint data for "${waypoint.title}":`, {
+                        isAttending: waypointData.isAttending,
+                        attendeesCount: waypointData.attendeesCount,
+                        isOwner: waypointData.isOwner,
+                        type: waypointData.type
+                    });
+                }
+                
+                return waypointData;
+            }));
 
             setWaypoints(transformedWaypoints);
             
@@ -260,6 +359,197 @@ function Waypoint() {
         }
     };
 
+    // Join event from waypoint (for event waypoints)
+    const joinEventFromWaypoint = async (waypoint) => {
+        try {
+            if (!waypoint || waypoint.type !== 'event') {
+                alert('This is not an event waypoint');
+                return;
+            }
+
+            // Find the corresponding event by matching title and coordinates
+            const eventTitle = waypoint.title.replace(/^📅\s*/, ''); // Remove emoji prefix
+            
+            console.log('🎫 Looking for event to join:', eventTitle);
+            console.log('Waypoint coordinates:', waypoint.coords);
+            
+            // Get events to find the matching one
+            const eventsResponse = await fetch(`${API_BASE_URL}/events/feed?limit=100&include_past=false`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!eventsResponse.ok) {
+                throw new Error('Failed to fetch events');
+            }
+
+            const eventsData = await eventsResponse.json();
+            const events = eventsData.events || [];
+
+            // Find the matching event by title and coordinates
+            console.log('🔍 DETAILED SEARCH DEBUG:');
+            console.log('Waypoint title (original):', waypoint.title);
+            console.log('Waypoint title (cleaned):', eventTitle);
+            console.log('Waypoint coordinates:', waypoint.coords);
+            console.log('Total events available:', events.length);
+            
+            // Log all available events for comparison
+            events.forEach((event, index) => {
+                console.log(`Event ${index + 1}:`, {
+                    title: event.title,
+                    coords: [event.latitude, event.longitude],
+                    hasCoords: event.latitude !== null && event.longitude !== null
+                });
+            });
+
+            const matchingEvent = events.find(event => {
+                console.log(`\n🔎 Checking event: "${event.title}"`);
+                
+                const titleMatch = event.title.toLowerCase().trim() === eventTitle.toLowerCase().trim();
+                console.log('Title comparison:', {
+                    eventTitle: event.title.toLowerCase().trim(),
+                    waypointTitle: eventTitle.toLowerCase().trim(),
+                    match: titleMatch
+                });
+                
+                // Check coordinate proximity if both waypoint and event have coordinates
+                let coordMatch = false;
+                if (event.latitude !== null && event.latitude !== undefined && 
+                    event.longitude !== null && event.longitude !== undefined) {
+                    const latDiff = Math.abs(waypoint.coords[0] - event.latitude);
+                    const lngDiff = Math.abs(waypoint.coords[1] - event.longitude);
+                    // Within ~50 meters (approximately 0.0005 degrees) - more lenient
+                    coordMatch = latDiff < 0.0005 && lngDiff < 0.0005;
+                    
+                    console.log('Coordinate comparison:', {
+                        eventCoords: [event.latitude, event.longitude],
+                        waypointCoords: waypoint.coords,
+                        latDiff,
+                        lngDiff,
+                        threshold: 0.0001,
+                        match: coordMatch
+                    });
+                } else {
+                    console.log('Event has no coordinates');
+                }
+
+                const isMatch = titleMatch && coordMatch;
+                console.log('Final match result:', isMatch);
+                return isMatch;
+            });
+
+            if (!matchingEvent) {
+                console.log('❌ No matching event found with strict matching');
+                
+                // Try fallback matching with more lenient criteria
+                console.log('🔄 Trying fallback matching...');
+                
+                // First try: title match only (no coordinate requirement)
+                const titleOnlyMatch = events.find(event => {
+                    const titleMatch = event.title.toLowerCase().trim() === eventTitle.toLowerCase().trim();
+                    return titleMatch;
+                });
+                
+                if (titleOnlyMatch) {
+                    console.log('✅ Found event by title only:', titleOnlyMatch);
+                    // Use the title-only match
+                    const joinResponse = await fetch(`${API_BASE_URL}/events/${titleOnlyMatch._id}/attend`, {
+                        method: 'POST',
+                        headers: getAuthHeaders()
+                    });
+
+                    if (!joinResponse.ok) {
+                        const errorData = await joinResponse.json();
+                        throw new Error(errorData.error || 'Failed to join event');
+                    }
+
+                    const joinData = await joinResponse.json();
+                    console.log('✅ Event join response (fallback):', joinData);
+
+                    fetchWaypoints();
+
+                    if (joinData.attending) {
+                        alert('Successfully joined the event! 🎉\n\nYou can now see the "✅ Joined" status on the waypoint.');
+                    } else {
+                        alert('You have left the event.\n\nThe waypoint will now show "🎫 Join Event" again.');
+                    }
+                    return;
+                }
+                
+                // Second try: partial title match
+                const partialMatch = events.find(event => {
+                    const eventTitleLower = event.title.toLowerCase().trim();
+                    const waypointTitleLower = eventTitle.toLowerCase().trim();
+                    const partialMatch = eventTitleLower.includes(waypointTitleLower) || waypointTitleLower.includes(eventTitleLower);
+                    return partialMatch;
+                });
+                
+                if (partialMatch) {
+                    console.log('✅ Found event by partial title match:', partialMatch);
+                    // Ask user for confirmation since this is a partial match
+                    const confirmed = window.confirm(`Found a potential match: "${partialMatch.title}"\n\nIs this the event you want to join?`);
+                    if (!confirmed) return;
+                    
+                    // Use the partial match
+                    const joinResponse = await fetch(`${API_BASE_URL}/events/${partialMatch._id}/attend`, {
+                        method: 'POST',
+                        headers: getAuthHeaders()
+                    });
+
+                    if (!joinResponse.ok) {
+                        const errorData = await joinResponse.json();
+                        throw new Error(errorData.error || 'Failed to join event');
+                    }
+
+                    const joinData = await joinResponse.json();
+                    console.log('✅ Event join response (partial match):', joinData);
+
+                    fetchWaypoints();
+
+                    if (joinData.attending) {
+                        alert('Successfully joined the event! 🎉\n\nYou can now see the "✅ Joined" status on the waypoint.');
+                    } else {
+                        alert('You have left the event.\n\nThe waypoint will now show "🎫 Join Event" again.');
+                    }
+                    return;
+                }
+                
+                console.log('❌ No matching event found even with fallback methods');
+                alert('Could not find the corresponding event. It may have been cancelled or expired.');
+                return;
+            }
+
+            console.log('✅ Found matching event:', matchingEvent._id);
+
+            // Join the event using the events API
+            const joinResponse = await fetch(`${API_BASE_URL}/events/${matchingEvent._id}/attend`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+
+            if (!joinResponse.ok) {
+                const errorData = await joinResponse.json();
+                throw new Error(errorData.error || 'Failed to join event');
+            }
+
+            const joinData = await joinResponse.json();
+
+            console.log('✅ Event join response:', joinData);
+
+            // Refresh waypoints to update attendance status
+            fetchWaypoints();
+
+            if (joinData.attending) {
+                alert('Successfully joined the event! 🎉\n\nYou can now see the "✅ Joined" status on the waypoint.');
+            } else {
+                alert('You have left the event.\n\nThe waypoint will now show "🎫 Join Event" again.');
+            }
+
+        } catch (err) {
+            console.error('Error joining event from waypoint:', err);
+            alert(err.message || 'Failed to join event');
+        }
+    };
+
     // Like waypoint
     const likeWaypoint = async (waypointId) => {
         try {
@@ -325,7 +615,16 @@ function Waypoint() {
     // Delete waypoint (only if user owns it)
     const deleteWaypoint = async (waypointId, waypointTitle) => {
         try {
-            // Confirm deletion
+            // Find the waypoint to check if it's an event waypoint
+            const waypoint = waypoints.find(w => w.id === waypointId);
+            const isEventWaypoint = waypoint && (waypoint.type === 'event' || waypoint.title.startsWith('📅'));
+
+            if (isEventWaypoint) {
+                // For event waypoints, we need to find and cancel the corresponding event
+                return await deleteEventFromWaypoint(waypoint, waypointTitle);
+            }
+
+            // For regular waypoints, proceed with normal deletion
             const confirmed = window.confirm(`Are you sure you want to delete "${waypointTitle}"?\n\nThis action cannot be undone.`);
             if (!confirmed) return;
 
@@ -347,6 +646,125 @@ function Waypoint() {
         } catch (err) {
             console.error('Error deleting waypoint:', err);
             alert(err.message);
+        }
+    };
+
+    // Delete event from waypoint (for event waypoints)
+    const deleteEventFromWaypoint = async (waypoint, waypointTitle) => {
+        try {
+            // Confirm deletion - make it clear this will cancel the event
+            const confirmed = window.confirm(`Are you sure you want to cancel the event "${waypointTitle}"?\n\nThis will remove both the event and its waypoint from the map.\n\nThis action cannot be undone.`);
+            if (!confirmed) return;
+
+            // First, we need to find the corresponding event in the events system
+            // We'll search for the event by matching title and coordinates
+            const eventTitle = waypointTitle.replace(/^📅\s*/, ''); // Remove emoji prefix
+            
+            console.log('🔍 Looking for event to cancel:', eventTitle);
+            console.log('Waypoint coordinates:', waypoint.coords);
+            
+            // Get events to find the matching one
+            const eventsResponse = await fetch(`${API_BASE_URL}/events/feed?limit=100&include_past=true`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!eventsResponse.ok) {
+                throw new Error('Failed to fetch events for deletion');
+            }
+
+            const eventsData = await eventsResponse.json();
+            const events = eventsData.events || [];
+
+            // Find the matching event by title and coordinates
+            const matchingEvent = events.find(event => {
+                const titleMatch = event.title.toLowerCase().trim() === eventTitle.toLowerCase().trim();
+                
+                // Check coordinate proximity if both waypoint and event have coordinates
+                let coordMatch = false;
+                if (event.latitude !== null && event.latitude !== undefined && 
+                    event.longitude !== null && event.longitude !== undefined) {
+                    const latDiff = Math.abs(waypoint.coords[0] - event.latitude);
+                    const lngDiff = Math.abs(waypoint.coords[1] - event.longitude);
+                    // Within ~50 meters (approximately 0.0005 degrees) - more lenient
+                    coordMatch = latDiff < 0.0005 && lngDiff < 0.0005;
+                }
+
+                console.log('Checking event:', {
+                    title: event.title,
+                    titleMatch,
+                    coordMatch,
+                    eventCoords: [event.latitude, event.longitude]
+                });
+
+                return titleMatch && coordMatch;
+            });
+
+            if (!matchingEvent) {
+                console.log('❌ No matching event found, falling back to waypoint deletion');
+                // If we can't find the event, just delete the waypoint
+                // This could happen if the event was already deleted from elsewhere or if there's a data inconsistency
+                const response = await fetch(`${API_BASE_URL}/waypoint/${waypoint.id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to delete waypoint');
+                }
+
+                fetchWaypoints();
+                alert('Waypoint deleted successfully');
+                return;
+            }
+
+            console.log('✅ Found matching event:', matchingEvent._id);
+
+            // Check if the current user owns this event
+            const currentUserId = getCurrentUserId();
+            const eventUserId = String(matchingEvent.user_id || '');
+            const currentUserIdStr = String(currentUserId || '');
+            
+            if (currentUserIdStr !== eventUserId || currentUserIdStr === '') {
+                alert('You can only cancel your own events');
+                return;
+            }
+
+            // Cancel the event using the events API
+            const cancelResponse = await fetch(`${API_BASE_URL}/events/${matchingEvent._id}/cancel`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+
+            if (!cancelResponse.ok) {
+                const errorData = await cancelResponse.json();
+                throw new Error(errorData.error || 'Failed to cancel event');
+            }
+
+            console.log('✅ Event cancelled successfully');
+
+            // Now delete the corresponding waypoint since the backend doesn't do it automatically
+            console.log('🗑️ Deleting corresponding waypoint:', waypoint.id);
+            const waypointDeleteResponse = await fetch(`${API_BASE_URL}/waypoint/${waypoint.id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+
+            if (!waypointDeleteResponse.ok) {
+                console.warn('⚠️ Failed to delete waypoint after cancelling event:', waypointDeleteResponse.status);
+                // Don't throw error here - the event was successfully cancelled, waypoint deletion is secondary
+            } else {
+                console.log('✅ Waypoint deleted successfully');
+            }
+
+            // Refresh waypoints to remove the deleted waypoint
+            fetchWaypoints();
+
+            alert('Event cancelled successfully');
+
+        } catch (err) {
+            console.error('Error cancelling event from waypoint:', err);
+            alert(err.message || 'Failed to cancel event');
         }
     };
 
@@ -569,6 +987,7 @@ function Waypoint() {
                         onDeleteWaypoint={deleteWaypoint}
                         onLikeWaypoint={likeWaypoint}
                         onBookmarkWaypoint={bookmarkWaypoint}
+                        onJoinEvent={joinEventFromWaypoint}
                         getCurrentUser={getCurrentUser}
                         TMU_COORDS={TMU_COORDS}
                         ZOOM_LEVEL={ZOOM_LEVEL}

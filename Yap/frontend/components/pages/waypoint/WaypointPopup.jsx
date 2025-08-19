@@ -1,10 +1,28 @@
-function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, currentUserId }) {
+function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, onJoinEvent, currentUserId }) {
     // Check if this is an event waypoint
     const isEventWaypoint = waypoint.type === 'event' || waypoint.title.startsWith('📅');
     
     // Use the pre-calculated isLiked and isBookmarked from the waypoint data
     const isLiked = waypoint.isLiked || false;
     const isBookmarked = waypoint.isBookmarked || false;
+    
+    // Get event attendance status from waypoint data
+    const isAttending = waypoint.isAttending || false;
+    const attendeesCount = waypoint.attendeesCount || 0;
+    
+    // Debug logging for WaypointPopup
+    if (isEventWaypoint) {
+        console.log(`🔍 WaypointPopup data for "${waypoint.title}":`, {
+            isAttending,
+            attendeesCount,
+            isOwner,
+            waypointType: waypoint.type,
+            waypointData: {
+                isAttending: waypoint.isAttending,
+                attendeesCount: waypoint.attendeesCount
+            }
+        });
+    }
     
     // Parse event details from description if it's an event
     const parseEventDetails = (description) => {
@@ -56,6 +74,22 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
         }
     };
 
+    const handleJoinEvent = () => {
+        if (!currentUserId) {
+            alert('Please log in to join events');
+            return;
+        }
+        
+        if (onJoinEvent && isEventWaypoint) {
+            // Add some user feedback for better UX
+            if (isAttending) {
+                const confirmed = window.confirm('Are you sure you want to leave this event?');
+                if (!confirmed) return;
+            }
+            onJoinEvent(waypoint);
+        }
+    };
+
     return (
         <div className="font-sans min-w-[200px]">
             {/* Header with optional delete button */}
@@ -67,7 +101,7 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                     <button
                         onClick={() => onDelete(waypoint.id, waypoint.title)}
                         className="bg-transparent border-none text-red-500 cursor-pointer text-base p-0.5 rounded leading-none min-w-[20px] h-5 flex items-center justify-center hover:bg-red-50"
-                        title="Delete waypoint"
+                        title={isEventWaypoint ? "Cancel event" : "Delete waypoint"}
                     >
                         🗑️
                     </button>
@@ -118,27 +152,48 @@ function WaypointPopup({ waypoint, isOwner, onLike, onBookmark, onDelete, curren
                 <div className="flex items-center space-x-3 mt-2">
                     <span>👍 {waypoint.interactions?.likes || 0}</span>
                     <span>🔖 {waypoint.interactions?.bookmarks || 0}</span>
+                    {isEventWaypoint && (
+                        <span>👥 {attendeesCount} attending</span>
+                    )}
                 </div>
             </div>
             
-            {/* Action buttons - only Like and Save */}
-            <div className="flex gap-1.5">
-                <button 
-                    onClick={handleLike}
-                    className={`flex-1 px-3 py-1.5 text-white border-none rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${
-                        isLiked ? 'bg-emerald-500' : 'bg-orange-500 hover:bg-orange-600'
-                    }`}
-                >
-                    {isLiked ? '❤️ Liked' : '🤍 Like'}
-                </button>
-                <button 
-                    onClick={handleBookmark}
-                    className={`flex-1 px-3 py-1.5 text-white border-none rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${
-                        isBookmarked ? 'bg-violet-500' : 'bg-orange-500 hover:bg-orange-600'
-                    }`}
-                >
-                    {isBookmarked ? '🔖 Saved' : '📖 Save'}
-                </button>
+            {/* Action buttons */}
+            <div className="space-y-2">
+                {/* Join Event Button (only for event waypoints and if user is not the owner) */}
+                {isEventWaypoint && !isOwner && (
+                    <button 
+                        onClick={handleJoinEvent}
+                        className={`w-full px-3 py-2 text-white border-none rounded-md text-sm font-bold cursor-pointer transition-all duration-200 ${
+                            isAttending 
+                                ? 'bg-green-600 hover:bg-green-700' 
+                                : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                        disabled={isAttending && eventDetails && !eventDetails.isUpcoming}
+                    >
+                        {isAttending ? '✅ Joined (click to leave)' : '🎫 Join Event'}
+                    </button>
+                )}
+                
+                {/* Like and Save buttons */}
+                <div className="flex gap-1.5">
+                    <button 
+                        onClick={handleLike}
+                        className={`flex-1 px-3 py-1.5 text-white border-none rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${
+                            isLiked ? 'bg-emerald-500' : 'bg-orange-500 hover:bg-orange-600'
+                        }`}
+                    >
+                        {isLiked ? '❤️ Liked' : '🤍 Like'}
+                    </button>
+                    <button 
+                        onClick={handleBookmark}
+                        className={`flex-1 px-3 py-1.5 text-white border-none rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${
+                            isBookmarked ? 'bg-violet-500' : 'bg-orange-500 hover:bg-orange-600'
+                        }`}
+                    >
+                        {isBookmarked ? '🔖 Saved' : '📖 Save'}
+                    </button>
+                </div>
             </div>
         </div>
     );

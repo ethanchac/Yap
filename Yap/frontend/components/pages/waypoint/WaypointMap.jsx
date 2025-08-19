@@ -58,6 +58,7 @@ function WaypointMap({
     onDeleteWaypoint, 
     onLikeWaypoint,
     onBookmarkWaypoint,
+    onJoinEvent,
     getCurrentUser,
     TMU_COORDS = [42.6577, -79.3788],
     ZOOM_LEVEL = 16,
@@ -186,6 +187,7 @@ function WaypointMap({
                                     onDelete={onDeleteWaypoint}
                                     onLike={onLikeWaypoint}
                                     onBookmark={onBookmarkWaypoint}
+                                    onJoinEvent={onJoinEvent}
                                 />
                             </Popup>
                         </Marker>
