@@ -90,7 +90,7 @@ const ETHeader = ({ threadInfo, onLeaveEvent }) => {
       {showLeaveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
+            isDarkMode ? 'bg-[#1c1c1c]' : 'bg-white'
           }`}>
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2 bg-red-600 rounded-full">
@@ -118,7 +118,7 @@ const ETHeader = ({ threadInfo, onLeaveEvent }) => {
                 disabled={isLeaving}
                 className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                   isDarkMode 
-                    ? 'bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 text-gray-300'
+                    ? 'bg-gray-600 hover:bg-gray-700 disabled:bg-[#1c1c1c] text-gray-300'
                     : 'bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 text-gray-700'
                 }`}
               >

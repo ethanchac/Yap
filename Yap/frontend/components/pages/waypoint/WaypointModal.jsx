@@ -51,7 +51,7 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
             
             {/* Modal content */}
             <div className={`relative z-10 rounded-xl shadow-2xl p-6 w-96 max-w-[90vw] m-4 transform transition-all scale-100 ${
-                isDarkMode ? 'bg-gray-800' : 'bg-white'
+                isDarkMode ? 'bg-[#1c1c1c]' : 'bg-white'
             }`}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">

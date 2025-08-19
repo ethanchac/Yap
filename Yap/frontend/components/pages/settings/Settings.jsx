@@ -237,7 +237,7 @@ function Settings() {
                                             className="sr-only peer" 
                                         />
                                         <div className={`w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
-                                            isDarkMode ? 'bg-gray-800' : 'bg-gray-300'
+                                            isDarkMode ? 'bg-[#1c1c1c]' : 'bg-gray-300'
                                         }`}></div>
                                     </label>
                                 </div>

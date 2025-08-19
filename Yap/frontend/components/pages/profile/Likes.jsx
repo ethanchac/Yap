@@ -196,7 +196,7 @@ function Likes() {
                                         disabled={loadingMore}
                                         className={`px-6 py-3 rounded-lg font-bold transition-colors ${
                                             isDarkMode
-                                                ? 'bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:opacity-50 text-white'
+                                                ? 'bg-gray-700 hover:bg-gray-600 disabled:bg-[#1c1c1c] disabled:opacity-50 text-white'
                                                 : 'bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:opacity-50 text-gray-800'
                                         }`}
                                     >

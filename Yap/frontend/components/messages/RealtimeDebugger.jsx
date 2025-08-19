@@ -167,7 +167,7 @@ function RealtimeDebugger({ conversationId, currentUserId }) {
             {/* Recent Messages */}
             <div>
                 <h4 className="font-semibold mb-2">Recent Messages ({messages.length})</h4>
-                <div className="bg-gray-800 rounded p-2 max-h-32 overflow-y-auto">
+                <div className="bg-[#1c1c1c] rounded p-2 max-h-32 overflow-y-auto">
                     {messages.slice(-5).map((msg, index) => (
                         <div key={msg._id || index} className="text-xs mb-1">
                             <span className="text-gray-400">{new Date(msg.created_at).toLocaleTimeString()}</span>
@@ -188,7 +188,7 @@ function RealtimeDebugger({ conversationId, currentUserId }) {
             {/* Debug Logs */}
             <div>
                 <h4 className="font-semibold mb-2">Debug Logs</h4>
-                <div className="bg-gray-800 rounded p-2 max-h-40 overflow-y-auto font-mono text-xs">
+                <div className="bg-[#1c1c1c] rounded p-2 max-h-40 overflow-y-auto font-mono text-xs">
                     {logs.map((log, index) => (
                         <div key={index} className={`mb-1 ${
                             log.type === 'error' ? 'text-red-400' :

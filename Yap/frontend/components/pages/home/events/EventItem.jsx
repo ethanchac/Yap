@@ -468,7 +468,7 @@ function EventItem() {
                                                     <div className="flex justify-center mt-1">
                                                         <div className={`px-2 py-1 rounded-full text-xs transition-all duration-200 ${
                                                             isDarkMode 
-                                                                ? 'bg-gray-800/50 hover:bg-gray-800 text-gray-400' 
+                                                                ? 'bg-[#1c1c1c]/50 hover:bg-[#1f1f1f] text-gray-400' 
                                                                 : 'bg-gray-200/50 hover:bg-gray-200 text-gray-600'
                                                         }`}>
                                                             Click to view details

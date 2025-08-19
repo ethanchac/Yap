@@ -103,7 +103,7 @@ function Feedback() {
                                     We appreciate you taking the time to help us improve Yapp. Your input helps us build a better experience for everyone.
                                 </p>
                                 
-                                <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
+                                <div className="bg-[#1c1c1c]/50 rounded-lg p-4 mb-6">
                                     <p className="text-sm text-gray-300">
                                         <strong>What happens next?</strong>
                                     </p>

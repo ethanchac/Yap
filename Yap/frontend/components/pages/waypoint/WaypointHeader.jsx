@@ -59,7 +59,7 @@ function WaypointHeader({
                                 onClick={onOpenSavedWaypoints}
                                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all transform hover:scale-105 ${
                                     isDarkMode 
-                                        ? 'text-white hover:bg-gray-600 bg-gray-800'
+                                        ? 'text-white hover:bg-[#1f1f1f] bg-[#1c1c1c]'
                                         : 'text-gray-900 hover:bg-gray-300 bg-gray-200'
                                 }`}
                                 title="View saved waypoints"
@@ -75,7 +75,7 @@ function WaypointHeader({
                                     placementMode 
                                         ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25' 
                                         : isDarkMode
-                                            ? 'text-white hover:bg-gray-600 bg-gray-800'
+                                            ? 'text-white hover:bg-[#1f1f1f] bg-[#1c1c1c]'
                                             : 'text-gray-900 hover:bg-gray-300 bg-gray-200'
                                 }`}
                             >
@@ -97,7 +97,7 @@ function WaypointHeader({
                                 disabled={refreshing}
                                 className={`flex items-center space-x-2 px-3 py-2 disabled:opacity-50 rounded-lg transition-colors ${
                                     isDarkMode 
-                                        ? 'text-white hover:bg-gray-600 bg-gray-800'
+                                        ? 'text-white hover:bg-[#1f1f1f] bg-[#1c1c1c]'
                                         : 'text-gray-900 hover:bg-gray-300 bg-gray-200'
                                 }`}
                             >

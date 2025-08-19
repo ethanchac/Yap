@@ -114,7 +114,7 @@ const ETPost = ({
             </button>
             
             {showDropdown && (
-              <div className="absolute right-0 mt-1 w-32 bg-gray-800 rounded-md shadow-lg border border-gray-600 z-10">
+              <div className="absolute right-0 mt-1 w-32 bg-[#1c1c1c] rounded-md shadow-lg border border-gray-600 z-10">
                 <button
                   onClick={() => {
                     setEditingPost(true);
@@ -147,7 +147,7 @@ const ETPost = ({
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
+            className="w-full bg-[#1c1c1c] border border-gray-600 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
             rows="3"
           />
           <div className="flex space-x-2 mt-2">

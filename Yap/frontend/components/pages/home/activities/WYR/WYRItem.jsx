@@ -137,7 +137,7 @@ export default function WYRItem({ question, onVote, onDelete, userVote, canDelet
           </button>
             {showDeleteConfirm && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className={`rounded-lg p-6 max-w-sm mx-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white border border-gray-200'}`}>
+                <div className={`rounded-lg p-6 max-w-sm mx-4 ${isDarkMode ? 'bg-[#1c1c1c]' : 'bg-white border border-gray-200'}`}>
                   <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Delete Question</h3>
                   <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Are you sure you want to delete this question? This action cannot be undone.</p>
                   <div className="flex gap-3">

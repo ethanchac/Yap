@@ -494,7 +494,7 @@ function CreateEvent() {
                             {/* Location Preview */}
                             <div className={`border rounded-lg p-3 ${
                                 isDarkMode
-                                    ? 'bg-gray-800/50 border-gray-700'
+                                    ? 'bg-[#1c1c1c]/50 border-gray-700'
                                     : 'bg-gray-50 border-gray-200'
                             }`}>
                                 <div className={`text-sm font-medium ${

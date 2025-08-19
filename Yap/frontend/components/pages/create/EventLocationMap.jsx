@@ -132,7 +132,7 @@ function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear 
                     isDarkMode ? 'border-gray-600' : 'border-gray-300'
                 }`}>
                     <div className={`p-2 text-center ${
-                        isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                        isDarkMode ? 'bg-[#1c1c1c]' : 'bg-gray-100'
                     }`}>
                         <span className={`text-sm ${
                             isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -178,7 +178,7 @@ function EventLocationMap({ selectedLocation, onLocationSelect, onLocationClear 
                     
                     {/* Map Controls */}
                     <div className={`p-2 flex justify-between items-center ${
-                        isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                        isDarkMode ? 'bg-[#1c1c1c]' : 'bg-gray-100'
                     }`}>
                         <div className={`text-xs ${
                             isDarkMode ? 'text-gray-400' : 'text-gray-600'

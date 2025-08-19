@@ -331,7 +331,7 @@ function PostItem({ post, onPostDeleted }) {
                                 {showMenu && (
                                     <div className={`absolute right-0 top-full mt-1 rounded-lg shadow-lg z-10 min-w-[120px] ${
                                         isDarkMode
-                                            ? 'bg-gray-800 border border-gray-600'
+                                            ? 'bg-[#1c1c1c] border border-gray-600'
                                             : 'bg-white border border-gray-200'
                                     }`}>
                                         <button
@@ -405,7 +405,7 @@ function PostItem({ post, onPostDeleted }) {
                         <div 
                             className={`rounded-lg p-4 w-64 shadow-xl ${
                                 isDarkMode
-                                    ? 'bg-gray-800'
+                                    ? 'bg-[#1c1c1c]'
                                     : 'bg-white'
                             }`}
                             onClick={(e) => e.stopPropagation()}

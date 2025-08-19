@@ -128,7 +128,7 @@ const ETInput = ({
 
   return (
     <div className={`rounded-lg p-4 mb-6 ${
-      isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+      isDarkMode ? 'bg-[#1c1c1c]' : 'bg-gray-100'
     }`}>
       {replyingTo && (
         <div className={`mb-3 p-2 rounded border-l-4 border-orange-500 ${
