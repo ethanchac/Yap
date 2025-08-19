@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { API_BASE_URL } from '../../services/config';
 import EmailVerification from './EmailVerification'; // Import the verification component
@@ -61,7 +61,7 @@ function RegisterForm() {
 
     const handleVerificationSuccess = () => {
         // Redirect to login page or show success message
-        window.location.href = '/login'; // Or use your router's navigation
+        window.location.href = '/login'; 
     };
 
     const handleBackToRegister = async () => {

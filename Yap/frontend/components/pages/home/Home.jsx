@@ -37,6 +37,13 @@ function Home() {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
+                    /* 
+                    token.split('.') splits jwt into 3 parts
+                    [ header, payload, signature ]
+                    [1] gets the second elemtn which is payload
+                    atob() decodes bthe payload
+                    JSON.parse() converts json to javascript obj
+                    */
                     const payload = JSON.parse(atob(token.split('.')[1]));
                     sessionStorage.setItem('currentUser', JSON.stringify(payload));
                     return payload;

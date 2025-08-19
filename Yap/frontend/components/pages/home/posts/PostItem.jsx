@@ -20,8 +20,6 @@ function PostItem({ post, onPostDeleted }) {
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            // Decode token to get current user info (you might have this logic elsewhere)
-            // For now, we'll make a request to get current user
             fetchCurrentUser();
         }
     }, []);

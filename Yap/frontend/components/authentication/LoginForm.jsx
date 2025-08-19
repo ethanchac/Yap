@@ -76,7 +76,8 @@ export default function LoginForm() {
     // After successful verification, redirect to login or auto-login
     setShowVerification(false);
     setMsg("Email verified successfully! Please log in.");
-    // Optionally clear the form
+    
+    // Clearing form cus why not
     setFormData({
       username: "",
       password: ""

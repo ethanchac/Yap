@@ -160,7 +160,6 @@ function AuthRoutes() {
                     </PrivateRoute>
                 }
             />
-            {/* ADD THIS NEW ROUTE FOR EVENT THREADS */}
             <Route
                 path="/events/:eventId/thread"
                 element={
