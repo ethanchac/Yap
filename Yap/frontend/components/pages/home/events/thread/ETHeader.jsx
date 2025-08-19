@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Users, MessageCircle, Calendar, UserMinus, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 
 const ETHeader = ({ threadInfo, onLeaveEvent }) => {
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
@@ -37,18 +39,26 @@ const ETHeader = ({ threadInfo, onLeaveEvent }) => {
           <div className="flex items-center space-x-4">
             <button 
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-700 rounded-full transition-colors"
+              className={`p-2 rounded-full transition-colors ${
+                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+              }`}
             >
-              <ArrowLeft className="w-5 h-5 text-gray-400" />
+              <ArrowLeft className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
             </button>
             <div>
-              <h1 className="text-white text-2xl font-bold">{threadInfo.event.title}</h1>
+              <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                {threadInfo.event.title}
+              </h1>
               {threadInfo.event.description && (
-                <p className="text-gray-300 mt-2 mb-3 whitespace-pre-wrap">
+                <p className={`mt-2 mb-3 whitespace-pre-wrap ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   {threadInfo.event.description}
                 </p>
               )}
-              <div className="flex items-center space-x-4 text-sm text-gray-400">
+              <div className={`flex items-center space-x-4 text-sm ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
                 <div className="flex items-center space-x-1">
                   <Users className="w-4 h-4" />
                   <span>{threadInfo.thread_stats.total_attendees} attending</span>
@@ -79,15 +89,19 @@ const ETHeader = ({ threadInfo, onLeaveEvent }) => {
       {/* Leave Confirmation Modal */}
       {showLeaveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+          <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`}>
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2 bg-red-600 rounded-full">
                 <AlertTriangle className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-white">Leave Event</h3>
+              <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Leave Event
+              </h3>
             </div>
             
-            <p className="text-gray-300 mb-6">
+            <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               Are you sure you want to leave "{threadInfo.event.title}"? You'll no longer be able to access the event thread and will need to rejoin to participate.
             </p>
             
@@ -102,7 +116,11 @@ const ETHeader = ({ threadInfo, onLeaveEvent }) => {
               <button
                 onClick={handleCancelLeave}
                 disabled={isLeaving}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 text-gray-300 px-4 py-2 rounded-lg font-medium transition-colors"
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 text-gray-300'
+                    : 'bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 text-gray-700'
+                }`}
               >
                 Cancel
               </button>

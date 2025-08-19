@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import ETPost from './ETPost';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 
 const ETPostsFeed = ({ 
   posts, 
@@ -14,6 +15,8 @@ const ETPostsFeed = ({
   formatTime, 
   canEditOrDelete 
 }) => {
+  const { isDarkMode } = useTheme();
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -25,9 +28,15 @@ const ETPostsFeed = ({
   if (posts.length === 0) {
     return (
       <div className="text-center py-12">
-        <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-white mb-2">No posts yet</h3>
-        <p className="text-gray-400">Be the first to start the conversation!</p>
+        <MessageCircle className={`w-12 h-12 mx-auto mb-4 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+        }`} />
+        <h3 className={`text-lg font-medium mb-2 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>No posts yet</h3>
+        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+          Be the first to start the conversation!
+        </p>
       </div>
     );
   }

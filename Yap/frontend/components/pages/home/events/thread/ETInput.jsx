@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Send, Image, Link, X } from 'lucide-react';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 
 const ETInput = ({ 
   newPostContent, 
@@ -11,6 +12,7 @@ const ETInput = ({
   currentUser,
   getProfilePictureUrl 
 }) => {
+  const { isDarkMode } = useTheme();
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const [selectedImages, setSelectedImages] = useState([]);
@@ -125,16 +127,26 @@ const ETInput = ({
   };
 
   return (
-    <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#171717'}}>
+    <div className={`rounded-lg p-4 mb-6 ${
+      isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+    }`}>
       {replyingTo && (
-        <div className="mb-3 p-2 bg-orange-900/20 rounded border-l-4 border-orange-500">
+        <div className={`mb-3 p-2 rounded border-l-4 border-orange-500 ${
+          isDarkMode ? 'bg-orange-900/20' : 'bg-orange-100'
+        }`}>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-orange-400">
+            <span className={`text-sm ${
+              isDarkMode ? 'text-orange-400' : 'text-orange-600'
+            }`}>
               Replying to @{replyingTo.username}
             </span>
             <button 
               onClick={() => setReplyingTo(null)}
-              className="text-orange-400 hover:text-orange-300 transition-colors"
+              className={`transition-colors ${
+                isDarkMode 
+                  ? 'text-orange-400 hover:text-orange-300' 
+                  : 'text-orange-600 hover:text-orange-700'
+              }`}
             >
               Cancel
             </button>
@@ -155,9 +167,12 @@ const ETInput = ({
               value={newPostContent}
               onChange={(e) => setNewPostContent(e.target.value)}
               placeholder={replyingTo ? "Write a reply..." : selectedImages.length > 0 ? "Add a caption (optional)..." : "Share your thoughts about this event..."}
-              className="w-full border border-gray-600 rounded-lg px-4 py-3 resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-400"
+              className={`w-full border rounded-lg px-4 py-3 resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                isDarkMode 
+                  ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400'
+                  : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+              }`}
               style={{ 
-                backgroundColor: '#1c1c1c',
                 minHeight: '60px', 
                 maxHeight: '150px'
               }}
@@ -168,13 +183,19 @@ const ETInput = ({
             {imagePreviews.length > 0 && (
               <div className="mt-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-400">
+                  <span className={`text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                     {imagePreviews.length} image{imagePreviews.length > 1 ? 's' : ''} selected
                   </span>
                   <button
                     type="button"
                     onClick={removeAllImages}
-                    className="text-red-400 hover:text-red-300 text-sm transition-colors"
+                    className={`text-sm transition-colors ${
+                      isDarkMode 
+                        ? 'text-red-400 hover:text-red-300'
+                        : 'text-red-600 hover:text-red-700'
+                    }`}
                   >
                     Remove all
                   </button>
@@ -218,21 +239,31 @@ const ETInput = ({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingImages || selectedImages.length >= 4}
-                  className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`p-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isDarkMode
+                      ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                      : 'text-gray-600 hover:text-gray-700 hover:bg-gray-200'
+                  }`}
                   title={selectedImages.length >= 4 ? 'Maximum 4 images per post' : 'Add images'}
                 >
                   <Image className="w-4 h-4" />
                 </button>
                 <button 
                   type="button" 
-                  className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                  className={`p-2 rounded transition-colors ${
+                    isDarkMode
+                      ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                      : 'text-gray-600 hover:text-gray-700 hover:bg-gray-200'
+                  }`}
                 >
                   <Link className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex items-center space-x-2">
                 {selectedImages.length > 0 && (
-                  <span className="text-xs text-gray-400">
+                  <span className={`text-xs ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                     {selectedImages.length}/4
                   </span>
                 )}

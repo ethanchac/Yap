@@ -6,10 +6,12 @@ import ETHeader from './thread/ETHeader';
 import ETInput from './thread/ETInput';
 import ETPostsFeed from './thread/ETPostsFeed';
 import { API_BASE_URL } from '../../../../services/config';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 const EventThread = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   const [threadInfo, setThreadInfo] = useState(null);
   const [posts, setPosts] = useState([]);
   const [newPostContent, setNewPostContent] = useState('');
@@ -361,13 +363,16 @@ const EventThread = () => {
 
   if (error) {
     return (
-      <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+      <div className="h-screen overflow-hidden font-bold" style={{
+        backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+        fontFamily: 'Albert Sans'
+      }}>
         <Header />
         <Sidebar />
         <div className="ml-64 h-full overflow-y-auto p-6">
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <div className="text-red-400 text-lg mb-4">{error}</div>
+              <div className={`text-lg mb-4 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{error}</div>
               <button 
                 onClick={() => navigate(-1)}
                 className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors"
@@ -383,7 +388,10 @@ const EventThread = () => {
 
   if (!threadInfo) {
     return (
-      <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+      <div className="h-screen overflow-hidden font-bold" style={{
+        backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+        fontFamily: 'Albert Sans'
+      }}>
         <Header />
         <Sidebar />
         <div className="ml-64 h-full overflow-y-auto p-6">
@@ -396,7 +404,10 @@ const EventThread = () => {
   }
 
   return (
-    <div className="h-screen overflow-hidden font-bold" style={{backgroundColor: '#121212', fontFamily: 'Albert Sans'}}>
+    <div className="h-screen overflow-hidden font-bold" style={{
+      backgroundColor: isDarkMode ? '#121212' : '#ffffff', 
+      fontFamily: 'Albert Sans'
+    }}>
       <Header />
       <Sidebar />
       <div className="ml-64 h-full flex flex-col">

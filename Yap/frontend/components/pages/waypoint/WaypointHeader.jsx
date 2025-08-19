@@ -1,4 +1,5 @@
 import { MapPin, X, Target, RefreshCw, AlertCircle, Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 function WaypointHeader({ 
     placementMode, 
@@ -16,14 +17,20 @@ function WaypointHeader({
     onNextSaved,
     onExitSavedNavigation
 }) {
+    const { isDarkMode } = useTheme();
+    
     return (
         <div className="mb-6 flex-shrink-0">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                     <MapPin className="w-8 h-8 text-orange-400" />
                     <div>
-                        <h1 className="text-white text-3xl font-bold">Waypoint</h1>
-                        <p className="text-gray-400">Real-time campus community map</p>
+                        <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Waypoint
+                        </h1>
+                        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                            Real-time campus community map
+                        </p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -50,10 +57,11 @@ function WaypointHeader({
                             {/* Saved Waypoints Button */}
                             <button
                                 onClick={onOpenSavedWaypoints}
-                                className="flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all transform hover:scale-105 text-white hover:bg-gray-600"
-                                style={{
-                                    backgroundColor: '#171717'
-                                }}
+                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all transform hover:scale-105 ${
+                                    isDarkMode 
+                                        ? 'text-white hover:bg-gray-600 bg-gray-800'
+                                        : 'text-gray-900 hover:bg-gray-300 bg-gray-200'
+                                }`}
                                 title="View saved waypoints"
                             >
                                 <Bookmark className="w-4 h-4 text-purple-400" />
@@ -66,11 +74,10 @@ function WaypointHeader({
                                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all transform hover:scale-105 ${
                                     placementMode 
                                         ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25' 
-                                        : 'text-white hover:bg-gray-600'
+                                        : isDarkMode
+                                            ? 'text-white hover:bg-gray-600 bg-gray-800'
+                                            : 'text-gray-900 hover:bg-gray-300 bg-gray-200'
                                 }`}
-                                style={{
-                                    backgroundColor: placementMode ? '' : '#171717'
-                                }}
                             >
                                 {placementMode ? (
                                     <>
@@ -88,10 +95,11 @@ function WaypointHeader({
                             <button
                                 onClick={onRefresh}
                                 disabled={refreshing}
-                                className="flex items-center space-x-2 px-3 py-2 disabled:opacity-50 text-white rounded-lg transition-colors hover:bg-gray-600"
-                                style={{
-                                    backgroundColor: '#171717'
-                                }}
+                                className={`flex items-center space-x-2 px-3 py-2 disabled:opacity-50 rounded-lg transition-colors ${
+                                    isDarkMode 
+                                        ? 'text-white hover:bg-gray-600 bg-gray-800'
+                                        : 'text-gray-900 hover:bg-gray-300 bg-gray-200'
+                                }`}
                             >
                                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                                 <span>Refresh</span>
@@ -99,7 +107,7 @@ function WaypointHeader({
                         </>
                     )}
                     
-                    <div className="text-right text-sm text-gray-400">
+                    <div className={`text-right text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         <div>
                             {isNavigatingSaved ? (
                                 <span className="text-purple-400 font-semibold">🔖 Navigating saved waypoints</span>
@@ -111,7 +119,9 @@ function WaypointHeader({
                         </div>
                         <div>🗺️ {waypointCount} active waypoints</div>
                         {isNavigatingSaved && (
-                            <div className="text-xs text-purple-300">Use ← → keys or buttons to navigate</div>
+                            <div className={`text-xs ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>
+                                Use ← → keys or buttons to navigate
+                            </div>
                         )}
                     </div>
                 </div>
@@ -119,13 +129,25 @@ function WaypointHeader({
 
             {/* Error Banner */}
             {error && (
-                <div className="mt-4 p-3 bg-red-900 border border-red-600 rounded-lg">
+                <div className={`mt-4 p-3 border rounded-lg ${
+                    isDarkMode 
+                        ? 'bg-red-900 border-red-600' 
+                        : 'bg-red-100 border-red-300'
+                }`}>
                     <div className="flex items-center space-x-2">
-                        <AlertCircle className="w-5 h-5 text-red-400" />
-                        <span className="text-red-200">{error}</span>
+                        <AlertCircle className={`w-5 h-5 ${
+                            isDarkMode ? 'text-red-400' : 'text-red-600'
+                        }`} />
+                        <span className={isDarkMode ? 'text-red-200' : 'text-red-800'}>
+                            {error}
+                        </span>
                         <button 
                             onClick={onClearError}
-                            className="ml-auto text-red-400 hover:text-red-300"
+                            className={`ml-auto transition-colors ${
+                                isDarkMode 
+                                    ? 'text-red-400 hover:text-red-300'
+                                    : 'text-red-600 hover:text-red-700'
+                            }`}
                         >
                             ✕
                         </button>

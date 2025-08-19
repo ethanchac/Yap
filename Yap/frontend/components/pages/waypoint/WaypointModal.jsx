@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { MapPin, X } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 function WaypointModal({ isOpen, onClose, onSubmit, location }) {
+    const { isDarkMode } = useTheme();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [type, setType] = useState('food');
@@ -48,7 +50,9 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
             />
             
             {/* Modal content */}
-            <div className="relative z-10 bg-white rounded-xl shadow-2xl p-6 w-96 max-w-[90vw] m-4 transform transition-all scale-100">
+            <div className={`relative z-10 rounded-xl shadow-2xl p-6 w-96 max-w-[90vw] m-4 transform transition-all scale-100 ${
+                isDarkMode ? 'bg-gray-800' : 'bg-white'
+            }`}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
@@ -56,8 +60,10 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             <MapPin className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Create Waypoint</h2>
-                            <p className="text-sm text-gray-500">
+                            <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                Create Waypoint
+                            </h2>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                 📍 {location?.lat.toFixed(4)}, {location?.lng.toFixed(4)}
                             </p>
                         </div>
@@ -65,37 +71,48 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                     <button
                         onClick={handleClose}
                         disabled={submitting}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+                            isDarkMode 
+                                ? 'hover:bg-gray-700' 
+                                : 'hover:bg-gray-100'
+                        }`}
                     >
-                        <X className="w-5 h-5 text-gray-500" />
+                        <X className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                     </button>
                 </div>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Type Selection */}
                     <div>
-                        <label className="block text-gray-700 text-sm font-semibold mb-2">
+                        <label className={`block text-sm font-semibold mb-2 ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
                             Waypoint Type
                         </label>
                         <select 
                             value={type} 
                             onChange={(e) => setType(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
-                            style={{ color: '#111827' }}
+                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                                isDarkMode 
+                                    ? 'border-gray-600 bg-gray-700 text-white'
+                                    : 'border-gray-300 bg-white text-gray-900'
+                            }`}
                             disabled={submitting}
                         >
-                            <option value="food" style={{ color: '#111827', backgroundColor: 'white' }}>🍕 Food & Events</option>
-                            <option value="study" style={{ color: '#111827', backgroundColor: 'white' }}>📚 Study Spot</option>
-                            <option value="group" style={{ color: '#111827', backgroundColor: 'white' }}>👥 Study Group</option>
-                            <option value="social" style={{ color: '#111827', backgroundColor: 'white' }}>🎉 Social</option>
-                            <option value="event" style={{ color: '#111827', backgroundColor: 'white' }}>📅 Event</option>
-                            <option value="other" style={{ color: '#111827', backgroundColor: 'white' }}>📍 Other</option>
+                            <option value="food">🍕 Food & Events</option>
+                            <option value="study">📚 Study Spot</option>
+                            <option value="group">👥 Study Group</option>
+                            <option value="social">🎉 Social</option>
+                            <option value="event">📅 Event</option>
+                            <option value="other">📍 Other</option>
                         </select>
                     </div>
                     
                     {/* Title Input */}
                     <div>
-                        <label className="block text-gray-700 text-sm font-semibold mb-2">
+                        <label className={`block text-sm font-semibold mb-2 ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
                             Title
                         </label>
                         <input
@@ -104,7 +121,11 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="e.g., Free coffee here!"
                             maxLength={100}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                                isDarkMode 
+                                    ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400'
+                                    : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                            }`}
                             style={{ color: '#111827' }}
                             disabled={submitting}
                             required
