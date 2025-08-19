@@ -72,6 +72,8 @@ def create_event_with_waypoint(current_user):
                 event_time=data['event_time'],
                 location=data.get('location'),
                 location_title=data.get('location_title'),
+                latitude=float(data['latitude']) if data.get('latitude') else None,
+                longitude=float(data['longitude']) if data.get('longitude') else None,
                 image=image_url,  # S3 URL
                 max_attendees=data.get('max_attendees')
             )

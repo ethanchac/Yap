@@ -4,7 +4,7 @@ from flask import current_app
 
 class Event:
     @staticmethod
-    def create_event(user_id, username, title, description, event_date, event_time, location=None, location_title=None, image=None, max_attendees=None):
+    def create_event(user_id, username, title, description, event_date, event_time, location=None, location_title=None, latitude=None, longitude=None, image=None, max_attendees=None):
         """Create a new event"""
         db = current_app.config["DB"]
         
@@ -29,6 +29,8 @@ class Event:
             "event_datetime": event_datetime,
             "location": location,
             "location_title": location_title,
+            "latitude": latitude,
+            "longitude": longitude,
             "image": image,  # Add the image field
             "max_attendees": max_attendees,
             "created_at": datetime.utcnow(),
@@ -94,6 +96,9 @@ class Event:
                         "description": 1,
                         "event_datetime": 1,
                         "location": 1,
+                        "location_title": 1,
+                        "latitude": 1,
+                        "longitude": 1,
                         "max_attendees": 1,
                         "created_at": 1,
                         "attendees_count": {"$ifNull": ["$attendees_count", 0]},

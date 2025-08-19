@@ -377,12 +377,14 @@ function Waypoint() {
         createWaypoint(pinData);
     };
 
-    // Function to find and navigate to event waypoint
+    // Function to find and navigate to the actual existing event waypoint
     const findAndNavigateToEventWaypoint = (eventData) => {
-        console.log('Looking for event waypoint with data:', eventData);
-        console.log('Available waypoints:', waypoints);
+        console.log('🔍 SEARCHING FOR EXISTING EVENT WAYPOINT');
+        console.log('Event data received:', eventData);
+        console.log('Available waypoints:', waypoints.length);
+        console.log('Event waypoints available:', waypoints.filter(w => w.type === 'event'));
         
-        // Look for an existing event waypoint that matches this event
+        // Look for the actual existing event waypoint that matches this event
         const eventWaypoint = waypoints.find(waypoint => {
             console.log('Checking waypoint:', waypoint.title, waypoint.type);
             
@@ -403,11 +405,12 @@ function Waypoint() {
             
             // If we have coordinates in the event data, also check coordinate proximity
             let coordMatch = false;
-            if (eventData.latitude && eventData.longitude) {
+            if (eventData.latitude !== null && eventData.latitude !== undefined && 
+                eventData.longitude !== null && eventData.longitude !== undefined) {
                 const latDiff = Math.abs(waypoint.coords[0] - eventData.latitude);
                 const lngDiff = Math.abs(waypoint.coords[1] - eventData.longitude);
-                // Within ~50 meters (approximately 0.0005 degrees)
-                coordMatch = latDiff < 0.0005 && lngDiff < 0.0005;
+                // Within ~10 meters (approximately 0.0001 degrees) - very precise match
+                coordMatch = latDiff < 0.0001 && lngDiff < 0.0001;
                 
                 console.log('Coordinate check:', {
                     waypointCoords: waypoint.coords,
@@ -418,30 +421,32 @@ function Waypoint() {
                 });
             }
             
-            // Match if either title matches exactly OR coordinates match closely
-            const isMatch = titleMatch || coordMatch;
+            // Match if BOTH title matches AND coordinates match closely (for precision)
+            const isMatch = titleMatch && coordMatch;
             console.log('Match result:', isMatch, { titleMatch, coordMatch });
             
             return isMatch;
         });
 
         if (eventWaypoint) {
-            console.log('Found matching waypoint:', eventWaypoint);
-            // Found existing waypoint, navigate to it
+            console.log('✅ Found existing event waypoint:', eventWaypoint);
+            // Found the actual existing waypoint, navigate to it with popup
             setTargetWaypoint(eventWaypoint);
             setShouldOpenPopup(true);
             
-            // Clear after navigation
+            // Clear the popup flag after navigation
             setTimeout(() => {
                 setShouldOpenPopup(false);
             }, 3000);
         } else {
-            console.log('No matching waypoint found');
-            console.log('Event waypoints in list:', waypoints.filter(w => w.type === 'event'));
+            console.log('❌ No matching event waypoint found on map');
+            console.log('Available event waypoints:', waypoints.filter(w => w.type === 'event').map(w => ({
+                title: w.title,
+                coords: w.coords
+            })));
             
-            // No existing waypoint found - this means the event may have ended and been cleaned up
-            // Show a message to the user
-            alert('This event waypoint is no longer available on the map. The event may have ended or expired.');
+            // Alert user that the waypoint doesn't exist or has expired
+            alert('This event waypoint is not currently available on the map. The event waypoint may have expired or was not created.');
         }
     };
 

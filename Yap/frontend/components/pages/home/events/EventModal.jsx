@@ -250,19 +250,20 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     
     console.log('Checking coordinates for event:', currentEvent);
     
-    // Check for direct latitude/longitude properties
-    if (currentEvent.latitude && currentEvent.longitude) {
+    // Check for direct latitude/longitude properties (primary method now)
+    if (currentEvent.latitude !== null && currentEvent.latitude !== undefined && 
+        currentEvent.longitude !== null && currentEvent.longitude !== undefined) {
       console.log('Found direct lat/lng:', currentEvent.latitude, currentEvent.longitude);
       return true;
     }
     
-    // Check for alternative lat/lng properties
+    // Check for alternative lat/lng properties (fallback)
     if (currentEvent.lat && currentEvent.lng) {
       console.log('Found alt lat/lng:', currentEvent.lat, currentEvent.lng);
       return true;
     }
     
-    // Check if location string contains coordinates (lat, lng format)
+    // Check if location string contains coordinates (lat, lng format) - legacy fallback
     if (currentEvent.location && typeof currentEvent.location === 'string') {
       const coordMatch = currentEvent.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
       if (coordMatch) {
@@ -281,21 +282,22 @@ const EventModal = ({ event, isOpen, onClose, currentUser }) => {
     
     console.log('Getting coordinates from event:', currentEvent);
     
-    // Direct latitude/longitude properties
-    if (currentEvent.latitude && currentEvent.longitude) {
+    // Direct latitude/longitude properties (primary method now)
+    if (currentEvent.latitude !== null && currentEvent.latitude !== undefined && 
+        currentEvent.longitude !== null && currentEvent.longitude !== undefined) {
       const coords = { lat: parseFloat(currentEvent.latitude), lng: parseFloat(currentEvent.longitude) };
       console.log('Returning direct coordinates:', coords);
       return coords;
     }
     
-    // Alternative lat/lng properties
+    // Alternative lat/lng properties (fallback)
     if (currentEvent.lat && currentEvent.lng) {
       const coords = { lat: parseFloat(currentEvent.lat), lng: parseFloat(currentEvent.lng) };
       console.log('Returning alt coordinates:', coords);
       return coords;
     }
     
-    // Parse from location string if it contains coordinates
+    // Parse from location string if it contains coordinates (legacy fallback)
     if (currentEvent.location && typeof currentEvent.location === 'string') {
       const coordMatch = currentEvent.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
       if (coordMatch) {
