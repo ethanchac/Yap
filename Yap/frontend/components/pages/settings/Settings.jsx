@@ -198,21 +198,6 @@ function Settings() {
                                     <div className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>›</div>
                                 </div>
                                 
-                                <div className={`flex items-center justify-between p-4 rounded-lg hover:transition-colors cursor-pointer ${
-                                    isDarkMode ? '' : 'bg-white hover:bg-gray-50 border border-gray-200'
-                                }`} style={{
-                                    backgroundColor: isDarkMode ? '#1c1c1c' : undefined
-                                }} onMouseEnter={(e) => {
-                                    if (isDarkMode) e.target.style.backgroundColor = '#1f1f1f';
-                                }} onMouseLeave={(e) => {
-                                    if (isDarkMode) e.target.style.backgroundColor = '#1c1c1c';
-                                }}>
-                                    <div>
-                                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>Email Settings</p>
-                                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your TMU email preferences</p>
-                                    </div>
-                                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>›</div>
-                                </div>
                             </div>
                         </div>
 
