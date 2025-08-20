@@ -180,6 +180,28 @@ def get_feed():
         print(f"Error fetching feed: {e}")
         return jsonify({"error": "Failed to fetch posts"}), 500
 
+@posts_bp.route('/following-feed', methods=['GET'])
+@token_required
+def get_following_feed(current_user):
+    """Get posts from users that the current user follows"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        posts = Post.get_following_posts(current_user['_id'], limit=limit, skip=skip)
+        
+        return jsonify({
+            "posts": posts,
+            "page": page,
+            "limit": limit,
+            "total_posts": len(posts)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching following feed: {e}")
+        return jsonify({"error": "Failed to fetch following posts"}), 500
+
 @posts_bp.route('/my-posts', methods=['GET'])
 @token_required
 def get_my_posts_route(current_user):

@@ -34,6 +34,7 @@ class Post:
         
         pipeline = [
             # Convert string user_id to ObjectId for lookup
+            # Aggregation pipeline completely used AI
             {
                 "$addFields": {
                     "user_object_id": {"$toObjectId": "$user_id"}
@@ -487,6 +488,76 @@ class Post:
             import traceback
             traceback.print_exc()
             return []
+        
+    @staticmethod
+    def get_following_posts(user_id, limit=50, skip=0):
+        """Get posts from users that the current user follows"""
+        db = current_app.config["DB"]
+        
+        try:
+            # First, get list of users the current user follows
+            following_pipeline = [
+                {"$match": {"follower_id": user_id}},
+                {"$project": {"following_id": 1}}
+            ]
+            
+            following_users = list(db.follows.aggregate(following_pipeline))
+            following_ids = [follow["following_id"] for follow in following_users]
+            
+            # If user doesn't follow anyone, return empty list
+            if not following_ids:
+                return []
+            
+            # Get posts from followed users with profile pictures and images
+            pipeline = [
+                {"$match": {"user_id": {"$in": following_ids}}},
+                # Convert string user_id to ObjectId for lookup
+                {
+                    "$addFields": {
+                        "user_object_id": {"$toObjectId": "$user_id"}
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "user_object_id",
+                        "foreignField": "_id",
+                        "as": "user_info"
+                    }
+                },
+                {
+                    "$unwind": {
+                        "path": "$user_info",
+                        "preserveNullAndEmptyArrays": True  # Keep posts even if user lookup fails
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": {"$toString": "$_id"},
+                        "user_id": 1,
+                        "username": {"$ifNull": ["$user_info.username", "$username"]},  # Fallback to original username
+                        "content": 1,
+                        "images": {"$ifNull": ["$images", []]},  # Include images array
+                        "created_at": 1,
+                        "likes_count": 1,
+                        "comments_count": 1,
+                        "profile_picture": {"$ifNull": ["$user_info.profile_picture", None]}
+                    }
+                },
+                {"$sort": {"created_at": -1}},
+                {"$skip": skip},
+                {"$limit": limit}
+            ]
+            
+            posts = list(db.posts.aggregate(pipeline))
+            return posts
+            
+        except Exception as e:
+            print(f"Error getting following posts: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
     @staticmethod
     def delete_post(post_id, user_id):
         """Delete a post if the user owns it"""

@@ -17,6 +17,7 @@ function Home() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [currentUser, setCurrentUser] = useState(null); 
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+    const [feedType, setFeedType] = useState('recent'); // 'recent' or 'following'
     const mainContentRef = useRef(null);
     const { isDarkMode } = useTheme();
 
@@ -59,7 +60,7 @@ function Home() {
         console.log('Home - currentUser loaded:', userData); // Debug log
     }, []);
 
-    const fetchPosts = async (pageNum = 1, reset = false) => {
+    const fetchPosts = async (pageNum = 1, reset = false, feedTypeOverride = null) => {
         try {
             if (pageNum === 1) {
                 setLoading(true);
@@ -67,7 +68,23 @@ function Home() {
                 setLoadingMore(true);
             }
             
-            const response = await fetch(`${API_BASE_URL}/posts/feed?page=${pageNum}&limit=20`);
+            const currentFeedType = feedTypeOverride || feedType;
+            let url = `${API_BASE_URL}/posts/feed?page=${pageNum}&limit=20`;
+            
+            // For following feed, add filter parameter and include auth token
+            if (currentFeedType === 'following') {
+                url = `${API_BASE_URL}/posts/following-feed?page=${pageNum}&limit=20`;
+            }
+            
+            const headers = {};
+            if (currentFeedType === 'following') {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+            }
+            
+            const response = await fetch(url, { headers });
             const data = await response.json();
 
             if (response.ok) {
@@ -109,6 +126,14 @@ function Home() {
     useEffect(() => {
         fetchPosts(1, true);
     }, []);
+
+    // Handle feed type changes
+    const handleFeedTypeChange = (newFeedType) => {
+        setFeedType(newFeedType);
+        setPage(1);
+        setHasMore(true);
+        fetchPosts(1, true, newFeedType);
+    };
 
     useEffect(() => {
         const container = mainContentRef.current;
@@ -183,7 +208,36 @@ function Home() {
                     {/* Posts Section - 60% width */}
                     <div className="w-3/5">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Posts</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Posts</h2>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <button
+                                        onClick={() => handleFeedTypeChange('recent')}
+                                        className={`transition-colors ${
+                                            feedType === 'recent'
+                                                ? 'text-orange-500 font-semibold'
+                                                : isDarkMode
+                                                    ? 'text-gray-400 hover:text-gray-200'
+                                                    : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        Recent
+                                    </button>
+                                    <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>|</span>
+                                    <button
+                                        onClick={() => handleFeedTypeChange('following')}
+                                        className={`transition-colors ${
+                                            feedType === 'following'
+                                                ? 'text-orange-500 font-semibold'
+                                                : isDarkMode
+                                                    ? 'text-gray-400 hover:text-gray-200'
+                                                    : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        Following
+                                    </button>
+                                </div>
+                            </div>
                             <button 
                                 onClick={refreshPosts}
                                 className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-colors"
