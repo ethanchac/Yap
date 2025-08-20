@@ -51,7 +51,7 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
             
             {/* Modal content */}
             <div className={`relative z-10 rounded-xl shadow-2xl p-6 w-96 max-w-[90vw] m-4 transform transition-all scale-100 ${
-                isDarkMode ? 'bg-[#1c1c1c]' : 'bg-white'
+                isDarkMode ? 'bg-[#171717]' : 'bg-white'
             }`}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -94,7 +94,7 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             onChange={(e) => setType(e.target.value)}
                             className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                                 isDarkMode 
-                                    ? 'border-gray-600 bg-gray-700 text-white'
+                                    ? 'border-gray-700 bg-[#1f1f1f] text-white'
                                     : 'border-gray-300 bg-white text-gray-900'
                             }`}
                             disabled={submitting}
@@ -123,22 +123,27 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             maxLength={100}
                             className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                                 isDarkMode 
-                                    ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400'
+                                    ? 'border-gray-700 bg-[#1f1f1f] text-white placeholder-gray-400'
                                     : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
                             }`}
-                            style={{ color: '#111827' }}
                             disabled={submitting}
                             required
                         />
                         <div className="flex justify-between mt-1">
-                            <span className="text-xs text-gray-500">Make it catchy and clear</span>
-                            <span className="text-xs text-gray-400">{title.length}/100</span>
+                            <span className={`text-xs ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Make it catchy and clear</span>
+                            <span className={`text-xs ${
+                                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                            }`}>{title.length}/100</span>
                         </div>
                     </div>
                     
                     {/* Description Input */}
                     <div>
-                        <label className="block text-gray-700 text-sm font-semibold mb-2">
+                        <label className={`block text-sm font-semibold mb-2 ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
                             Description
                         </label>
                         <textarea
@@ -147,20 +152,33 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             placeholder="Tell others what's happening here..."
                             maxLength={500}
                             rows={4}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none text-gray-900 bg-white"
-                            style={{ color: '#111827' }}
+                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none ${
+                                isDarkMode 
+                                    ? 'border-gray-700 bg-[#1f1f1f] text-white placeholder-gray-400'
+                                    : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                            }`}
                             disabled={submitting}
                             required
                         />
                         <div className="flex justify-between mt-1">
-                            <span className="text-xs text-gray-500">Provide helpful details</span>
-                            <span className="text-xs text-gray-400">{description.length}/500</span>
+                            <span className={`text-xs ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Provide helpful details</span>
+                            <span className={`text-xs ${
+                                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                            }`}>{description.length}/500</span>
                         </div>
                     </div>
 
                     {/* Duration Info */}
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                        <p className="text-sm text-orange-800">
+                    <div className={`border rounded-lg p-3 ${
+                        isDarkMode 
+                            ? 'bg-orange-900/20 border-orange-800/50'
+                            : 'bg-orange-50 border-orange-200'
+                    }`}>
+                        <p className={`text-sm ${
+                            isDarkMode ? 'text-orange-300' : 'text-orange-800'
+                        }`}>
                             <span className="font-semibold">⏰ Duration:</span> This waypoint will automatically expire after 1 week
                         </p>
                     </div>
@@ -171,7 +189,11 @@ function WaypointModal({ isOpen, onClose, onSubmit, location }) {
                             type="button"
                             onClick={handleClose}
                             disabled={submitting}
-                            className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold rounded-lg transition-colors"
+                            className={`flex-1 px-4 py-3 disabled:opacity-50 font-semibold rounded-lg transition-colors ${
+                                isDarkMode 
+                                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            }`}
                         >
                             Cancel
                         </button>
