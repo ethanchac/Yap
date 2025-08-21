@@ -191,7 +191,7 @@ const LandingPage = () => {
             Yapp is the revolutionary campus social platform designed exclusively for TMU students. Connect with your community, discover amazing events across downtown Toronto, and explore your urban campus like never before.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 px-4">
+          <div className="flex flex-row sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 px-4">
             <Link 
               to="/signup"
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-200 transform hover:scale-105 flex items-center animate-glow"
@@ -199,6 +199,10 @@ const LandingPage = () => {
               Join Now!
               <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
             </Link>
+            
+            <div className="text-sm text-gray-400">
+              ✓ Verified TMU students only
+            </div>
           </div>
         </div>
       </section>
