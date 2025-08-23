@@ -4,13 +4,38 @@ import { useTheme } from '../../../../../contexts/ThemeContext';
 export default function DailyMotivation() {
     const { isDarkMode } = useTheme(); // Add this hook
     
-    // Placeholder for daily motivation content
-    const [motivation, setMotivation] = useState("Stay motivated every day with our daily dose of inspiration! Check back tomorrow for a new motivational quote.");
-    const [author, setAuthor] = useState("Motivation Guru");
+    // Array of 3 daily motivational quotes
+    const [motives, setMotives] = useState([
+        {
+            text: "The only way to do great work is to love what you do.",
+            author: "Steve Jobs"
+        },
+        {
+            text: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+            author: "Winston Churchill"
+        },
+        {
+            text: "The future belongs to those who believe in the beauty of their dreams.",
+            author: "Eleanor Roosevelt"
+        }
+    ]);
     
     useEffect(() => {
-        setMotivation("Stay motivated every day with our daily dose of inspiration lol! Check back tomorrow for a new motivational quote.");
-        setAuthor("Motivational Guru");
+        // You can add logic here to fetch different quotes daily
+        setMotives([
+            {
+                text: "The only way to do great work is to love what you do.",
+                author: "Steve Jobs"
+            },
+            {
+                text: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+                author: "Winston Churchill"
+            },
+            {
+                text: "The future belongs to those who believe in the beauty of their dreams.",
+                author: "Eleanor Roosevelt"
+            }
+        ]);
     }, []);
 
     return (
@@ -33,18 +58,20 @@ export default function DailyMotivation() {
                 </div>
             </div>
 
-            {/* Options Display */}
-            <div className="mb-6 space-y-3">
-                <div className={`text-base ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
-                    <p>{motivation}</p>
-                    <p className={`mt-2 text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            {/* Motives Display */}
+            <div className="mb-6 space-y-4">
+                {motives.map((motive, index) => (
+                    <div key={index} className={`text-base p-3 rounded-md ${
+                        isDarkMode ? 'bg-gray-800 text-white border border-gray-700' : 'bg-gray-50 text-gray-900 border border-gray-200'
                     }`}>
-                        - {author}
-                    </p>
-                </div>
+                        <p className="italic">"{motive.text}"</p>
+                        <p className={`mt-2 text-sm text-right ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                            - {motive.author}
+                        </p>
+                    </div>
+                ))}
             </div>
         </div>
     );
