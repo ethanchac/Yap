@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../services/config';
 
 function ForgotPasswordForm() {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -13,14 +15,17 @@ function ForgotPasswordForm() {
         setError('');
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/password-reset/request`, {
+            const response = await fetch(`${API_BASE_URL}/password-reset/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
             });
             const data = await response.json();
             if (response.ok) {
-                setMessage('Reset code sent! Check your email.');
+                setMessage('Reset code sent! Redirecting...');
+                setTimeout(() => {
+                    navigate('/reset-password', { state: { email } });
+                }, 1500);
             } else {
                 setError(data.error || 'Failed to send reset code.');
             }

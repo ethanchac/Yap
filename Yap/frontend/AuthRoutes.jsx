@@ -2,6 +2,7 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/authentication/LoginForm.jsx';
 import Signup from './components/authentication/RegisterForm.jsx';
 import ForgotPassword from './components/authentication/ForgotPasswordForm.jsx';
+import ResetPassword from './components/authentication/ResetPasswordForm.jsx';
 import LandingPage from './components/pages/LandingPage.jsx';
 import Home from './components/pages/home/Home.jsx';
 import Create from './components/pages/create/Create.jsx';
@@ -48,6 +49,11 @@ function AuthRoutes() {
             <Route path="/forgot-password" element={
                 <PageTransition>
                     <ForgotPassword />
+                </PageTransition>
+            } />
+            <Route path="/reset-password" element={
+                <PageTransition>
+                    <ResetPassword />
                 </PageTransition>
             } />
             <Route
