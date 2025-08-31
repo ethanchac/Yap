@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(cd:*)",
+      "Bash(python -m pytest --version)"
     ],
     "deny": [],
     "ask": []

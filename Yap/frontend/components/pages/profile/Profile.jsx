@@ -4,6 +4,8 @@ import PostItem from '../home/posts/PostItem';
 import Program from './Program';
 import FriendList from './FriendList'; // Add this import
 import ProfileEvents from './ProfileEvents'; // Add this import
+import FollowerModal from './FollowerModal';
+import FollowingModal from './FollowingModal';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap, Heart } from 'lucide-react';
@@ -27,6 +29,8 @@ const Profile = () => {
     program: ''
   });
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isFollowerModalOpen, setIsFollowerModalOpen] = useState(false);
+  const [isFollowingModalOpen, setIsFollowingModalOpen] = useState(false);
   const fileInputRef = useRef(null);
   const mainContentRef = useRef(null);
   const { isDarkMode } = useTheme();
@@ -499,14 +503,20 @@ const Profile = () => {
                     <strong>{profile.posts_count || 0}</strong> 
                     <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}> posts</span>
                   </span>
-                  <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                  <button 
+                    onClick={() => setIsFollowerModalOpen(true)}
+                    className={`hover:opacity-80 transition-opacity ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                  >
                     <strong>{profile.followers_count || 0}</strong> 
                     <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}> followers</span>
-                  </span>
-                  <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+                  </button>
+                  <button 
+                    onClick={() => setIsFollowingModalOpen(true)}
+                    className={`hover:opacity-80 transition-opacity ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                  >
                     <strong>{profile.following_count || 0}</strong> 
                     <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}> following</span>
-                  </span>
+                  </button>
                   {profile.liked_posts_count !== undefined && (
                     <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
                       <strong>{profile.liked_posts_count}</strong> 
@@ -730,6 +740,56 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Follower Modal */}
+      {isFollowerModalOpen && (
+        <div 
+          className="fixed inset-0 backdrop-blur-sm transition-all duration-300"
+          style={{ 
+            backgroundColor: isDarkMode 
+              ? 'rgba(18, 18, 18, 0.85)' 
+              : 'rgba(0, 0, 0, 0.5)', 
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setIsFollowerModalOpen(false)}
+        >
+          <FollowerModal
+            isOpen={isFollowerModalOpen}
+            onClose={() => setIsFollowerModalOpen(false)}
+            userId={userId}
+            isOwnProfile={isOwnProfile}
+          />
+        </div>
+      )}
+
+      {/* Following Modal */}
+      {isFollowingModalOpen && (
+        <div 
+          className="fixed inset-0 backdrop-blur-sm transition-all duration-300"
+          style={{ 
+            backgroundColor: isDarkMode 
+              ? 'rgba(18, 18, 18, 0.85)' 
+              : 'rgba(0, 0, 0, 0.5)', 
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setIsFollowingModalOpen(false)}
+        >
+          <FollowingModal
+            isOpen={isFollowingModalOpen}
+            onClose={() => setIsFollowingModalOpen(false)}
+            userId={userId}
+            isOwnProfile={isOwnProfile}
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -326,8 +326,10 @@ class Follow:
             {
                 "$lookup": {
                     "from": "users",
-                    "localField": "follower_id",
-                    "foreignField": "_id",
+                    "let": {"follower_object_id": {"$toObjectId": "$follower_id"}},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$eq": ["$_id", "$$follower_object_id"]}}}
+                    ],
                     "as": "follower_info"
                 }
             },
@@ -336,6 +338,8 @@ class Follow:
                 "$project": {
                     "_id": {"$toString": "$follower_info._id"},
                     "username": "$follower_info.username",
+                    "full_name": "$follower_info.full_name",
+                    "profile_picture": "$follower_info.profile_picture",
                     "followed_at": "$created_at"
                 }
             }
@@ -357,8 +361,10 @@ class Follow:
             {
                 "$lookup": {
                     "from": "users",
-                    "localField": "following_id",
-                    "foreignField": "_id",
+                    "let": {"following_object_id": {"$toObjectId": "$following_id"}},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$eq": ["$_id", "$$following_object_id"]}}}
+                    ],
                     "as": "following_info"
                 }
             },
@@ -367,6 +373,8 @@ class Follow:
                 "$project": {
                     "_id": {"$toString": "$following_info._id"},
                     "username": "$following_info.username",
+                    "full_name": "$following_info.full_name",
+                    "profile_picture": "$following_info.profile_picture",
                     "followed_at": "$created_at"
                 }
             }
