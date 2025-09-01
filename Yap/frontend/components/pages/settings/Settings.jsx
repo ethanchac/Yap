@@ -30,14 +30,24 @@ function Settings() {
     try {
         setIsLoggingOut(true);
         
+        // Disconnect messageService before clearing token
+        try {
+          const { messageService } = await import('../../../services/messageService');
+          messageService.disconnect();
+        } catch (error) {
+          console.warn('Could not disconnect messageService:', error);
+        }
+        
         // Only need to clear the main token now
         localStorage.removeItem('token');
+        localStorage.removeItem('user'); // Also clear any stale user data
         
         navigate('/');
         
     } catch (error) {
         console.error('Error during logout:', error);
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         navigate('/');
     } finally {
         setIsLoggingOut(false);

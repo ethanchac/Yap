@@ -11,7 +11,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, MapPin, Globe, Calendar, Check, MessageCircle, UserPlus, UserMinus, Edit3, GraduationCap, Heart } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { API_BASE_URL } from '../../../services/config';
-import { getProfilePictureUrl } from '../../../utils/profileUtils';
+import { getProfilePictureUrl, getDefaultProfilePicture } from '../../../utils/profileUtils';
 
 const Profile = () => {
   const { userId } = useParams(); // Get userId from URL
@@ -392,6 +392,9 @@ const Profile = () => {
                   className={`w-32 h-32 rounded-full object-cover border-4 ${
                     isDarkMode ? 'border-gray-600' : 'border-gray-300'
                   }`}
+                  onError={(e) => {
+                    e.target.src = getDefaultProfilePicture();
+                  }}
                 />
                 {uploadingImage && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">

@@ -8,29 +8,23 @@ export const getCurrentUserIdentifier = () => {
                 // Backend stores user_id in JWT payload as the MongoDB _id
                 const userId = payload.user_id;
                 if (userId) {
+                    console.log('🔑 Current user ID from token:', userId);
                     return String(userId);
                 }
             } catch (e) {
-                // Token parsing failed, try fallback
+                console.error('❌ Token parsing failed:', e);
             }
         }
 
-        // Fallback to user object in localStorage if token fails
-        const userString = localStorage.getItem('user');
-        if (userString) {
-            try {
-                const user = JSON.parse(userString);
-                const userId = user._id;
-                if (userId) {
-                    return String(userId);
-                }
-            } catch (e) {
-                // User parsing failed
-            }
+        // Clear any stale user data if token is missing/invalid
+        if (!token) {
+            localStorage.removeItem('user');
+            console.log('🧹 Cleared stale user data - no valid token');
         }
 
         return null;
     } catch (error) {
+        console.error('❌ Error getting current user identifier:', error);
         return null;
     }
 };

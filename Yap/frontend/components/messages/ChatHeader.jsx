@@ -1,6 +1,6 @@
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../../services/config';
+import { getDefaultProfilePicture } from '../../utils/profileUtils';
 
 function ChatHeader({ conversation, getProfilePictureUrl, typingUsers = [] }) {
     const { isDarkMode } = useTheme();
@@ -36,7 +36,7 @@ function ChatHeader({ conversation, getProfilePictureUrl, typingUsers = [] }) {
                         alt={conversation.other_participant?.username || 'Unknown User'}
                         className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition-opacity"
                         onError={(e) => {
-                            e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                            e.target.src = getDefaultProfilePicture();
                         }}
                     />
                     

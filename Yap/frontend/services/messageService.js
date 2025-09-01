@@ -394,6 +394,14 @@ class MessageService {
                 conversation_id: conversationId,
                 content: content
             };
+            
+            // Debug: Log sender info for debugging account switching issues
+            console.log('📤 Sending message:', {
+                conversationId,
+                senderId_frontend: senderId,
+                token_present: !!this.token,
+                messageData
+            });
 
             // Add attachment data if present
             if (attachedImage) {
@@ -558,6 +566,14 @@ class MessageService {
     // Check if connected
     isConnected() {
         return this.socket && this.socket.connected;
+    }
+
+    // Force reconnection with new token (useful when user switches accounts)
+    async forceReconnect() {
+        console.log('🔄 Forcing reconnection with fresh token...');
+        this.disconnect();
+        this.reconnectAttempts = 0; // Reset reconnection attempts
+        return await this.connect();
     }
 
     // Get user's unread message count
