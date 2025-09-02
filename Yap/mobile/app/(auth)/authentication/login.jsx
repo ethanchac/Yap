@@ -12,7 +12,7 @@ import { Eye, EyeOff, User, Lock, ArrowRight } from 'lucide-react-native';
 import * as SecureStore from 'expo-secure-store';
 import EmailVerification from './EmailVerification';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:8081';
 
 export default function Login() {
   const [formData, setFormData] = useState({
