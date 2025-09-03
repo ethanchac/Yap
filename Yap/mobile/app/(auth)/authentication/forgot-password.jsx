@@ -8,8 +8,7 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../../../src/config/api';
 
 function ForgotPassword() {
     const router = useRouter();

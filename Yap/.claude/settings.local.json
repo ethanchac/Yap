@@ -4,7 +4,9 @@
       "Bash(npm run build:*)",
       "Bash(python3:*)",
       "Bash(cd:*)",
-      "Bash(python -m pytest --version)"
+      "Bash(python -m pytest --version)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

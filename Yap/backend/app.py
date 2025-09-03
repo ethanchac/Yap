@@ -43,7 +43,9 @@ base_origins = [
     "http://localhost:5173", 
     "http://127.0.0.1:5173", 
     "http://localhost:3000",
+    "http://127.0.0.1:3000",  # iOS simulator fallback
     "http://localhost:8081",
+    "http://127.0.0.1:8081",  # iOS simulator fallback
     "https://yap-mu.vercel.app",  # Your Vercel production URL
     "https://*.vercel.app",        # All Vercel preview deployments
     "https://*.railway.app",       # Railway domains
@@ -82,6 +84,23 @@ app.config['UPLOAD_FOLDER'] = 'uploads/profile_pictures'
 # Create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Request logging for debugging mobile app issues
+@app.before_request
+def log_request_info():
+    """Log request details for debugging mobile connectivity"""
+    origin = request.headers.get('Origin', 'No Origin')
+    user_agent = request.headers.get('User-Agent', 'No User-Agent')
+    
+    # Only log non-static requests
+    if not request.path.startswith('/static') and not request.path.startswith('/uploads'):
+        logger.info(f"📱 {request.method} {request.path} - Origin: {origin} - UA: {user_agent[:50]}...")
+        
+        # Log mobile-specific requests with more detail
+        if 'expo' in user_agent.lower() or origin.startswith('http://localhost:19'):
+            logger.info(f"🔍 Mobile Request Headers: {dict(request.headers)}")
+            if request.get_json():
+                logger.info(f"🔍 Mobile Request Body: {request.get_json()}")
+
 # Enhanced CORS handling for complex requests
 @app.after_request
 def after_request(response):
@@ -90,11 +109,12 @@ def after_request(response):
     
     # Use the same allowed origins as the CORS config
     # Also allow any .vercel.app subdomain for preview deployments
-    # And allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    # And allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x) and Expo dev server (localhost:19000-19999)
     if origin and (
         origin in all_origins or 
         origin.endswith('.vercel.app') or
         origin.endswith('.railway.app') or
+        (origin.startswith('http://localhost:19') and origin.split(':')[2].isdigit()) or  # Expo dev server
         any(origin.startswith(f'http://{prefix}') for prefix in ['192.168.', '10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.'])
     ):
         response.headers['Access-Control-Allow-Origin'] = origin

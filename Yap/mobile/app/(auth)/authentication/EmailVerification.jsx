@@ -9,8 +9,7 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { Mail } from 'lucide-react-native';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../../../src/config/api';
 
 function EmailVerification({ username, onVerificationSuccess, onBackToRegister }) {
     const [code, setCode] = useState('');

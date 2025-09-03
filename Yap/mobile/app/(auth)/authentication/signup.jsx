@@ -9,8 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import EmailVerification from './EmailVerification';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../../../src/config/api';
 
 function RegisterForm() {
     const router = useRouter();

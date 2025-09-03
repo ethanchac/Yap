@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -11,8 +11,7 @@ import { useRouter } from 'expo-router';
 import { Eye, EyeOff, User, Lock, ArrowRight } from 'lucide-react-native';
 import * as SecureStore from 'expo-secure-store';
 import EmailVerification from './EmailVerification';
-
-const API_BASE_URL = 'http://localhost:8081';
+import { API_BASE_URL, testApiConnectivity } from '../../../src/config/api';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -26,6 +25,11 @@ export default function Login() {
   const [unverifiedUsername, setUnverifiedUsername] = useState('');
   const router = useRouter();
 
+  // Test API connectivity on component load
+  useEffect(() => {
+    testApiConnectivity();
+  }, []);
+
   const handleInputChange = (name, value) => {
     setFormData({
       ...formData,
@@ -37,6 +41,9 @@ export default function Login() {
     setMsg("");
     setLoading(true);
 
+    console.log('🔑 Attempting login to:', `${API_BASE_URL}/auth/login`);
+    console.log('📝 Login payload:', { username: formData.username });
+
     try {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
@@ -47,7 +54,11 @@ export default function Login() {
         })
       });
 
+      console.log('📡 Response status:', res.status);
+      console.log('📡 Response headers:', Object.fromEntries(res.headers.entries()));
+
       const data = await res.json();
+      console.log('📄 Response data:', data);
       
       if (res.ok) {
         await SecureStore.setItemAsync("token", data.token);
@@ -61,7 +72,13 @@ export default function Login() {
         setMsg(data.error || "Login failed");
       }
     } catch (err) {
-      setMsg("Server error");
+      console.error('❌ Login error:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
+      setMsg(`Server error: ${err.message}`);
     } finally {
       setLoading(false);
     }
