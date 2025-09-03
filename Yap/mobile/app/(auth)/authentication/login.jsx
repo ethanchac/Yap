@@ -61,9 +61,22 @@ export default function Login() {
       console.log('📄 Response data:', data);
       
       if (res.ok) {
+        console.log('✅ Login successful, storing token...');
         await SecureStore.setItemAsync("token", data.token);
+        console.log('✅ Token stored successfully');
+        
+        // Verify token was stored
+        const storedToken = await SecureStore.getItemAsync("token");
+        console.log('✅ Token verification - stored token exists:', !!storedToken);
+        
         setMsg("Login success");
-        router.replace('/(tabs)');
+        console.log('🔀 Attempting to redirect to /(tabs)...');
+        
+        // Small delay to ensure token is fully stored
+        setTimeout(() => {
+          console.log('🔀 Executing redirect after delay...');
+          router.replace('/(tabs)');
+        }, 100);
       } else if (res.status === 403 && data.requires_verification) {
         setUnverifiedUsername(data.username || formData.username);
         setShowVerification(true);

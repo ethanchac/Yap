@@ -98,8 +98,14 @@ def log_request_info():
         # Log mobile-specific requests with more detail
         if 'expo' in user_agent.lower() or origin.startswith('http://localhost:19'):
             logger.info(f"🔍 Mobile Request Headers: {dict(request.headers)}")
-            if request.get_json():
-                logger.info(f"🔍 Mobile Request Body: {request.get_json()}")
+            # Only try to parse JSON for methods that can have a body
+            if request.method in ['POST', 'PUT', 'PATCH']:
+                try:
+                    json_data = request.get_json(silent=True)
+                    if json_data:
+                        logger.info(f"🔍 Mobile Request Body: {json_data}")
+                except Exception as e:
+                    logger.warning(f"🔍 Could not parse JSON body: {e}")
 
 # Enhanced CORS handling for complex requests
 @app.after_request

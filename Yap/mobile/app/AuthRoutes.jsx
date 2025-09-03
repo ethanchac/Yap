@@ -1,37 +1,41 @@
 import { useEffect, useState } from 'react';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter, useSegments, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useCallback } from 'react';
 
 const AuthRoutes = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const router = useRouter();
   const segments = useSegments();
 
-  useEffect(() => {
-    const checkAuthState = async () => {
-      try {
-        const token = await SecureStore.getItemAsync('token');
-        setIsAuthenticated(!!token);
-      } catch (error) {
-        console.log('Error checking auth state:', error);
-        setIsAuthenticated(false);
-      }
-    };
+  const checkAuthState = async () => {
+    try {
+      console.log('🔒 AuthRoutes: Checking auth state...');
+      const token = await SecureStore.getItemAsync('token');
+      console.log('🔒 AuthRoutes: Token exists:', !!token);
+      console.log('🔒 AuthRoutes: Token preview:', token ? `${token.substring(0, 20)}...` : 'null');
+      setIsAuthenticated(!!token);
+    } catch (error) {
+      console.log('🔒 AuthRoutes: Error checking auth state:', error);
+      setIsAuthenticated(false);
+    }
+  };
 
+  useEffect(() => {
     checkAuthState();
   }, []);
 
+  // Use focus effect to check auth state when navigating
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔒 AuthRoutes: Screen focused, checking auth...');
+      checkAuthState();
+    }, [])
+  );
+
   useEffect(() => {
-    if (isAuthenticated === null) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-    const inTabsGroup = segments[0] === '(tabs)';
-
-    if (isAuthenticated && !inTabsGroup) {
-      router.replace('/(tabs)');
-    } else if (!isAuthenticated && !inAuthGroup && segments[0] !== undefined) {
-      router.replace('/(auth)/landing');
-    }
+    // Temporarily disabled automatic redirects - always stay on current page
+    console.log('🔒 AuthRoutes: Auto-redirect disabled for debugging');
   }, [isAuthenticated, segments]);
 
   return children;

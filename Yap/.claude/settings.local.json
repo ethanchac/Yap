@@ -6,7 +6,11 @@
       "Bash(cd:*)",
       "Bash(python -m pytest --version)",
       "Bash(lsof:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Read(/Users/ethan/Desktop/**)",
+      "Bash(npm install:*)",
+      "Bash(expo start:*)",
+      "Bash(npm run start:*)"
     ],
     "deny": [],
     "ask": []
