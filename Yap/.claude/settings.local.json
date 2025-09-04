@@ -11,7 +11,11 @@
       "Bash(npm install:*)",
       "Bash(expo start:*)",
       "Bash(npm run start:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(npx expo start:*)",
+      "Bash(pkill:*)",
+      "Bash(npx expo install:*)"
     ],
     "deny": [],
     "ask": []
