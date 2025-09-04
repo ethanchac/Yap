@@ -10,7 +10,8 @@
       "Read(/Users/ethan/Desktop/**)",
       "Bash(npm install:*)",
       "Bash(expo start:*)",
-      "Bash(npm run start:*)"
+      "Bash(npm run start:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
