@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(python3:*)",
+      "Bash(cd:*)",
+      "Bash(python -m pytest --version)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Read(/Users/ethan/Desktop/**)",
+      "Bash(npm install:*)",
+      "Bash(expo start:*)",
+      "Bash(npm run start:*)",
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(npx expo start:*)",
+      "Bash(pkill:*)",
+      "Bash(npx expo install:*)"
     ],
     "deny": [],
     "ask": []

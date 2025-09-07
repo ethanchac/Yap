@@ -3,7 +3,7 @@ import MessageBubble from './MessageBubble';
 import DateSeparator from './DateSeperator';
 import TypingIndicator from './TypingIndicator';
 import { shouldShowDateSeparator } from './utils/easternTimeUtils';
-import { API_BASE_URL } from '../../services/config';
+import { getDefaultProfilePicture } from '../../utils/profileUtils';
 
 const MessageList = forwardRef(({ 
     messages, 
@@ -25,8 +25,20 @@ const MessageList = forwardRef(({
         
         // The primary identifier should be sender_id which matches currentUserIdentifier
         const messageSenderId = message.sender_id;
+        const isMyMsg = String(messageSenderId) === String(currentUserIdentifier);
         
-        return String(messageSenderId) === String(currentUserIdentifier);
+        // Debug: Log sender identification for debugging account switching issues
+        if (message.content) {
+            console.log('🔍 Message sender check:', {
+                messageId: message._id?.slice(-6),
+                content: message.content.slice(0, 20) + '...',
+                messageSenderId,
+                currentUserIdentifier,
+                isMyMessage: isMyMsg
+            });
+        }
+        
+        return isMyMsg;
     }, [currentUserIdentifier]);
 
     // FIXED: Memoize message groups to prevent unnecessary recalculation
@@ -219,7 +231,7 @@ const MessageList = forwardRef(({
                                 alt={typingUsers[0]?.username || 'Someone'}
                                 className="w-8 h-8 rounded-full object-cover"
                                 onError={(e) => {
-                                    e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                                    e.target.src = getDefaultProfilePicture();
                                 }}
                             />
                         </div>
@@ -255,7 +267,7 @@ const MessageGroup = React.memo(({ group, showDateSeparator, getProfilePictureUr
                                 alt={group.sender?.username || 'Unknown User'}
                                 className="w-8 h-8 rounded-full object-cover"
                                 onError={(e) => {
-                                    e.target.src = `${API_BASE_URL}/static/default/default-avatar.png`;
+                                    e.target.src = getDefaultProfilePicture();
                                 }}
                             />
                         </div>

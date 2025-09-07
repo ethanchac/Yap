@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from users.models import User, Follow
 from posts.models import Post
-from auth.service import token_required
+from auth.service import token_required, get_current_user_from_token
 import os
 import uuid
 from werkzeug.utils import secure_filename
@@ -27,6 +27,17 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 users_bp = Blueprint('users', __name__)
+
+def get_current_user():
+    """Get current user from request token if available"""
+    try:
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            token = auth_header.split(" ")[1]
+            return get_current_user_from_token(token)
+    except:
+        pass
+    return None
 
 @users_bp.route('/search', methods=['GET'])
 def search_users():
@@ -130,6 +141,12 @@ def get_user_followers(user_id):
         
         followers = Follow.get_user_followers(user_id, limit=limit, skip=skip)
         
+        # Add is_following status for authenticated users
+        current_user = get_current_user()
+        if current_user:
+            for follower in followers:
+                follower['is_following'] = Follow.check_following_status(current_user['_id'], follower['_id'])
+        
         return jsonify({
             "followers": followers,
             "page": page,
@@ -148,6 +165,12 @@ def get_user_following(user_id):
         skip = (page - 1) * limit
         
         following = Follow.get_user_following(user_id, limit=limit, skip=skip)
+        
+        # Add is_following status for authenticated users (always true for following list)
+        current_user = get_current_user()
+        if current_user:
+            for following_user in following:
+                following_user['is_following'] = True  # User is following all these people
         
         return jsonify({
             "following": following,
@@ -651,6 +674,56 @@ def get_my_enhanced_profile(current_user):
         traceback.print_exc()
         return jsonify({"error": f"Failed to fetch profile: {str(e)}"}), 500
     
+@users_bp.route('/me/followers', methods=['GET'])
+@token_required
+def get_my_followers(current_user):
+    """Get current user's followers"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        followers = Follow.get_user_followers(current_user['_id'], limit=limit, skip=skip)
+        
+        # Add is_following status for each follower
+        for follower in followers:
+            follower['is_following'] = Follow.check_following_status(current_user['_id'], follower['_id'])
+        
+        return jsonify({
+            "followers": followers,
+            "page": page,
+            "limit": limit
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching my followers: {e}")
+        return jsonify({"error": "Failed to fetch followers"}), 500
+
+@users_bp.route('/me/following', methods=['GET'])
+@token_required
+def get_my_following(current_user):
+    """Get users that current user is following"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        skip = (page - 1) * limit
+        
+        following = Follow.get_user_following(current_user['_id'], limit=limit, skip=skip)
+        
+        # Add is_following status (always true for following list)
+        for following_user in following:
+            following_user['is_following'] = True
+        
+        return jsonify({
+            "following": following,
+            "page": page,
+            "limit": limit
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching my following: {e}")
+        return jsonify({"error": "Failed to fetch following"}), 500
+
 @users_bp.route('/<user_id>/friends', methods=['GET'])
 @token_required
 def get_user_friends(current_user, user_id):

@@ -44,11 +44,13 @@ def forgot_password():
     reset_data = create_verification_data(code)
 
     try:
-        # Store reset data
-        users_collection.update_one(
+        # Store reset data for all users with this email
+        result = users_collection.update_many(
             {"email": email},
             {"$set": {"password_reset_data": reset_data}}
         )
+        
+        print(f"[INFO] Reset data stored for {result.modified_count} user(s) with email {email}")
 
         # Send reset email
         email_result = send_password_reset_email(email, code)
@@ -91,8 +93,8 @@ def verify_reset_code():
 
     # Verify code
     if password_reset_data.get("code") != code:
-        # Increment attempts
-        users_collection.update_one(
+        # Increment attempts for all users with this email
+        users_collection.update_many(
             {"email": email},
             {"$inc": {"password_reset_data.attempts": 1}}
         )
@@ -102,8 +104,8 @@ def verify_reset_code():
             "error": f"Invalid code. {remaining_attempts} attempts remaining."
         }), 400
 
-    # Code is valid - mark as verified
-    users_collection.update_one(
+    # Code is valid - mark as verified for all users with this email
+    users_collection.update_many(
         {"email": email},
         {"$set": {"password_reset_data.verified": True}}
     )
@@ -149,8 +151,8 @@ def reset_password():
         # Hash new password
         hashed_pw = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
 
-        # Update password and remove reset data
-        users_collection.update_one(
+        # Update password for all users with this email and remove reset data
+        result = users_collection.update_many(
             {"email": email},
             {
                 "$set": {
@@ -160,6 +162,8 @@ def reset_password():
                 "$unset": {"password_reset_data": ""}
             }
         )
+        
+        print(f"[INFO] Password updated for {result.modified_count} user(s) with email {email}")
 
         return jsonify({"message": "Password reset successfully. You can now log in with your new password."}), 200
 
@@ -193,7 +197,7 @@ def resend_reset_code():
     code = generate_6_digit_code()
     reset_data = create_verification_data(code)
 
-    users_collection.update_one(
+    users_collection.update_many(
         {"email": email},
         {"$set": {"password_reset_data": reset_data}}
     )

@@ -54,6 +54,15 @@ export default function LoginForm() {
       if (res.ok) {
         // store the token in localStorage
         localStorage.setItem("token", data.token);
+        
+        // Force messageService to reconnect with new token to prevent sender ID issues
+        try {
+          const { messageService } = await import('../../services/messageService');
+          messageService.forceReconnect();
+        } catch (error) {
+          console.warn('Could not force messageService reconnect:', error);
+        }
+        
         setMsg("Login success");
         // navigate to homepage
         navigate('/home');
