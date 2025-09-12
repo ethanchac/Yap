@@ -165,7 +165,7 @@ function PostItem({ post, onPostDeleted }) {
     if (!post.images || post.images.length === 0) return null;
 
     const imageCount = post.images.length;
-    const imageWidth = screenWidth - 80; // Account for padding and margins
+    const imageWidth = screenWidth - 120; // Account for padding (48px), profile pic space (48px), gaps (24px)
 
     if (imageCount === 1) {
       return (
