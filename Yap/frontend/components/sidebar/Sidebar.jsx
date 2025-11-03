@@ -30,8 +30,8 @@ function Sidebar() {
                     <img 
                                 src={isDarkMode ? YappLogoDark : YappLogoLight} 
                                 alt="Yapp Logo" 
-                                className="h-16 w-auto max-w-full object-contain"
-                                style={{ height: '4rem' }}
+                                className="w-auto max-w-full object-contain"
+                                style={{ height: isDarkMode ? '5rem' : '4rem' }}
                               />
                 </Link>
             </div>
