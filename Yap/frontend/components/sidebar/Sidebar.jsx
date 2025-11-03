@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Plus, Users, MessageCircle, MapPin, User, Settings, MessageSquare } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext'; // Add this import
-import YappLogo from '../../assets/Yapp White logo.png'; // Import the logo
+import YappLogoDark from '../../assets/Yapp White logo.png'; // Import the dark mode logo
+import YappLogoLight from '../../assets/yapp_light_mode.png'; // Import the light mode logo (colored version)
 
 function Sidebar() {
     const location = useLocation();
@@ -27,9 +28,10 @@ function Sidebar() {
             }`}>
                 <Link to="/home" className="flex items-center justify-center">
                     <img 
-                                src={YappLogo} 
+                                src={isDarkMode ? YappLogoDark : YappLogoLight} 
                                 alt="Yapp Logo" 
-                                className="h-18 w-auto"
+                                className="h-16 w-auto max-w-full object-contain"
+                                style={{ height: '4rem' }}
                               />
                 </Link>
             </div>

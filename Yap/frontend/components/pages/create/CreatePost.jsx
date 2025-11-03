@@ -354,14 +354,14 @@ function CreatePost() {
                             </button>
                             
                             {showEmojiPicker && (
-                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl z-50 min-w-64">
+                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-black border border-gray-600 rounded-xl shadow-2xl z-50 min-w-64">
                                     <div className="grid grid-cols-8 gap-2">
                                         {commonEmojis.map((emoji, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
                                                 onClick={() => handleEmojiClick(emoji)}
-                                                className="p-2 text-2xl rounded-lg hover:bg-white/10 transition-colors duration-200 hover:scale-110"
+                                                className="p-2 text-2xl rounded-lg hover:bg-gray-800 transition-colors duration-200 hover:scale-110"
                                             >
                                                 {emoji}
                                             </button>
@@ -382,14 +382,14 @@ function CreatePost() {
                             </button>
                             
                             {showHashtagSuggestions && (
-                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl z-50 min-w-48">
+                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-black border border-gray-600 rounded-xl shadow-2xl z-50 min-w-48">
                                     <div className="space-y-2">
                                         {commonHashtags.map((hashtag, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
                                                 onClick={() => handleHashtagClick(hashtag)}
-                                                className="w-full p-2 text-left rounded-lg text-gray-300 hover:text-orange-400 hover:bg-white/10 transition-colors duration-200"
+                                                className="w-full p-2 text-left rounded-lg text-gray-300 hover:text-orange-400 hover:bg-gray-800 transition-colors duration-200"
                                             >
                                                 {hashtag}
                                             </button>
@@ -410,14 +410,14 @@ function CreatePost() {
                             </button>
                             
                             {showMentionSuggestions && (
-                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl z-50 min-w-56">
+                                <div className="absolute bottom-full left-0 mb-2 p-3 bg-black border border-gray-600 rounded-xl shadow-2xl z-50 min-w-56">
                                     <div className="space-y-2">
                                         {userSuggestions.map((user) => (
                                             <button
                                                 key={user.id}
                                                 type="button"
                                                 onClick={() => handleMentionClick(user)}
-                                                className="w-full p-2 text-left rounded-lg text-gray-300 hover:text-orange-400 hover:bg-white/10 transition-colors duration-200 flex items-center space-x-3"
+                                                className="w-full p-2 text-left rounded-lg text-gray-300 hover:text-orange-400 hover:bg-gray-800 transition-colors duration-200 flex items-center space-x-3"
                                             >
                                                 <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                                     {user.name.charAt(0)}
