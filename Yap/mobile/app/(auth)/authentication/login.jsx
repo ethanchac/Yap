@@ -41,8 +41,7 @@ export default function Login() {
     setMsg("");
     setLoading(true);
 
-    console.log('🔑 Attempting login to:', `${API_BASE_URL}/auth/login`);
-    console.log('📝 Login payload:', { username: formData.username });
+  // Attempting login (sensitive info logging removed)
 
     try {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -54,27 +53,20 @@ export default function Login() {
         })
       });
 
-      console.log('📡 Response status:', res.status);
-      console.log('📡 Response headers:', Object.fromEntries(res.headers.entries()));
+  // Response status and headers logging removed for privacy
 
       const data = await res.json();
-      console.log('📄 Response data:', data);
+  // Response data logging removed for privacy
       
       if (res.ok) {
-        console.log('✅ Login successful, storing token...');
         await SecureStore.setItemAsync("token", data.token);
-        console.log('✅ Token stored successfully');
-        
-        // Verify token was stored
-        const storedToken = await SecureStore.getItemAsync("token");
-        console.log('✅ Token verification - stored token exists:', !!storedToken);
+  // Token stored (no logging of token presence for privacy)
         
         setMsg("Login success");
-        console.log('🔀 Attempting to redirect to /(tabs)...');
+  // Redirecting to app tabs
         
         // Small delay to ensure token is fully stored
         setTimeout(() => {
-          console.log('🔀 Executing redirect after delay...');
           router.replace('/(tabs)');
         }, 100);
       } else if (res.status === 403 && data.requires_verification) {

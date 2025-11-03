@@ -36,11 +36,8 @@ export default function Events() {
       }
       setError('');
       
-      // Use the working events endpoint with past events included
-      const url = `${API_BASE_URL}/events/feed?limit=20&include_past=true`;
-      
-      console.log('🔍 Events - Fetching from URL:', url);
-      
+  // Use the working events endpoint with past events included
+  const url = `${API_BASE_URL}/events/feed?limit=20&include_past=true`;
       const headers = await getAuthHeaders();
       
       const response = await fetch(url, {
@@ -48,11 +45,10 @@ export default function Events() {
         headers: headers
       });
       
-      console.log('📥 Response status:', response.status);
+  // Response status logging removed for privacy
       
       if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Events data received:', data);
+  const data = await response.json();
         
         if (data.events && Array.isArray(data.events)) {
           setEvents(data.events);
@@ -62,8 +58,7 @@ export default function Events() {
           setError('No events found');
         }
       } else {
-        const errorText = await response.text();
-        console.log('❌ Error:', errorText);
+  const errorText = await response.text();
         setError(`Failed to fetch events: ${response.status}`);
       }
     } catch (err) {

@@ -33,20 +33,15 @@ function ProfileEvents({ userId, isOwnProfile }) {
         url = `${API_BASE_URL}/events/user/${userId}/attending?limit=10&include_past=true`;
       }
       
-      console.log('🔍 ProfileEvents - Fetching events from:', url);
-      console.log('🔍 ProfileEvents - API_BASE_URL:', API_BASE_URL);
-      console.log('🔍 ProfileEvents - isOwnProfile:', isOwnProfile);
-      console.log('🔍 ProfileEvents - userId:', userId);
-      
-      const headers = await getAuthHeaders();
-      console.log('🔍 ProfileEvents - Headers:', headers);
+  // Sensitive logging removed: do not log API URLs, headers or user IDs
+  const headers = await getAuthHeaders();
       
       const response = await fetch(url, {
         method: 'GET',
         headers: headers
       });
       
-      console.log('📡 ProfileEvents response status:', response.status, response.ok);
+  // Response status logging removed for privacy
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -65,9 +60,7 @@ function ProfileEvents({ userId, isOwnProfile }) {
         throw new Error(errorData.error || `Failed to fetch events (${response.status})`);
       }
       
-      const data = await response.json();
-      console.log('📊 ProfileEvents data received:', data);
-      console.log('📊 ProfileEvents events count:', data.events ? data.events.length : 'No events property');
+  const data = await response.json();
       
       setEvents(data.events || []);
     } catch (err) {
@@ -79,7 +72,6 @@ function ProfileEvents({ userId, isOwnProfile }) {
   };
 
   useEffect(() => {
-    console.log('🔍 ProfileEvents useEffect triggered', { userId, isOwnProfile });
     fetchEvents();
   }, [userId, isOwnProfile]);
 

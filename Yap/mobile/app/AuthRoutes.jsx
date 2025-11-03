@@ -10,11 +10,9 @@ const AuthRoutes = ({ children }) => {
 
   const checkAuthState = async () => {
     try {
-      console.log('🔒 AuthRoutes: Checking auth state...');
-      const token = await SecureStore.getItemAsync('token');
-      console.log('🔒 AuthRoutes: Token exists:', !!token);
-      console.log('🔒 AuthRoutes: Token preview:', token ? `${token.substring(0, 20)}...` : 'null');
-      setIsAuthenticated(!!token);
+  const token = await SecureStore.getItemAsync('token');
+  // Don't log token existence or preview to avoid leaking tokens
+  setIsAuthenticated(!!token);
     } catch (error) {
       console.log('🔒 AuthRoutes: Error checking auth state:', error);
       setIsAuthenticated(false);
@@ -28,7 +26,7 @@ const AuthRoutes = ({ children }) => {
   // Use focus effect to check auth state when navigating
   useFocusEffect(
     useCallback(() => {
-      console.log('🔒 AuthRoutes: Screen focused, checking auth...');
+  // Screen focused, checking auth
       checkAuthState();
     }, [])
   );
